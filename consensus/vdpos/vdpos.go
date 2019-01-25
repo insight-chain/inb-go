@@ -40,7 +40,29 @@ import (
 	"github.com/insight-chain/inb-go/rpc"
 )
 
+const (
+	inMemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
+	inMemorySignatures = 4096 // Number of recent block signatures to keep in memory
+	checkpointInterval = 1024 // Number of blocks after which to save the vote snapshot to the database
+)
 
+var (
+	defaultEpochLength = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
+	defaultBlockPeriod = uint64(3)      // Default minimum difference between two consecutive block's timestamps
+	//TODO defaultBlockPeriod != defaultSignerPeriod ,now they are equal
+	defaultSignerPeriod              = uint64(3)  // Default minimum difference between two consecutive signer's timestamps
+	defaultSignerBlocks              = uint64(6)  // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21) // Default max signers
+	minVoterBalance                  = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e+18))
+	extraVanity                      = 32                                                    // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                                                    // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)                              // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                                         // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                                             // Default loop count to recreate signers from top tally
+	defaultMinerReward               = big.NewInt(3e+18)                                     // Default reward for miner in wei
+	candidateNeedPD                  = false                                                 // is new candidate need Proposal & Declare process
+	proposalDeposit                  = new(big.Int).Mul(big.NewInt(1e+18), big.NewInt(1e+4)) // current proposalDeposit
+)
 
 // Various error messages to mark blocks invalid. These should be private to
 // prevent engine specific errors from being referenced in the remainder of the
