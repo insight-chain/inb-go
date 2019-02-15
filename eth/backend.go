@@ -449,14 +449,14 @@ func (s *Ethereum) StartMining(threads int) error {
 		}
 
 		//vdpos by ssh begin
-		if vdpos, ok := s.engine.(*vdpos.Vdpos); ok {
-			wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
-			if wallet == nil || err != nil {
-				log.Error("Inbbase account unavailable locally", "err", err)
-				return fmt.Errorf("signer missing: %v", err)
-			}
-			vdpos.Authorize(eb, wallet.SignHash, wallet.SignTx)
-		}
+		//if vdpos, ok := s.engine.(*vdpos.Vdpos); ok {
+		//	wallet, err := s.accountManager.Find(accounts.Account{Address: eb})
+		//	if wallet == nil || err != nil {
+		//		log.Error("Inbbase account unavailable locally", "err", err)
+		//		return fmt.Errorf("signer missing: %v", err)
+		//	}
+		//	vdpos.Authorize(eb, wallet.SignHash, wallet.SignTx)
+		//}
 		//vdpos by ssh end
 
 		// If mining is started, we can disable the transaction rejection mechanism
