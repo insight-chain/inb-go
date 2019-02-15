@@ -186,7 +186,7 @@ func IsHexAddress(s string) bool {
 
 // vdpos by ssh begin
 
-func (a Address) Str() string { return string(a[:]) }
+//func (a Address) Str() string { return string(a[:]) }
 
 // vdpos by ssh end
 
