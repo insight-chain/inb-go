@@ -89,13 +89,13 @@ func New(ctx *node.ServiceContext, config *eth.Config) (*LightEthereum, error) {
 	log.Info("Initialised chain configuration", "config", chainConfig)
 
 	//vdpos by ssh begin
-	//if chainConfig.Vdpos != nil {
-	//	log.Info("Initialised vdpos configuration", "config", *chainConfig.Vdpos)
-	//	if config.NetworkId == 1 { // eth.DefaultConfig.NetworkId
-	//		// change default eth networkid  to default inb networkid
-	//		config.NetworkId = chainConfig.ChainID.Uint64()
-	//	}
-	//}
+	if chainConfig.Vdpos != nil {
+		log.Info("Initialised vdpos configuration", "config", *chainConfig.Vdpos)
+		if config.NetworkId == 1 { // eth.DefaultConfig.NetworkId
+			// change default eth networkid  to default inb networkid
+			config.NetworkId = chainConfig.ChainID.Uint64()
+		}
+	}
 	//vdpos by ssh end
 
 	peers := newPeerSet()
