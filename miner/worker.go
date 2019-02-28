@@ -420,47 +420,47 @@ func (w *worker) mainLoop() {
 
 			//vdpos by ssh begin
 			//uncle block useless in vdpos or clique
-			//if w.config.Vdpos != nil || w.config.Clique != nil {
-			//	//do nothing
-			//} else {
-			//	// Short circuit for duplicate side blocks
-			//	if _, exist := w.localUncles[ev.Block.Hash()]; exist {
-			//		continue
-			//	}
-			//	if _, exist := w.remoteUncles[ev.Block.Hash()]; exist {
-			//		continue
-			//	}
-			//	// Add side block to possible uncle block set depending on the author.
-			//	if w.isLocalBlock != nil && w.isLocalBlock(ev.Block) {
-			//		w.localUncles[ev.Block.Hash()] = ev.Block
-			//	} else {
-			//		w.remoteUncles[ev.Block.Hash()] = ev.Block
-			//	}
-			//	// If our mining block contains less than 2 uncle blocks,
-			//	// add the new uncle block if valid and regenerate a mining block.
-			//	if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 2 {
-			//		start := time.Now()
-			//		if err := w.commitUncle(w.current, ev.Block.Header()); err == nil {
-			//			var uncles []*types.Header
-			//			w.current.uncles.Each(func(item interface{}) bool {
-			//				hash, ok := item.(common.Hash)
-			//				if !ok {
-			//					return false
-			//				}
-			//				uncle, exist := w.localUncles[hash]
-			//				if !exist {
-			//					uncle, exist = w.remoteUncles[hash]
-			//				}
-			//				if !exist {
-			//					return false
-			//				}
-			//				uncles = append(uncles, uncle.Header())
-			//				return false
-			//			})
-			//			w.commit(uncles, nil, true, start)
-			//		}
-			//	}
-			//}
+			if w.config.Vdpos != nil || w.config.Clique != nil {
+				//do nothing
+			} else {
+				// Short circuit for duplicate side blocks
+				if _, exist := w.localUncles[ev.Block.Hash()]; exist {
+					continue
+				}
+				if _, exist := w.remoteUncles[ev.Block.Hash()]; exist {
+					continue
+				}
+				// Add side block to possible uncle block set depending on the author.
+				if w.isLocalBlock != nil && w.isLocalBlock(ev.Block) {
+					w.localUncles[ev.Block.Hash()] = ev.Block
+				} else {
+					w.remoteUncles[ev.Block.Hash()] = ev.Block
+				}
+				// If our mining block contains less than 2 uncle blocks,
+				// add the new uncle block if valid and regenerate a mining block.
+				if w.isRunning() && w.current != nil && w.current.uncles.Cardinality() < 2 {
+					start := time.Now()
+					if err := w.commitUncle(w.current, ev.Block.Header()); err == nil {
+						var uncles []*types.Header
+						w.current.uncles.Each(func(item interface{}) bool {
+							hash, ok := item.(common.Hash)
+							if !ok {
+								return false
+							}
+							uncle, exist := w.localUncles[hash]
+							if !exist {
+								uncle, exist = w.remoteUncles[hash]
+							}
+							if !exist {
+								return false
+							}
+							uncles = append(uncles, uncle.Header())
+							return false
+						})
+						w.commit(uncles, nil, true, start)
+					}
+				}
+			}
 			//vdpos by ssh end
 
 		case ev := <-w.txsCh:
@@ -491,11 +491,11 @@ func (w *worker) mainLoop() {
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
 
 		//vdpos by ssh begin
-		case <-time.After(vdposDelay):
-			// try to seal block in each period, even no new block received in dpos
-			if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
-				w.commitNewWork(nil, false, time.Now().Unix())
-			}
+		//case <-time.After(vdposDelay):
+		//	// try to seal block in each period, even no new block received in dpos
+		//	if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
+		//		w.commitNewWork(nil, false, time.Now().Unix())
+		//	}
 		//vdpos by ssh end
 
 		// System stopped
