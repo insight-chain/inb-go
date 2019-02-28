@@ -491,11 +491,11 @@ func (w *worker) mainLoop() {
 			atomic.AddInt32(&w.newTxs, int32(len(ev.Txs)))
 
 		//vdpos by ssh begin
-		//case <-time.After(vdposDelay):
-		//	// try to seal block in each period, even no new block received in dpos
-		//	if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
-		//		w.commitNewWork(nil, false, time.Now().Unix())
-		//	}
+		case <-time.After(vdposDelay):
+			// try to seal block in each period, even no new block received in dpos
+			if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
+				w.commitNewWork(nil, false, time.Now().Unix())
+			}
 		//vdpos by ssh end
 
 		// System stopped
