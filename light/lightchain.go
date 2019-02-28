@@ -98,9 +98,9 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 		return nil, err
 	}
 	//vdpos by ssh begin
-	if vdpos, ok := bc.hc.Engine().(*vdpos.Vdpos); ok {
-		vdpos.ApplyGenesis(bc.hc, bc.hc.CurrentHeader().Root)
-	}
+	//if vdpos, ok := bc.hc.Engine().(*vdpos.Vdpos); ok {
+	//	vdpos.ApplyGenesis(bc.hc, bc.hc.CurrentHeader().Root)
+	//}
 	//vdpos by ssh end
 	bc.genesisBlock, _ = bc.GetBlockByNumber(NoOdr, 0)
 	if bc.genesisBlock == nil {
