@@ -405,10 +405,10 @@ func (w *worker) mainLoop() {
 	defer w.chainSideSub.Unsubscribe()
 
 	//vdpos by ssh begin
-	vdposDelay := time.Duration(300) * time.Second
-	if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
-		vdposDelay = time.Duration(w.config.Vdpos.Period) * time.Second
-	}
+	//vdposDelay := time.Duration(300) * time.Second
+	//if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
+	//	vdposDelay = time.Duration(w.config.Vdpos.Period) * time.Second
+	//}
 	//vdpos by ssh end
 
 	for {
