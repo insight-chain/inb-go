@@ -47,27 +47,27 @@ func (api *API) GetSnapshotAtHash(hash common.Hash) (*Snapshot, error) {
 	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
 }
 
-//func (api *API) GetSigners(number uint64) ([]common.Address, error) {
-//	header := api.chain.GetHeaderByNumber(number)
-//	if header == nil {
-//		return nil, errUnknownBlock
-//	}
-//	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return snap.signers(), nil
-//}
-//
-//// GetSignersAtHash retrieves the list of authorized signers at the specified block.
-//func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
-//	header := api.chain.GetHeaderByHash(hash)
-//	if header == nil {
-//		return nil, errUnknownBlock
-//	}
-//	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return snap.signers(), nil
-//}
+func (api *API) GetSigners(number uint64) ([]common.Address, error) {
+	header := api.chain.GetHeaderByNumber(number)
+	if header == nil {
+		return nil, errUnknownBlock
+	}
+	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+	if err != nil {
+		return nil, err
+	}
+	return snap.signers(), nil
+}
+
+// GetSignersAtHash retrieves the list of authorized signers at the specified block.
+func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
+	header := api.chain.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errUnknownBlock
+	}
+	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+	if err != nil {
+		return nil, err
+	}
+	return snap.signers(), nil
+}
