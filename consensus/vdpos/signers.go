@@ -57,46 +57,46 @@ func (s SignerSlice) Less(i, j int) bool {
 }
 
 // verify the SignerQueue base on block hash
-//func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
-//
-//	if len(signersPool) > int(s.config.MaxSignerCount) {
-//		return errInvalidSignersPool
-//	}
-//	sq, err := s.createSignersPool()
-//	if err != nil {
-//		return err
-//	}
-//	if len(sq) == 0 || len(sq) != len(signersPool) {
-//		return errInvalidSignersPool
-//	}
-//	for i, signer := range signersPool {
-//		if signer != sq[i] {
-//			return errInvalidSignersPool
-//		}
-//	}
-//
-//	return nil
-//}
-//
-//func (s *Snapshot) buildTallySlice() TallySlice {
-//	var tallySlice TallySlice
-//	for address, stake := range s.Tally {
-//		if !candidateNeedPD || s.isCandidate(address) {
-//			if _, ok := s.Punished[address]; ok {
-//				var creditWeight uint64
-//				if s.Punished[address] > defaultFullCredit-minCalSignersPoolCredit {
-//					creditWeight = minCalSignersPoolCredit
-//				} else {
-//					creditWeight = defaultFullCredit - s.Punished[address]
-//				}
-//				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(int64(creditWeight)))})
-//			} else {
-//				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
-//			}
-//		}
-//	}
-//	return tallySlice
-//}
+func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
+
+	if len(signersPool) > int(s.config.MaxSignerCount) {
+		return errInvalidSignersPool
+	}
+	sq, err := s.createSignersPool()
+	if err != nil {
+		return err
+	}
+	if len(sq) == 0 || len(sq) != len(signersPool) {
+		return errInvalidSignersPool
+	}
+	for i, signer := range signersPool {
+		if signer != sq[i] {
+			return errInvalidSignersPool
+		}
+	}
+
+	return nil
+}
+
+func (s *Snapshot) buildTallySlice() TallySlice {
+	var tallySlice TallySlice
+	for address, stake := range s.Tally {
+		if !candidateNeedPD || s.isCandidate(address) {
+			if _, ok := s.Punished[address]; ok {
+				var creditWeight uint64
+				if s.Punished[address] > defaultFullCredit-minCalSignersPoolCredit {
+					creditWeight = minCalSignersPoolCredit
+				} else {
+					creditWeight = defaultFullCredit - s.Punished[address]
+				}
+				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(int64(creditWeight)))})
+			} else {
+				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+			}
+		}
+	}
+	return tallySlice
+}
 
 func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 
