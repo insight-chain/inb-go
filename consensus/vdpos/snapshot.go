@@ -302,39 +302,39 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 	return snap, nil
 }
 
-func (s *Snapshot) removeExtraCandidate() {
-	// remove minimum tickets tally beyond candidateMaxLen
-	tallySlice := s.buildTallySlice()
-	sort.Sort(TallySlice(tallySlice))
-	if len(tallySlice) > candidateMaxLen {
-		removeNeedTally := tallySlice[candidateMaxLen:]
-		for _, tallySlice := range removeNeedTally {
-			delete(s.Candidates, tallySlice.addr)
-		}
-	}
-}
-
-func (s *Snapshot) verifyTallyCnt() error {
-
-	tallyTarget := make(map[common.Address]*big.Int)
-	for _, v := range s.Votes {
-		if _, ok := tallyTarget[v.Candidate]; ok {
-			tallyTarget[v.Candidate].Add(tallyTarget[v.Candidate], v.Stake)
-		} else {
-			tallyTarget[v.Candidate] = new(big.Int).Set(v.Stake)
-		}
-	}
-
-	for address, tally := range s.Tally {
-		if targetTally, ok := tallyTarget[address]; ok && targetTally.Cmp(tally) == 0 {
-			continue
-		} else {
-			return errIncorrectTallyCount
-		}
-	}
-
-	return nil
-}
+//func (s *Snapshot) removeExtraCandidate() {
+//	// remove minimum tickets tally beyond candidateMaxLen
+//	tallySlice := s.buildTallySlice()
+//	sort.Sort(TallySlice(tallySlice))
+//	if len(tallySlice) > candidateMaxLen {
+//		removeNeedTally := tallySlice[candidateMaxLen:]
+//		for _, tallySlice := range removeNeedTally {
+//			delete(s.Candidates, tallySlice.addr)
+//		}
+//	}
+//}
+//
+//func (s *Snapshot) verifyTallyCnt() error {
+//
+//	tallyTarget := make(map[common.Address]*big.Int)
+//	for _, v := range s.Votes {
+//		if _, ok := tallyTarget[v.Candidate]; ok {
+//			tallyTarget[v.Candidate].Add(tallyTarget[v.Candidate], v.Stake)
+//		} else {
+//			tallyTarget[v.Candidate] = new(big.Int).Set(v.Stake)
+//		}
+//	}
+//
+//	for address, tally := range s.Tally {
+//		if targetTally, ok := tallyTarget[address]; ok && targetTally.Cmp(tally) == 0 {
+//			continue
+//		} else {
+//			return errIncorrectTallyCount
+//		}
+//	}
+//
+//	return nil
+//}
 
 func (s *Snapshot) updateSnapshotByDeclares(declares []Declare, headerNumber *big.Int) {
 	for _, declare := range declares {
