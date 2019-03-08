@@ -29,23 +29,23 @@ type API struct {
 	vdpos *Vdpos
 }
 
-//// GetSnapshot retrieves the state snapshot at a given block.
-//func (api *API) GetSnapshot(number uint64) (*Snapshot, error) {
-//	header := api.chain.GetHeaderByNumber(number)
-//	if header == nil {
-//		return nil, errUnknownBlock
-//	}
-//	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
-//}
-//
-//// GetSnapshotAtHash retrieves the state snapshot at a given block.
-//func (api *API) GetSnapshotAtHash(hash common.Hash) (*Snapshot, error) {
-//	header := api.chain.GetHeaderByHash(hash)
-//	if header == nil {
-//		return nil, errUnknownBlock
-//	}
-//	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
-//}
+// GetSnapshot retrieves the state snapshot at a given block.
+func (api *API) GetSnapshot(number uint64) (*Snapshot, error) {
+	header := api.chain.GetHeaderByNumber(number)
+	if header == nil {
+		return nil, errUnknownBlock
+	}
+	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+}
+
+// GetSnapshotAtHash retrieves the state snapshot at a given block.
+func (api *API) GetSnapshotAtHash(hash common.Hash) (*Snapshot, error) {
+	header := api.chain.GetHeaderByHash(hash)
+	if header == nil {
+		return nil, errUnknownBlock
+	}
+	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+}
 
 func (api *API) GetSigners(number uint64) ([]common.Address, error) {
 	header := api.chain.GetHeaderByNumber(number)
