@@ -348,33 +348,33 @@ func (v *Vdpos) processEventProposal(currentBlockProposals []Proposal, txDataInf
 	return append(currentBlockProposals, proposal)
 }
 
-func (v *Vdpos) processEventDeclare(currentBlockDeclares []Declare, txDataInfo []string, tx *types.Transaction, declarer common.Address) []Declare {
-	if len(txDataInfo) <= posEventDeclare+2 {
-		return currentBlockDeclares
-	}
-	declare := Declare{
-		ProposalHash: common.Hash{},
-		Declarer:     declarer,
-		Decision:     true,
-	}
-	for i := 0; i < len(txDataInfo[posEventDeclare+1:])/2; i++ {
-		k, v := txDataInfo[posEventDeclare+1+i*2], txDataInfo[posEventDeclare+2+i*2]
-		switch k {
-		case "hash":
-			declare.ProposalHash.UnmarshalText([]byte(v))
-		case "decision":
-			if v == "yes" {
-				declare.Decision = true
-			} else if v == "no" {
-				declare.Decision = false
-			} else {
-				return currentBlockDeclares
-			}
-		}
-	}
-
-	return append(currentBlockDeclares, declare)
-}
+//func (v *Vdpos) processEventDeclare(currentBlockDeclares []Declare, txDataInfo []string, tx *types.Transaction, declarer common.Address) []Declare {
+//	if len(txDataInfo) <= posEventDeclare+2 {
+//		return currentBlockDeclares
+//	}
+//	declare := Declare{
+//		ProposalHash: common.Hash{},
+//		Declarer:     declarer,
+//		Decision:     true,
+//	}
+//	for i := 0; i < len(txDataInfo[posEventDeclare+1:])/2; i++ {
+//		k, v := txDataInfo[posEventDeclare+1+i*2], txDataInfo[posEventDeclare+2+i*2]
+//		switch k {
+//		case "hash":
+//			declare.ProposalHash.UnmarshalText([]byte(v))
+//		case "decision":
+//			if v == "yes" {
+//				declare.Decision = true
+//			} else if v == "no" {
+//				declare.Decision = false
+//			} else {
+//				return currentBlockDeclares
+//			}
+//		}
+//	}
+//
+//	return append(currentBlockDeclares, declare)
+//}
 
 func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address) []Vote {
 	if state.GetBalance(voter).Cmp(minVoterBalance) > 0 {
