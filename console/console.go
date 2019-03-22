@@ -223,26 +223,26 @@ func (c *Console) init(preload []string) error {
 	return nil
 }
 
-func (c *Console) clearHistory() {
-	c.history = nil
-	c.prompter.ClearHistory()
-	if err := os.Remove(c.histPath); err != nil {
-		fmt.Fprintln(c.printer, "can't delete history file:", err)
-	} else {
-		fmt.Fprintln(c.printer, "history file deleted")
-	}
-}
-
-// consoleOutput is an override for the console.log and console.error methods to
-// stream the output into the configured output stream instead of stdout.
-func (c *Console) consoleOutput(call otto.FunctionCall) otto.Value {
-	output := []string{}
-	for _, argument := range call.ArgumentList {
-		output = append(output, fmt.Sprintf("%v", argument))
-	}
-	fmt.Fprintln(c.printer, strings.Join(output, " "))
-	return otto.Value{}
-}
+//func (c *Console) clearHistory() {
+//	c.history = nil
+//	c.prompter.ClearHistory()
+//	if err := os.Remove(c.histPath); err != nil {
+//		fmt.Fprintln(c.printer, "can't delete history file:", err)
+//	} else {
+//		fmt.Fprintln(c.printer, "history file deleted")
+//	}
+//}
+//
+//// consoleOutput is an override for the console.log and console.error methods to
+//// stream the output into the configured output stream instead of stdout.
+//func (c *Console) consoleOutput(call otto.FunctionCall) otto.Value {
+//	output := []string{}
+//	for _, argument := range call.ArgumentList {
+//		output = append(output, fmt.Sprintf("%v", argument))
+//	}
+//	fmt.Fprintln(c.printer, strings.Join(output, " "))
+//	return otto.Value{}
+//}
 
 // AutoCompleteInput is a pre-assembled word completer to be used by the user
 // input prompter to provide hints to the user about the methods available.
