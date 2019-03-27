@@ -49,24 +49,24 @@ func (h *nonceHeap) Pop() interface{} {
 
 // txSortedMap is a nonce->transaction hash map with a heap based index to allow
 // iterating over the contents in a nonce-incrementing way.
-type txSortedMap struct {
-	items map[uint64]*types.Transaction // Hash map storing the transaction data
-	index *nonceHeap                    // Heap of nonces of all the stored transactions (non-strict mode)
-	cache types.Transactions            // Cache of the transactions already sorted
-}
-
-// newTxSortedMap creates a new nonce-sorted transaction map.
-func newTxSortedMap() *txSortedMap {
-	return &txSortedMap{
-		items: make(map[uint64]*types.Transaction),
-		index: new(nonceHeap),
-	}
-}
-
-// Get retrieves the current transactions associated with the given nonce.
-func (m *txSortedMap) Get(nonce uint64) *types.Transaction {
-	return m.items[nonce]
-}
+//type txSortedMap struct {
+//	items map[uint64]*types.Transaction // Hash map storing the transaction data
+//	index *nonceHeap                    // Heap of nonces of all the stored transactions (non-strict mode)
+//	cache types.Transactions            // Cache of the transactions already sorted
+//}
+//
+//// newTxSortedMap creates a new nonce-sorted transaction map.
+//func newTxSortedMap() *txSortedMap {
+//	return &txSortedMap{
+//		items: make(map[uint64]*types.Transaction),
+//		index: new(nonceHeap),
+//	}
+//}
+//
+//// Get retrieves the current transactions associated with the given nonce.
+//func (m *txSortedMap) Get(nonce uint64) *types.Transaction {
+//	return m.items[nonce]
+//}
 
 // Put inserts a new transaction into the map, also updating the map's nonce
 // index. If a transaction already exists with the same nonce, it's overwritten.
