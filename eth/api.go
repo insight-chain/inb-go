@@ -48,24 +48,24 @@ type PublicEthereumAPI struct {
 }
 
 // NewPublicEthereumAPI creates a new Ethereum protocol API for full nodes.
-//func NewPublicEthereumAPI(e *Ethereum) *PublicEthereumAPI {
-//	return &PublicEthereumAPI{e}
-//}
-//
-//// Etherbase is the address that mining rewards will be send to
-//func (api *PublicEthereumAPI) Etherbase() (common.Address, error) {
-//	return api.e.Etherbase()
-//}
-//
-//// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
-//func (api *PublicEthereumAPI) Coinbase() (common.Address, error) {
-//	return api.Etherbase()
-//}
-//
-//// Hashrate returns the POW hashrate
-//func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
-//	return hexutil.Uint64(api.e.Miner().HashRate())
-//}
+func NewPublicEthereumAPI(e *Ethereum) *PublicEthereumAPI {
+	return &PublicEthereumAPI{e}
+}
+
+// Etherbase is the address that mining rewards will be send to
+func (api *PublicEthereumAPI) Etherbase() (common.Address, error) {
+	return api.e.Etherbase()
+}
+
+// Coinbase is the address that mining rewards will be send to (alias for Etherbase)
+func (api *PublicEthereumAPI) Coinbase() (common.Address, error) {
+	return api.Etherbase()
+}
+
+// Hashrate returns the POW hashrate
+func (api *PublicEthereumAPI) Hashrate() hexutil.Uint64 {
+	return hexutil.Uint64(api.e.Miner().HashRate())
+}
 
 // ChainId is the EIP-155 replay-protection chain id for the current ethereum chain config.
 func (api *PublicEthereumAPI) ChainId() hexutil.Uint64 {
