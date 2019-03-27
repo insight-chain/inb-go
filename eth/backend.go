@@ -498,37 +498,37 @@ func (s *Ethereum) Downloader() *downloader.Downloader { return s.protocolManage
 
 // Protocols implements node.Service, returning all the currently configured
 // network protocols to start.
-func (s *Ethereum) Protocols() []p2p.Protocol {
-	if s.lesServer == nil {
-		return s.protocolManager.SubProtocols
-	}
-	return append(s.protocolManager.SubProtocols, s.lesServer.Protocols()...)
-}
-
-// Start implements node.Service, starting all internal goroutines needed by the
-// Ethereum protocol implementation.
-func (s *Ethereum) Start(srvr *p2p.Server) error {
-	// Start the bloom bits servicing goroutines
-	s.startBloomHandlers(params.BloomBitsBlocks)
-
-	// Start the RPC service
-	s.netRPCService = ethapi.NewPublicNetAPI(srvr, s.NetVersion())
-
-	// Figure out a max peers count based on the server limits
-	maxPeers := srvr.MaxPeers
-	if s.config.LightServ > 0 {
-		if s.config.LightPeers >= srvr.MaxPeers {
-			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, srvr.MaxPeers)
-		}
-		maxPeers -= s.config.LightPeers
-	}
-	// Start the networking layer and the light server if requested
-	s.protocolManager.Start(maxPeers)
-	if s.lesServer != nil {
-		s.lesServer.Start(srvr)
-	}
-	return nil
-}
+//func (s *Ethereum) Protocols() []p2p.Protocol {
+//	if s.lesServer == nil {
+//		return s.protocolManager.SubProtocols
+//	}
+//	return append(s.protocolManager.SubProtocols, s.lesServer.Protocols()...)
+//}
+//
+//// Start implements node.Service, starting all internal goroutines needed by the
+//// Ethereum protocol implementation.
+//func (s *Ethereum) Start(srvr *p2p.Server) error {
+//	// Start the bloom bits servicing goroutines
+//	s.startBloomHandlers(params.BloomBitsBlocks)
+//
+//	// Start the RPC service
+//	s.netRPCService = ethapi.NewPublicNetAPI(srvr, s.NetVersion())
+//
+//	// Figure out a max peers count based on the server limits
+//	maxPeers := srvr.MaxPeers
+//	if s.config.LightServ > 0 {
+//		if s.config.LightPeers >= srvr.MaxPeers {
+//			return fmt.Errorf("invalid peer config: light peer count (%d) >= total peer count (%d)", s.config.LightPeers, srvr.MaxPeers)
+//		}
+//		maxPeers -= s.config.LightPeers
+//	}
+//	// Start the networking layer and the light server if requested
+//	s.protocolManager.Start(maxPeers)
+//	if s.lesServer != nil {
+//		s.lesServer.Start(srvr)
+//	}
+//	return nil
+//}
 
 // Stop implements node.Service, terminating all internal goroutines used by the
 // Ethereum protocol.
