@@ -436,33 +436,33 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 }
 
 // Stop terminates the transaction pool.
-//func (pool *TxPool) Stop() {
-//	// Unsubscribe all subscriptions registered from txpool
-//	pool.scope.Close()
-//
-//	// Unsubscribe subscriptions registered from blockchain
-//	pool.chainHeadSub.Unsubscribe()
-//	pool.wg.Wait()
-//
-//	if pool.journal != nil {
-//		pool.journal.close()
-//	}
-//	log.Info("Transaction pool stopped")
-//}
-//
-//// SubscribeNewTxsEvent registers a subscription of NewTxsEvent and
-//// starts sending event to the given channel.
-//func (pool *TxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
-//	return pool.scope.Track(pool.txFeed.Subscribe(ch))
-//}
-//
-//// GasPrice returns the current gas price enforced by the transaction pool.
-//func (pool *TxPool) GasPrice() *big.Int {
-//	pool.mu.RLock()
-//	defer pool.mu.RUnlock()
-//
-//	return new(big.Int).Set(pool.gasPrice)
-//}
+func (pool *TxPool) Stop() {
+	// Unsubscribe all subscriptions registered from txpool
+	pool.scope.Close()
+
+	// Unsubscribe subscriptions registered from blockchain
+	pool.chainHeadSub.Unsubscribe()
+	pool.wg.Wait()
+
+	if pool.journal != nil {
+		pool.journal.close()
+	}
+	log.Info("Transaction pool stopped")
+}
+
+// SubscribeNewTxsEvent registers a subscription of NewTxsEvent and
+// starts sending event to the given channel.
+func (pool *TxPool) SubscribeNewTxsEvent(ch chan<- NewTxsEvent) event.Subscription {
+	return pool.scope.Track(pool.txFeed.Subscribe(ch))
+}
+
+// GasPrice returns the current gas price enforced by the transaction pool.
+func (pool *TxPool) GasPrice() *big.Int {
+	pool.mu.RLock()
+	defer pool.mu.RUnlock()
+
+	return new(big.Int).Set(pool.gasPrice)
+}
 
 // SetGasPrice updates the minimum price required by the transaction pool for a
 // new transaction, and drops all transactions below this threshold.
