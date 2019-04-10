@@ -115,34 +115,34 @@ func (self *Miner) Start(coinbase common.Address) {
 	self.worker.start()
 }
 
-//func (self *Miner) Stop() {
-//	self.worker.stop()
-//	atomic.StoreInt32(&self.shouldStart, 0)
-//}
-//
-//func (self *Miner) Close() {
-//	self.worker.close()
-//	close(self.exitCh)
-//}
-//
-//func (self *Miner) Mining() bool {
-//	return self.worker.isRunning()
-//}
-//
-//func (self *Miner) HashRate() uint64 {
-//	if pow, ok := self.engine.(consensus.PoW); ok {
-//		return uint64(pow.Hashrate())
-//	}
-//	return 0
-//}
-//
-//func (self *Miner) SetExtra(extra []byte) error {
-//	if uint64(len(extra)) > params.MaximumExtraDataSize {
-//		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
-//	}
-//	self.worker.setExtra(extra)
-//	return nil
-//}
+func (self *Miner) Stop() {
+	self.worker.stop()
+	atomic.StoreInt32(&self.shouldStart, 0)
+}
+
+func (self *Miner) Close() {
+	self.worker.close()
+	close(self.exitCh)
+}
+
+func (self *Miner) Mining() bool {
+	return self.worker.isRunning()
+}
+
+func (self *Miner) HashRate() uint64 {
+	if pow, ok := self.engine.(consensus.PoW); ok {
+		return uint64(pow.Hashrate())
+	}
+	return 0
+}
+
+func (self *Miner) SetExtra(extra []byte) error {
+	if uint64(len(extra)) > params.MaximumExtraDataSize {
+		return fmt.Errorf("Extra exceeds max length. %d > %v", len(extra), params.MaximumExtraDataSize)
+	}
+	self.worker.setExtra(extra)
+	return nil
+}
 
 // SetRecommitInterval sets the interval for sealing work resubmitting.
 func (self *Miner) SetRecommitInterval(interval time.Duration) {
