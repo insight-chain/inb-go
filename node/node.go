@@ -227,24 +227,24 @@ func (n *Node) Start() error {
 	return nil
 }
 
-//func (n *Node) openDataDir() error {
-//	if n.config.DataDir == "" {
-//		return nil // ephemeral
-//	}
-//
-//	instdir := filepath.Join(n.config.DataDir, n.config.name())
-//	if err := os.MkdirAll(instdir, 0700); err != nil {
-//		return err
-//	}
-//	// Lock the instance directory to prevent concurrent use by another instance as well as
-//	// accidental use of the instance directory as a database.
-//	release, _, err := flock.New(filepath.Join(instdir, "LOCK"))
-//	if err != nil {
-//		return convertFileLockError(err)
-//	}
-//	n.instanceDirLock = release
-//	return nil
-//}
+func (n *Node) openDataDir() error {
+	if n.config.DataDir == "" {
+		return nil // ephemeral
+	}
+
+	instdir := filepath.Join(n.config.DataDir, n.config.name())
+	if err := os.MkdirAll(instdir, 0700); err != nil {
+		return err
+	}
+	// Lock the instance directory to prevent concurrent use by another instance as well as
+	// accidental use of the instance directory as a database.
+	release, _, err := flock.New(filepath.Join(instdir, "LOCK"))
+	if err != nil {
+		return convertFileLockError(err)
+	}
+	n.instanceDirLock = release
+	return nil
+}
 
 // startRPC is a helper method to start all the various RPC endpoint during node
 // startup. It's not meant to be called at any time afterwards as it makes certain
