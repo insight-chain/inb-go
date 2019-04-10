@@ -100,31 +100,31 @@ type pastDial struct {
 	exp time.Time
 }
 
-type task interface {
-	Do(*Server)
-}
-
-// A dialTask is generated for each node that is dialed. Its
-// fields cannot be accessed while the task is running.
-type dialTask struct {
-	flags        connFlag
-	dest         *enode.Node
-	lastResolved time.Time
-	resolveDelay time.Duration
-}
-
-// discoverTask runs discovery table operations.
-// Only one discoverTask is active at any time.
-// discoverTask.Do performs a random lookup.
-type discoverTask struct {
-	results []*enode.Node
-}
-
-// A waitExpireTask is generated if there are no other tasks
-// to keep the loop in Server.run ticking.
-type waitExpireTask struct {
-	time.Duration
-}
+//type task interface {
+//	Do(*Server)
+//}
+//
+//// A dialTask is generated for each node that is dialed. Its
+//// fields cannot be accessed while the task is running.
+//type dialTask struct {
+//	flags        connFlag
+//	dest         *enode.Node
+//	lastResolved time.Time
+//	resolveDelay time.Duration
+//}
+//
+//// discoverTask runs discovery table operations.
+//// Only one discoverTask is active at any time.
+//// discoverTask.Do performs a random lookup.
+//type discoverTask struct {
+//	results []*enode.Node
+//}
+//
+//// A waitExpireTask is generated if there are no other tasks
+//// to keep the loop in Server.run ticking.
+//type waitExpireTask struct {
+//	time.Duration
+//}
 
 func newDialState(self enode.ID, static []*enode.Node, bootnodes []*enode.Node, ntab discoverTable, maxdyn int, netrestrict *netutil.Netlist) *dialstate {
 	s := &dialstate{
