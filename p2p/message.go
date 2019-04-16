@@ -48,23 +48,23 @@ type Msg struct {
 // the given value, which must be a pointer.
 //
 // For the decoding rules, please see package rlp.
-func (msg Msg) Decode(val interface{}) error {
-	s := rlp.NewStream(msg.Payload, uint64(msg.Size))
-	if err := s.Decode(val); err != nil {
-		return newPeerError(errInvalidMsg, "(code %x) (size %d) %v", msg.Code, msg.Size, err)
-	}
-	return nil
-}
-
-func (msg Msg) String() string {
-	return fmt.Sprintf("msg #%v (%v bytes)", msg.Code, msg.Size)
-}
-
-// Discard reads any remaining payload data into a black hole.
-func (msg Msg) Discard() error {
-	_, err := io.Copy(ioutil.Discard, msg.Payload)
-	return err
-}
+//func (msg Msg) Decode(val interface{}) error {
+//	s := rlp.NewStream(msg.Payload, uint64(msg.Size))
+//	if err := s.Decode(val); err != nil {
+//		return newPeerError(errInvalidMsg, "(code %x) (size %d) %v", msg.Code, msg.Size, err)
+//	}
+//	return nil
+//}
+//
+//func (msg Msg) String() string {
+//	return fmt.Sprintf("msg #%v (%v bytes)", msg.Code, msg.Size)
+//}
+//
+//// Discard reads any remaining payload data into a black hole.
+//func (msg Msg) Discard() error {
+//	_, err := io.Copy(ioutil.Discard, msg.Payload)
+//	return err
+//}
 
 type MsgReader interface {
 	ReadMsg() (Msg, error)
