@@ -382,34 +382,34 @@ func (p *Peer) getProto(code uint64) (*protoRW, error) {
 	return nil, newPeerError(errInvalidMsgCode, "%d", code)
 }
 
-type protoRW struct {
-	Protocol
-	in     chan Msg        // receives read messages
-	closed <-chan struct{} // receives when peer is shutting down
-	wstart <-chan struct{} // receives when write may start
-	werr   chan<- error    // for write results
-	offset uint64
-	w      MsgWriter
-}
-
-func (rw *protoRW) WriteMsg(msg Msg) (err error) {
-	if msg.Code >= rw.Length {
-		return newPeerError(errInvalidMsgCode, "not handled")
-	}
-	msg.Code += rw.offset
-	select {
-	case <-rw.wstart:
-		err = rw.w.WriteMsg(msg)
-		// Report write status back to Peer.run. It will initiate
-		// shutdown if the error is non-nil and unblock the next write
-		// otherwise. The calling protocol code should exit for errors
-		// as well but we don't want to rely on that.
-		rw.werr <- err
-	case <-rw.closed:
-		err = ErrShuttingDown
-	}
-	return err
-}
+//type protoRW struct {
+//	Protocol
+//	in     chan Msg        // receives read messages
+//	closed <-chan struct{} // receives when peer is shutting down
+//	wstart <-chan struct{} // receives when write may start
+//	werr   chan<- error    // for write results
+//	offset uint64
+//	w      MsgWriter
+//}
+//
+//func (rw *protoRW) WriteMsg(msg Msg) (err error) {
+//	if msg.Code >= rw.Length {
+//		return newPeerError(errInvalidMsgCode, "not handled")
+//	}
+//	msg.Code += rw.offset
+//	select {
+//	case <-rw.wstart:
+//		err = rw.w.WriteMsg(msg)
+//		// Report write status back to Peer.run. It will initiate
+//		// shutdown if the error is non-nil and unblock the next write
+//		// otherwise. The calling protocol code should exit for errors
+//		// as well but we don't want to rely on that.
+//		rw.werr <- err
+//	case <-rw.closed:
+//		err = ErrShuttingDown
+//	}
+//	return err
+//}
 
 func (rw *protoRW) ReadMsg() (Msg, error) {
 	select {
