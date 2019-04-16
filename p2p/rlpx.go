@@ -713,22 +713,22 @@ func (rw *rlpxFrameRW) ReadMsg() (msg Msg, err error) {
 
 // updateMAC reseeds the given hash with encrypted seed.
 // it returns the first 16 bytes of the hash sum after seeding.
-func updateMAC(mac hash.Hash, block cipher.Block, seed []byte) []byte {
-	aesbuf := make([]byte, aes.BlockSize)
-	block.Encrypt(aesbuf, mac.Sum(nil))
-	for i := range aesbuf {
-		aesbuf[i] ^= seed[i]
-	}
-	mac.Write(aesbuf)
-	return mac.Sum(nil)[:16]
-}
-
-func readInt24(b []byte) uint32 {
-	return uint32(b[2]) | uint32(b[1])<<8 | uint32(b[0])<<16
-}
-
-func putInt24(v uint32, b []byte) {
-	b[0] = byte(v >> 16)
-	b[1] = byte(v >> 8)
-	b[2] = byte(v)
-}
+//func updateMAC(mac hash.Hash, block cipher.Block, seed []byte) []byte {
+//	aesbuf := make([]byte, aes.BlockSize)
+//	block.Encrypt(aesbuf, mac.Sum(nil))
+//	for i := range aesbuf {
+//		aesbuf[i] ^= seed[i]
+//	}
+//	mac.Write(aesbuf)
+//	return mac.Sum(nil)[:16]
+//}
+//
+//func readInt24(b []byte) uint32 {
+//	return uint32(b[2]) | uint32(b[1])<<8 | uint32(b[0])<<16
+//}
+//
+//func putInt24(v uint32, b []byte) {
+//	b[0] = byte(v >> 16)
+//	b[1] = byte(v >> 8)
+//	b[2] = byte(v)
+//}
