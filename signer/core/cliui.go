@@ -20,8 +20,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"strings"
-
 	"sync"
 
 	"github.com/davecgh/go-spew/spew"
@@ -42,33 +40,33 @@ func NewCommandlineUI() *CommandlineUI {
 
 // readString reads a single line from stdin, trimming if from spaces, enforcing
 // non-emptyness.
-func (ui *CommandlineUI) readString() string {
-	for {
-		fmt.Printf("> ")
-		text, err := ui.in.ReadString('\n')
-		if err != nil {
-			log.Crit("Failed to read user input", "err", err)
-		}
-		if text = strings.TrimSpace(text); text != "" {
-			return text
-		}
-	}
-}
-
-// readPassword reads a single line from stdin, trimming it from the trailing new
-// line and returns it. The input will not be echoed.
-func (ui *CommandlineUI) readPassword() string {
-	fmt.Printf("Enter password to approve:\n")
-	fmt.Printf("> ")
-
-	text, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-	if err != nil {
-		log.Crit("Failed to read password", "err", err)
-	}
-	fmt.Println()
-	fmt.Println("-----------------------")
-	return string(text)
-}
+//func (ui *CommandlineUI) readString() string {
+//	for {
+//		fmt.Printf("> ")
+//		text, err := ui.in.ReadString('\n')
+//		if err != nil {
+//			log.Crit("Failed to read user input", "err", err)
+//		}
+//		if text = strings.TrimSpace(text); text != "" {
+//			return text
+//		}
+//	}
+//}
+//
+//// readPassword reads a single line from stdin, trimming it from the trailing new
+//// line and returns it. The input will not be echoed.
+//func (ui *CommandlineUI) readPassword() string {
+//	fmt.Printf("Enter password to approve:\n")
+//	fmt.Printf("> ")
+//
+//	text, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+//	if err != nil {
+//		log.Crit("Failed to read password", "err", err)
+//	}
+//	fmt.Println()
+//	fmt.Println("-----------------------")
+//	return string(text)
+//}
 
 // readPassword reads a single line from stdin, trimming it from the trailing new
 // line and returns it. The input will not be echoed.
