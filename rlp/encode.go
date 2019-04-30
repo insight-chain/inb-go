@@ -77,32 +77,32 @@ type Encoder interface {
 //
 // Boolean values are not supported, nor are signed integers, floating
 // point numbers, maps, channels and functions.
-//func Encode(w io.Writer, val interface{}) error {
-//	if outer, ok := w.(*encbuf); ok {
-//		// Encode was called by some type's EncodeRLP.
-//		// Avoid copying by writing to the outer encbuf directly.
-//		return outer.encode(val)
-//	}
-//	eb := encbufPool.Get().(*encbuf)
-//	defer encbufPool.Put(eb)
-//	eb.reset()
-//	if err := eb.encode(val); err != nil {
-//		return err
-//	}
-//	return eb.toWriter(w)
-//}
-//
-//// EncodeToBytes returns the RLP encoding of val.
-//// Please see the documentation of Encode for the encoding rules.
-//func EncodeToBytes(val interface{}) ([]byte, error) {
-//	eb := encbufPool.Get().(*encbuf)
-//	defer encbufPool.Put(eb)
-//	eb.reset()
-//	if err := eb.encode(val); err != nil {
-//		return nil, err
-//	}
-//	return eb.toBytes(), nil
-//}
+func Encode(w io.Writer, val interface{}) error {
+	if outer, ok := w.(*encbuf); ok {
+		// Encode was called by some type's EncodeRLP.
+		// Avoid copying by writing to the outer encbuf directly.
+		return outer.encode(val)
+	}
+	eb := encbufPool.Get().(*encbuf)
+	defer encbufPool.Put(eb)
+	eb.reset()
+	if err := eb.encode(val); err != nil {
+		return err
+	}
+	return eb.toWriter(w)
+}
+
+// EncodeToBytes returns the RLP encoding of val.
+// Please see the documentation of Encode for the encoding rules.
+func EncodeToBytes(val interface{}) ([]byte, error) {
+	eb := encbufPool.Get().(*encbuf)
+	defer encbufPool.Put(eb)
+	eb.reset()
+	if err := eb.encode(val); err != nil {
+		return nil, err
+	}
+	return eb.toBytes(), nil
+}
 
 // EncodeToReader returns a reader from which the RLP encoding of val
 // can be read. The returned size is the total size of the encoded
