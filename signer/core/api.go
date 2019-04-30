@@ -555,31 +555,31 @@ func (api *SignerAPI) Sign(ctx context.Context, addr common.MixedcaseAddress, da
 //   keccak256("\x19Ethereum Signed Message:\n"${message length}${message}).
 //
 // This gives context to the signed message and prevents signing of transactions.
-func SignHash(data []byte) ([]byte, string) {
-	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
-	return crypto.Keccak256([]byte(msg)), msg
-}
-
-// Export returns encrypted private key associated with the given address in web3 keystore format.
-func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
-	res, err := api.UI.ApproveExport(&ExportRequest{Address: addr, Meta: MetadataFromContext(ctx)})
-
-	if err != nil {
-		return nil, err
-	}
-	if !res.Approved {
-		return nil, ErrRequestDenied
-	}
-	// Look up the wallet containing the requested signer
-	wallet, err := api.am.Find(accounts.Account{Address: addr})
-	if err != nil {
-		return nil, err
-	}
-	if wallet.URL().Scheme != keystore.KeyStoreScheme {
-		return nil, fmt.Errorf("Account is not a keystore-account")
-	}
-	return ioutil.ReadFile(wallet.URL().Path)
-}
+//func SignHash(data []byte) ([]byte, string) {
+//	msg := fmt.Sprintf("\x19Ethereum Signed Message:\n%d%s", len(data), data)
+//	return crypto.Keccak256([]byte(msg)), msg
+//}
+//
+//// Export returns encrypted private key associated with the given address in web3 keystore format.
+//func (api *SignerAPI) Export(ctx context.Context, addr common.Address) (json.RawMessage, error) {
+//	res, err := api.UI.ApproveExport(&ExportRequest{Address: addr, Meta: MetadataFromContext(ctx)})
+//
+//	if err != nil {
+//		return nil, err
+//	}
+//	if !res.Approved {
+//		return nil, ErrRequestDenied
+//	}
+//	// Look up the wallet containing the requested signer
+//	wallet, err := api.am.Find(accounts.Account{Address: addr})
+//	if err != nil {
+//		return nil, err
+//	}
+//	if wallet.URL().Scheme != keystore.KeyStoreScheme {
+//		return nil, fmt.Errorf("Account is not a keystore-account")
+//	}
+//	return ioutil.ReadFile(wallet.URL().Path)
+//}
 
 // Import tries to import the given keyJSON in the local keystore. The keyJSON data is expected to be
 // in web3 keystore format. It will decrypt the keyJSON with the given passphrase and on successful
