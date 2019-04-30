@@ -21,12 +21,9 @@ import (
 	"fmt"
 	"strings"
 
-	"math/big"
-
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
-	"github.com/insight-chain/inb-go/core/types"
 )
 
 type Accounts []Account
@@ -104,23 +101,23 @@ type SendTxArgs struct {
 	Input *hexutil.Bytes `json:"input"`
 }
 
-func (args SendTxArgs) String() string {
-	s, err := json.Marshal(args)
-	if err == nil {
-		return string(s)
-	}
-	return err.Error()
-}
-
-func (args *SendTxArgs) toTransaction() *types.Transaction {
-	var input []byte
-	if args.Data != nil {
-		input = *args.Data
-	} else if args.Input != nil {
-		input = *args.Input
-	}
-	if args.To == nil {
-		return types.NewContractCreation(uint64(args.Nonce), (*big.Int)(&args.Value), uint64(args.Gas), (*big.Int)(&args.GasPrice), input)
-	}
-	return types.NewTransaction(uint64(args.Nonce), args.To.Address(), (*big.Int)(&args.Value), (uint64)(args.Gas), (*big.Int)(&args.GasPrice), input)
-}
+//func (args SendTxArgs) String() string {
+//	s, err := json.Marshal(args)
+//	if err == nil {
+//		return string(s)
+//	}
+//	return err.Error()
+//}
+//
+//func (args *SendTxArgs) toTransaction() *types.Transaction {
+//	var input []byte
+//	if args.Data != nil {
+//		input = *args.Data
+//	} else if args.Input != nil {
+//		input = *args.Input
+//	}
+//	if args.To == nil {
+//		return types.NewContractCreation(uint64(args.Nonce), (*big.Int)(&args.Value), uint64(args.Gas), (*big.Int)(&args.GasPrice), input)
+//	}
+//	return types.NewTransaction(uint64(args.Nonce), args.To.Address(), (*big.Int)(&args.Value), (uint64)(args.Gas), (*big.Int)(&args.GasPrice), input)
+//}
