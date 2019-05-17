@@ -19,6 +19,7 @@ package vdpos
 
 import (
 	"bytes"
+	"github.com/insight-chain/inb-go/log"
 	"math/big"
 	"sort"
 
@@ -111,8 +112,15 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 		// before recalculate the signers, clear the candidate is not in snap.Candidates
 		// only recalculate signers from to tally per 10 loop,
 		// other loop end just reset the order of signers by block hash (nearly random)
+		log.Debug("~~~~~~~~~~~~~~~~~~~now we recreate signers~~~~~~~~~~~")
 		tallySlice := s.buildTallySlice()
 		sort.Sort(TallySlice(tallySlice))
+		log.Debug("~~~~~~~~~~~~~~~~~~~tallySlice begin~~~~~~~~~~~~~~~~~~")
+		for _, item := range tallySlice {
+			log.Debug(item.addr.Hex())
+		}
+		log.Debug("~~~~~~~~~~~~~~~~~~~tallySlice end~~~~~~~~~~~~~~~~~~~~")
+
 		poolLength := int(s.config.MaxSignerCount)
 		if poolLength > len(tallySlice) {
 			poolLength = len(tallySlice)
@@ -120,6 +128,11 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 		for i, tallyItem := range tallySlice[:poolLength] {
 			signerSlice = append(signerSlice, SignerItem{tallyItem.addr, s.HistoryHash[len(s.HistoryHash)-1-i]})
 		}
+		log.Debug("~~~~~~~~~~~~~~~~~~~signerSlice begin~~~~~~~~~~~~~~~~~~")
+		for _, itemx := range signerSlice {
+			log.Debug(itemx.addr.Hex())
+		}
+		log.Debug("~~~~~~~~~~~~~~~~~~~signerSlice end~~~~~~~~~~~~~~~~~~~~")
 	} else {
 		for i, signer := range s.Signers {
 			signerSlice = append(signerSlice, SignerItem{*signer, s.HistoryHash[len(s.HistoryHash)-1-i]})

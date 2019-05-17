@@ -102,9 +102,8 @@ type Confirmation struct {
 }
 
 // Proposal :
-// proposal come from custom tx which data like "inb:1:event:proposal:candidate:add:address" or "inb:1:event:proposal:percentage:60"
+// proposal come from custom tx which data like "inb:1:event:proposal:candidate:add:address"
 // proposal only come from the current candidates
-// not only candidate add/remove , current signer can proposal for params modify like percentage of reward distribution ...
 type Proposal struct {
 	Hash              common.Hash    // tx hash
 	ReceivedNumber    *big.Int       // block number of proposal received
