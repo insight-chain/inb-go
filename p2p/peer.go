@@ -55,6 +55,7 @@ const (
 	pongMsg      = 0x03
 )
 
+// debug by ssh
 // protoHandshake is the RLP structure of the protocol handshake.
 type protoHandshake struct {
 	Version    uint64
