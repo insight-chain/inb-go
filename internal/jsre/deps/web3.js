@@ -3694,7 +3694,11 @@ var Iban = require('./iban');
 var outputBigNumberFormatter = function (number) {
     return utils.toBigNumber(number);
 };
-
+//Resource by zc
+var inputBigNumberFormatter = function (number) {
+    return utils.toBigNumber(number);
+};
+//Resource by zc
 var isPredefinedBlockNumber = function (blockNumber) {
     return blockNumber === 'latest' || blockNumber === 'pending' || blockNumber === 'earliest';
 };
@@ -3961,6 +3965,9 @@ module.exports = {
     outputLogFormatter: outputLogFormatter,
     outputPostFormatter: outputPostFormatter,
     outputSyncingFormatter: outputSyncingFormatter
+    //Resource by zc
+    inputBigNumberFormatter:inputBigNumberFormatter
+    //Resource by zc
 };
 
 
@@ -5267,6 +5274,23 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 });
 
 var methods = function () {
+
+    //Resource by zc
+    var getCpu = new Method({
+      name: 'getCpu',
+      call: 'eth_getCpu',
+      params: 2,
+      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+      outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getNet = new Method({
+      name: 'getNet',
+      call: 'eth_getNet',
+      params: 2,
+      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+      outputFormatter: formatters.outputBigNumberFormatter
+    });
+    //Resource by zc
     var getBalance = new Method({
         name: 'getBalance',
         call: 'eth_getBalance',
@@ -5432,6 +5456,10 @@ var methods = function () {
     });
 
     return [
+        //Resource by zc
+        getCpu,
+        getNet,
+        //Resource by zc
         getBalance,
         getStorageAt,
         getCode,
