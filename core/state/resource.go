@@ -25,10 +25,10 @@ type BaseRecordData struct {
 	AccountNonce    uint64                 `json:"nonce"        gencodec:"required"`
 	CpuPrice        *big.Int               `json:"netPrice"     gencodec:"required"`
 	NetPrice        *big.Int               `json:"cpuPrice"     gencodec:"required"`
-	Amount          *big.Int               `json:"value"        gencodec:"required"`  //inb数量
-	CpuAmount       *big.Int               `json:"CpuAmount"    gencodec:"required"`  //cpu的数量
-	NetAmount       *big.Int               `json:"NetAmount"    gencodec:"required"`  //net的数量
-	//签名值
+	Amount          *big.Int               `json:"value"        gencodec:"required"`  //inb number
+	CpuAmount       *big.Int               `json:"CpuAmount"    gencodec:"required"`  //cpu number
+	NetAmount       *big.Int               `json:"NetAmount"    gencodec:"required"`  //net number
+	//sign
 	V *big.Int `json:"v" gencodec:"required"`
 	R *big.Int `json:"r" gencodec:"required"`
 	S *big.Int `json:"s" gencodec:"required"`
