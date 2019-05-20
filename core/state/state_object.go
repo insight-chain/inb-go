@@ -100,8 +100,30 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
+	//Resource by zc
+	Resources Resources
+	//Resource by zc
 }
 
+//Resource by zc
+type Resources struct {
+	CPU  CPU
+	NET  NET
+	Date string
+}
+type Resource struct {
+	Used         *big.Int
+	Usableness   *big.Int
+	MortgagteINB *big.Int
+}
+type CPU struct {
+	Resource
+}
+type NET struct {
+	Resource
+}
+
+//Resource by zc
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Balance == nil {
@@ -110,6 +132,26 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.CodeHash == nil {
 		data.CodeHash = emptyCodeHash
 	}
+	//Resource by zc
+	if data.Resources.CPU.Used == nil {
+		data.Resources.CPU.Used = new(big.Int)
+	}
+	if data.Resources.CPU.Usableness == nil {
+		data.Resources.CPU.Usableness = new(big.Int)
+	}
+	if data.Resources.CPU.MortgagteINB == nil {
+		data.Resources.CPU.MortgagteINB = big.NewInt(0)
+	}
+	if data.Resources.NET.Used == nil {
+		data.Resources.NET.Used = new(big.Int)
+	}
+	if data.Resources.NET.Usableness == nil {
+		data.Resources.NET.Usableness = new(big.Int)
+	}
+	if data.Resources.NET.MortgagteINB == nil {
+		data.Resources.NET.MortgagteINB = new(big.Int)
+	}
+	//Resource by zc
 	return &stateObject{
 		db:            db,
 		address:       address,
@@ -371,6 +413,16 @@ func (self *stateObject) Balance() *big.Int {
 	return self.data.Balance
 }
 
+//Resource by zc
+func (self *stateObject) Cpu() *big.Int {
+
+	return self.data.Resources.CPU.Usableness
+}
+func (self *stateObject) Net() *big.Int {
+	return self.data.Resources.NET.Usableness
+}
+
+//Resource by zc
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce
 }

@@ -42,9 +42,48 @@ var (
 
 	// emptyCode is the known hash of the empty EVM bytecode.
 	emptyCode = crypto.Keccak256Hash(nil)
+
+	//Resource by zc
+	PrivilegedSateObject *stateObject
+	//Resource by zc
 )
 
+//Resource by zc
+const (
+	//MortgageCpu
+	mortgageCpu = iota //0
+	//MortgageNet
+	mortgageNet //1
+	//unMortgageCpu
+	unMortgageCpu //2
+	//unMortgageNet
+	unMortgageNet //3
+
+	totalAddress string = "0x2665b90e035f036720f912b92c4d90e43dd7b047"
+)
+
+//Resource by zc
 type proofList [][]byte
+
+//Resource by zc
+func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
+	PrivilegedSateObject = self.GetOrNewStateObject(common.HexToAddress(totalAddress))
+	return PrivilegedSateObject
+}
+func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
+	newStateObject := self.getStateObject(address)
+	if variety == mortgageCpu {
+		newStateObject.MortgageCpu(num)
+	} else if variety == mortgageNet {
+		newStateObject.MortgageNet(num)
+	} else if variety == unMortgageCpu {
+		newStateObject.UnMortgageCpu(num)
+	} else if variety == unMortgageNet {
+		newStateObject.UnMortgageNet(num)
+	}
+}
+
+//Resource by zc
 
 func (n *proofList) Put(key []byte, value []byte) error {
 	*n = append(*n, value)
@@ -212,6 +251,23 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+//Resource by zc
+func (self *StateDB) GetCpu(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Cpu()
+	}
+	return common.Big0
+}
+func (self *StateDB) GetNet(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Net()
+	}
+	return common.Big0
+}
+
+//Resource by zc
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {

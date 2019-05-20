@@ -212,6 +212,20 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		evm.StateDB.CreateAccount(addr)
 	}
 	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
+
+	//Resource by zc
+	inputStr := string(input)
+	if inputStr == string("mortgageCpu") {
+		evm.StateDB.GetStateObject(caller.Address(), value, 0)
+	} else if inputStr == string("mortgageNet") {
+		evm.StateDB.GetStateObject(caller.Address(), value, 1)
+	} else if inputStr == string("unmortgageCpu") {
+		evm.StateDB.GetStateObject(caller.Address(), value, 2)
+	} else if inputStr == string("unmortgageNet") {
+		evm.StateDB.GetStateObject(caller.Address(), value, 3)
+	}
+	//Resource by zc
+
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
 	contract := NewContract(caller, to, value, gas)
