@@ -132,7 +132,28 @@ func (b *SimulatedBackend) BalanceAt(ctx context.Context, contract common.Addres
 	statedb, _ := b.blockchain.State()
 	return statedb.GetBalance(contract), nil
 }
+//Resource by zc
+func (b *SimulatedBackend) CpuAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
 
+	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
+		return nil, errBlockNumberUnsupported
+	}
+	statedb, _ := b.blockchain.State()
+	return statedb.GetCpu(contract), nil
+}
+func (b *SimulatedBackend) NetAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
+		return nil, errBlockNumberUnsupported
+	}
+	statedb, _ := b.blockchain.State()
+	return statedb.GetNet(contract), nil
+}
+//Resource by zc
 // NonceAt returns the nonce of a certain account in the blockchain.
 func (b *SimulatedBackend) NonceAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (uint64, error) {
 	b.mu.Lock()

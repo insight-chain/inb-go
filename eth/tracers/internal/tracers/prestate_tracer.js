@@ -25,6 +25,10 @@
 		var acc = toHex(addr);
 		if (this.prestate[acc] === undefined) {
 			this.prestate[acc] = {
+				//Resource by zc
+				cpu: '0x' + db.getCpu(addr).toString(16),
+				net: '0x' + db.getNet(addr).toString(16),
+				//Resource by zc
 				balance: '0x' + db.getBalance(addr).toString(16),
 				nonce:   db.getNonce(addr),
 				code:    toHex(db.getCode(addr)),
