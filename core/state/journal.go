@@ -103,6 +103,20 @@ type (
 		account *common.Address
 		prev    *big.Int
 	}
+	//Resource by zc
+	cpuChange struct {
+		account      *common.Address
+		Used         *big.Int
+		Usableness   *big.Int
+		MortgagteINB *big.Int
+	}
+	netChange struct {
+		account      *common.Address
+		Used         *big.Int
+		Usableness   *big.Int
+		MortgagteINB *big.Int
+	}
+	//Resource by zc
 	nonceChange struct {
 		account *common.Address
 		prev    uint64
@@ -145,6 +159,24 @@ func (ch createObjectChange) dirtied() *common.Address {
 func (ch resetObjectChange) revert(s *StateDB) {
 	s.setStateObject(ch.prev)
 }
+
+//Resource  by zc
+func (ch cpuChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setCpu(ch.Used, ch.Usableness, ch.MortgagteINB)
+}
+
+func (ch cpuChange) dirtied() *common.Address {
+	return ch.account
+}
+func (ch netChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setNet(ch.Used, ch.Usableness, ch.MortgagteINB)
+}
+
+func (ch netChange) dirtied() *common.Address {
+	return ch.account
+}
+
+//Resource  by zc
 
 func (ch resetObjectChange) dirtied() *common.Address {
 	return nil

@@ -486,6 +486,30 @@ web3._extend({
 	property: 'eth',
 	methods: [
 		new web3._extend.Method({
+			name: 'mortgageCpu',
+			call: 'eth_mortgageCpu',
+			params: 1
+			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'mortgageNet',
+			call: 'eth_mortgageNet',
+			params: 1
+			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'unMortgageCpu',
+			call: 'eth_unMortgageCpu',
+			params: 1
+			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'unMortgageNet',
+			call: 'eth_unMortgageNet',
+			params: 1
+			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
 			name: 'chainId',
 			call: 'eth_chainId',
 			params: 0
