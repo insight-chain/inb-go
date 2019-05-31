@@ -533,6 +533,12 @@ web3._extend({
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'signPaymentTransaction',
+			call: 'eth_signPaymentTransaction',
+			params: 2,
+			inputFormatter: [web3._extend.utils.toHex, web3._extend.utils.toAddress]
+		}),
+		new web3._extend.Method({
 			name: 'submitTransaction',
 			call: 'eth_submitTransaction',
 			params: 1,
