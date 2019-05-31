@@ -132,6 +132,7 @@ func (b *SimulatedBackend) BalanceAt(ctx context.Context, contract common.Addres
 	statedb, _ := b.blockchain.State()
 	return statedb.GetBalance(contract), nil
 }
+
 //Resource by zc
 func (b *SimulatedBackend) CpuAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
 	b.mu.Lock()
@@ -153,6 +154,7 @@ func (b *SimulatedBackend) NetAt(ctx context.Context, contract common.Address, b
 	statedb, _ := b.blockchain.State()
 	return statedb.GetNet(contract), nil
 }
+
 //Resource by zc
 // NonceAt returns the nonce of a certain account in the blockchain.
 func (b *SimulatedBackend) NonceAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (uint64, error) {
@@ -439,6 +441,9 @@ func (m callmsg) GasPrice() *big.Int   { return m.CallMsg.GasPrice }
 func (m callmsg) Gas() uint64          { return m.CallMsg.Gas }
 func (m callmsg) Value() *big.Int      { return m.CallMsg.Value }
 func (m callmsg) Data() []byte         { return m.CallMsg.Data }
+
+//tianx
+func (m callmsg) PaymentFrom() common.Address { return [20]byte{} }
 
 // filterBackend implements filters.Backend to support filtering for logs without
 // taking bloom-bits acceleration structures into account.

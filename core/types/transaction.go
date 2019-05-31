@@ -463,4 +463,4 @@ func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }
 
 //tianx
-func (m Message) Payment() common.Address { return m.paymentFrom }
+func (m Message) PaymentFrom() common.Address { return m.paymentFrom }
