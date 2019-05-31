@@ -421,7 +421,13 @@ func (self *stateObject) Cpu() *big.Int {
 func (self *stateObject) Net() *big.Int {
 	return self.data.Resources.NET.Usableness
 }
+func (self *stateObject) MortgageOfCpu() *big.Int {
 
+	return self.data.Resources.CPU.MortgagteINB
+}
+func (self *stateObject) MortgageOfNet() *big.Int {
+	return self.data.Resources.NET.MortgagteINB
+}
 //Resource by zc
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce

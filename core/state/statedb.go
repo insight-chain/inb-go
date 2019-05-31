@@ -266,7 +266,20 @@ func (self *StateDB) GetNet(addr common.Address) *big.Int {
 	}
 	return common.Big0
 }
-
+func (self *StateDB) GetMortgageInbOfCpu(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.MortgageOfCpu()
+	}
+	return common.Big0
+}
+func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.MortgageOfNet()
+	}
+	return common.Big0
+}
 //Resource by zc
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
