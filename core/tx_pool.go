@@ -579,6 +579,22 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentMaxGas < tx.Gas() {
 		return ErrGasLimit
 	}
+
+	//tianx make sure the payment is signed properly
+	//v, r, s := tx.RawPaymentSignatureValues()
+	//if v != nil && r != nil && s != nil{
+	//	payment, err := types.RecoverPaymentPlain(tx.Hash(),v,r,s,false) //todo how to define true or false; payment gas blance valid
+	//	if err != nil{
+	//		return ErrInvalidSender
+	//	}
+	//	fmt.Println(payment)
+	//}
+	payment, err := types.Sender(pool.signer, tx)
+	if err != nil {
+		return ErrInvalidSender
+	}
+	fmt.Println(payment)
+	tx.RemovePaymentSignatureValues()
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
