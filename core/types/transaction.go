@@ -58,6 +58,20 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash *common.Hash `json:"hash" rlp:"-"`
+
+	//payment
+	PaymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
+	Vp          *big.Int       `json:"v" gencodec:"required"`
+	Rp          *big.Int       `json:"r" gencodec:"required"`
+	Sp          *big.Int       `json:"s" gencodec:"required"`
+}
+
+//tianx
+type txDataPayment struct {
+	paymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
+	V           *big.Int       `json:"v" gencodec:"required"`
+	R           *big.Int       `json:"r" gencodec:"required"`
+	S           *big.Int       `json:"s" gencodec:"required"`
 }
 
 type txdataMarshaling struct {
@@ -107,6 +121,11 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 // ChainId returns which chain id this transaction was signed for (if at all)
 func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
+}
+
+//tianx ChainId returns which chain id this transaction was signed for (if at all)
+func (tx *Transaction) ChainId4Payment() *big.Int {
+	return deriveChainId(tx.data.Vp)
 }
 
 // Protected returns whether the transaction is protected from replay protection.
@@ -219,13 +238,14 @@ func (tx *Transaction) Size() common.StorageSize {
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	msg := Message{
-		nonce:      tx.data.AccountNonce,
-		gasLimit:   tx.data.GasLimit,
-		gasPrice:   new(big.Int).Set(tx.data.Price),
-		to:         tx.data.Recipient,
-		amount:     tx.data.Amount,
-		data:       tx.data.Payload,
-		checkNonce: true,
+		nonce:       tx.data.AccountNonce,
+		gasLimit:    tx.data.GasLimit,
+		gasPrice:    new(big.Int).Set(tx.data.Price),
+		to:          tx.data.Recipient,
+		amount:      tx.data.Amount,
+		data:        tx.data.Payload,
+		checkNonce:  true,
+		paymentFrom: tx.data.PaymentFrom,
 	}
 
 	var err error
@@ -245,6 +265,18 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	return cpy, nil
 }
 
+//tianx
+// WithSignature returns a new transaction with the given payment signature.
+func (tx *Transaction) WithPaymentSignature(signer Signer, sig []byte) (*Transaction, error) {
+	r, s, v, err := signer.SignatureValues(tx, sig)
+	if err != nil {
+		return nil, err
+	}
+	cpy := &Transaction{data: tx.data}
+	cpy.data.Rp, cpy.data.Sp, cpy.data.Vp = r, s, v
+	return cpy, nil
+}
+
 // Cost returns amount + gasprice * gaslimit.
 func (tx *Transaction) Cost() *big.Int {
 	total := new(big.Int).Mul(tx.data.Price, new(big.Int).SetUint64(tx.data.GasLimit))
@@ -254,6 +286,16 @@ func (tx *Transaction) Cost() *big.Int {
 
 func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
+}
+
+func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
+	return tx.data.Vp, tx.data.Rp, tx.data.Sp
+}
+func (tx *Transaction) RemovePaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
+	tx.data.Vp = nil
+	tx.data.Sp = nil
+	tx.data.Rp = nil
+	return tx.data.Vp, tx.data.Rp, tx.data.Sp
 }
 
 // Transactions is a Transaction slice type for basic sorting.
@@ -392,6 +434,10 @@ type Message struct {
 	gasPrice   *big.Int
 	data       []byte
 	checkNonce bool
+
+	//tianx
+	//payment
+	paymentFrom common.Address
 }
 
 func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, checkNonce bool) Message {
@@ -415,3 +461,6 @@ func (m Message) Gas() uint64          { return m.gasLimit }
 func (m Message) Nonce() uint64        { return m.nonce }
 func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }
+
+//tianx
+func (m Message) Payment() common.Address { return m.paymentFrom }
