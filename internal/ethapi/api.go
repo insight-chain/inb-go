@@ -1359,6 +1359,23 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 	return wallet.SignTx(account, tx, chainID)
 }
 
+//tianx sign for payment
+func (s *PublicTransactionPoolAPI) signPayment(addr common.Address, tx *types.Transaction) (*types.Transaction, error) {
+	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: addr}
+
+	wallet, err := s.b.AccountManager().Find(account)
+	if err != nil {
+		return nil, err
+	}
+	// Request the wallet to sign the transaction
+	var chainID *big.Int
+	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+		chainID = config.ChainID
+	}
+	return wallet.SignTx(account, tx, chainID)
+}
+
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
 type SendTxArgs struct {
 	From     common.Address  `json:"from"`
@@ -1369,8 +1386,9 @@ type SendTxArgs struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data  *hexutil.Bytes `json:"data"`
-	Input *hexutil.Bytes `json:"input"`
+	Data    *hexutil.Bytes `json:"data"`
+	Input   *hexutil.Bytes `json:"input"`
+	Payment *hexutil.Bytes `json:"payment"`
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1549,6 +1567,50 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 		return nil, err
 	}
 	return &SignTransactionResult{data, tx}, nil
+}
+
+//tianx
+// sign for the real payer
+// need to valid the sender sign
+// The node needs to have the private key of the account corresponding with
+// the given from address and it needs to be unlocked.
+func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, data hexutil.Bytes, payment common.Address) (*SignTransactionResult, error) {
+
+	tx := &types.Transaction{}
+	if err := rlp.DecodeBytes(data, tx); err != nil {
+		return nil, err
+	}
+	//recover signature from v,r,s
+	v, r, ss := tx.RawSignatureValues()
+	vb := byte(v.Uint64() - 27)
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
+	sig[64] = vb
+	//vrify sender signature
+	if len(sig) != 65 {
+		return nil, fmt.Errorf("signature must be 65 bytes long")
+	}
+	/*if sig[64] != 27 && sig[64] != 28 {
+		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+	}*/
+	//rpk, err := crypto.SigToPub(signHash(data), sig)
+	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
+	//	return nil, fmt.Errorf("verify error")
+	//}
+	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
+	from, err := types.Sender(signer, tx)
+	fmt.Println(from)
+	fmt.Println(payment)
+	payTx, err := s.sign(payment, tx)
+	if err != nil {
+		return nil, err
+	}
+	returnData, err := rlp.EncodeToBytes(payTx)
+	if err != nil {
+		return nil, err
+	}
+	return &SignTransactionResult{returnData, payTx}, nil
 }
 
 // PendingTransactions returns the transactions that are in the transaction pool
