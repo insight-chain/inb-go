@@ -76,6 +76,12 @@ var (
 	// than some meaningful limit a user might use. This is not a consensus error
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
+	//Resource by zc
+	ErrOverUnMortgageInbOfCpuValue = errors.New("over MortgageInbOfCpu number")
+	ErrOverUnMortgageInbOfNetValue = errors.New("over MortgageInbOfNet number")
+	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
+	ErrOverAuableNetValue          = errors.New("over AuableNet number")
+	//Resource by zc
 )
 
 var (
@@ -621,6 +627,49 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Gas() < intrGas {
 		return ErrIntrinsicGas
 	}
+	//Resource by zc
+	addressString := tx.To().String()
+	addressN := common.HexToAddress(addressString)
+	expendCpuFromUnMortgageCpu := big.NewInt(50)
+	expendNetFromUnMortgageNet := big.NewInt(300)
+	usableCpu := pool.currentState.GetCpu(addressN)
+	usableNet := pool.currentState.GetNet(addressN)
+	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
+	usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
+
+	inputStr := string(tx.Data())
+	if inputStr == string("unmortgageCpu") {
+		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu
+		if pool.currentState.GetMortgageInbOfCpu(addressN).Cmp(tx.Value()) < 0 {
+			return ErrOverUnMortgageInbOfCpuValue
+		}
+		//Make sure unmarshalling CPU consumes enough NET
+		if expendNetFromUnMortgageNet.Cmp(usableNet) == 1 {
+			return ErrOverAuableNetValue
+		}
+		//Make sure unmarshalling CPU consumes enough CPU
+		residueMorgageCpuOfInb := usableMorgageCpuOfInb.Sub(usableMorgageCpuOfInb, tx.Value())
+		residueCpu := usableCpu.Mul(usableCpu, residueMorgageCpuOfInb).Div(usableCpu.Mul(usableCpu, residueMorgageCpuOfInb), usableMorgageCpuOfInb)
+		if expendCpuFromUnMortgageCpu.Cmp(residueCpu) == 1 {
+			return ErrOverAuableCpuValue
+		}
+	} else if inputStr == string("unmortgageNet") {
+		//Make sure the unmarshaled Net is less than the mortgaged Net
+		if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
+			return ErrOverUnMortgageInbOfNetValue
+		}
+		//Make sure unmarshalling Net consumes enough Cpu
+		if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
+			return ErrOverAuableCpuValue
+		}
+		//Make sure unmarshalling NET consumes enough NET
+		residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
+		residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
+		if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
+			return ErrOverAuableNetValue
+		}
+	}
+	//Resource by zc
 	return nil
 }
 
