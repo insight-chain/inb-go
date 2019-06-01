@@ -47,21 +47,18 @@ const (
 )
 
 var (
-	defaultEpochLength = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
-	defaultBlockPeriod = uint64(3)      // Default minimum difference between two consecutive block's timestamps
-	//TODO defaultBlockPeriod != defaultSignerPeriod ,now they are equal
-	defaultSignerPeriod              = uint64(3)  // Default minimum difference between two consecutive signer's timestamps
-	defaultSignerBlocks              = uint64(6)  // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21) // Default max signers
+	defaultEpochLength               = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
+	defaultBlockPeriod               = uint64(3)      // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(5)      // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)      // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)     // Default max signers
 	minVoterBalance                  = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e+18))
-	extraVanity                      = 32                                                    // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                                                    // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil)                              // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)                                         // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(5)                                             // Default loop count to recreate signers from top tally
-	defaultMinerReward               = big.NewInt(3e+18)                                     // Default reward for miner in wei
-	candidateNeedPD                  = false                                                 // is new candidate need Proposal & Declare process
-	proposalDeposit                  = new(big.Int).Mul(big.NewInt(1e+18), big.NewInt(1e+4)) // current proposalDeposit
+	extraVanity                      = 32                       // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)            // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                // Default loop count to recreate signers from top tally
+	defaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -391,8 +388,13 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		return nil, consensus.ErrUnknownAncestor
 	}
 
-	//TODO if config.Period != config.SignerPeriod how to do
-	header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.Period))
+	//config.Period != config.SignerPeriod
+	if (number-1)%v.config.SignerBlocks == 0 {
+		header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.SignerPeriod))
+	} else {
+		header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.Period))
+	}
+
 	if header.Time.Int64() < time.Now().Unix() {
 		header.Time = big.NewInt(time.Now().Unix())
 	}
@@ -461,8 +463,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			}
 		}
 	} else if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
-		//currentHeaderExtra.LoopStartTime = header.Time.Uint64()
-		currentHeaderExtra.LoopStartTime += v.config.Period * v.config.MaxSignerCount * v.config.SignerBlocks
+		//config.Period != config.SignerPeriod
+		//currentHeaderExtra.LoopStartTime += v.config.Period * v.config.MaxSignerCount * v.config.SignerBlocks
+		currentHeaderExtra.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
 		// create random signersPool in currentHeaderExtra by snapshot.Tally
 		currentHeaderExtra.SignersPool = []common.Address{}
 		newSignersPool, err := snap.createSignersPool()
@@ -776,10 +779,17 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 		return consensus.ErrUnknownAncestor
 	}
 
-	//TODO if config.Period != config.SignerPeriod,how to check the block is the last one of the conf.SignerBlocks
-	if parent.Time.Uint64()+v.config.Period > header.Time.Uint64() {
+	//config.Period != config.SignerPeriod
+	var hTime uint64
+	if (number-1)%v.config.SignerBlocks == 0 {
+		hTime = parent.Time.Uint64() + v.config.SignerPeriod
+	} else {
+		hTime = parent.Time.Uint64() + v.config.Period
+	}
+	if hTime > header.Time.Uint64() {
 		return ErrInvalidTimestamp
 	}
+
 	// Retrieve the snapshot needed to verify this header and cache it
 	_, err := v.snapshot(chain, number-1, header.ParentHash, parents, nil, defaultLoopCntRecalculateSigners)
 	if err != nil {
