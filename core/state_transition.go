@@ -156,9 +156,9 @@ func (st *StateTransition) useGas(amount uint64) error {
 //tianx
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	var payment common.Address
-	payment = st.msg.From()
-	if len(st.msg.PaymentFrom()) != 0 {
+	var flag common.Address
+	payment := st.msg.From()
+	if flag != st.msg.PaymentFrom() {
 		payment = st.msg.PaymentFrom()
 	}
 	if st.state.GetBalance(payment).Cmp(mgval) < 0 {
@@ -247,7 +247,8 @@ func (st *StateTransition) refundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	if len(st.msg.PaymentFrom()) != 0 {
+	var flag common.Address
+	if flag != st.msg.PaymentFrom() {
 		st.state.AddBalance(st.msg.PaymentFrom(), remaining)
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)

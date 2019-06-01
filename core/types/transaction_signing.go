@@ -60,7 +60,8 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 		return nil, err
 	}
 	//tianx
-	if len(tx.data.PaymentFrom) != 0 && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
+	var flag common.Address
+	if tx.data.PaymentFrom != flag && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
 		return tx.WithPaymentSignature(s, sig)
 	}
 	return tx.WithSignature(s, sig)
@@ -135,7 +136,8 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return HomesteadSigner{}.Sender(tx)
 	}
 	//tianx payment
-	if len(tx.data.PaymentFrom) != 0 && tx.data.Vp != nil && tx.data.Rp != nil && tx.data.Sp != nil {
+	var flag common.Address
+	if tx.data.PaymentFrom != flag && tx.data.Vp != nil && tx.data.Rp != nil && tx.data.Sp != nil {
 		if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
 		}
