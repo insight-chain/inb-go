@@ -19,7 +19,6 @@ package vdpos
 
 import (
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/insight-chain/inb-go/common"
@@ -39,34 +38,13 @@ const (
 	inbCategoryEvent      = "event"
 	inbEventVote          = "vote"
 	inbEventConfirm       = "confirm"
-	inbEventProposal      = "proposal"
-	inbEventDeclare       = "declare"
 	inbMinSplitLen        = 3
 	posPrefix             = 0
 	posVersion            = 1
 	posCategory           = 2
 	posEventVote          = 3
 	posEventConfirm       = 3
-	posEventProposal      = 3
-	posEventDeclare       = 3
 	posEventConfirmNumber = 4
-
-	/*
-	 *  proposal type
-	 */
-	proposalTypeCandidateAdd          = 1
-	proposalTypeCandidateRemove       = 2
-	proposalTypeMinVoterBalanceModify = 3
-	proposalTypeProposalDepositModify = 4
-
-	/*
-	 * proposal related
-	 */
-	maxValidationLoopCnt     = 50000  // About one month if period = 3 & 21 super nodes
-	minValidationLoopCnt     = 4      // for test, Note: 12350  About three days if seal each block per second & 21 super nodes
-	defaultValidationLoopCnt = 10000  // About one week if period = 3 & 21 super nodes
-	maxProposalDeposit       = 100000 // If no limit on max proposal deposit and 1 billion TTC deposit success passed, then no new proposal.
-
 )
 
 // RefundGas :
@@ -101,59 +79,11 @@ type Confirmation struct {
 	BlockNumber *big.Int
 }
 
-// Proposal :
-// proposal come from custom tx which data like "inb:1:event:proposal:candidate:add:address"
-// proposal only come from the current candidates
-type Proposal struct {
-	Hash              common.Hash    // tx hash
-	ReceivedNumber    *big.Int       // block number of proposal received
-	CurrentDeposit    *big.Int       // received deposit for this proposal
-	ValidationLoopCnt uint64         // validation block number length of this proposal from the received block number
-	ProposalType      uint64         // type of proposal 1 - add candidate 2 - remove candidate ...
-	Proposer          common.Address // proposer
-	TargetAddress     common.Address // candidate need to add/remove if candidateNeedPD == true
-	MinerReward       *big.Int       // reward of miner
-	Declares          []*Declare     // Declare this proposal received (always empty in block header)
-	MinVoterBalance   uint64         // value of minVoterBalance , need to mul big.Int(1e+18)
-	ProposalDeposit   uint64         // The deposit need to be frozen during before the proposal get final conclusion.
-}
-
-func (p *Proposal) copy() *Proposal {
-	cpy := &Proposal{
-		Hash:              p.Hash,
-		ReceivedNumber:    new(big.Int).Set(p.ReceivedNumber),
-		CurrentDeposit:    new(big.Int).Set(p.CurrentDeposit),
-		ValidationLoopCnt: p.ValidationLoopCnt,
-		ProposalType:      p.ProposalType,
-		Proposer:          p.Proposer,
-		TargetAddress:     p.TargetAddress,
-		MinerReward:       p.MinerReward,
-		Declares:          make([]*Declare, len(p.Declares)),
-		MinVoterBalance:   p.MinVoterBalance,
-		ProposalDeposit:   p.ProposalDeposit,
-	}
-
-	copy(cpy.Declares, p.Declares)
-	return cpy
-}
-
-// Declare :
-// declare come from custom tx which data like "inb:1:event:declare:hash:yes"
-// declare only come from the current candidates
-// hash is the hash of proposal tx
-type Declare struct {
-	ProposalHash common.Hash
-	Declarer     common.Address
-	Decision     bool
-}
-
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
 	CurrentBlockConfirmations []Confirmation
 	CurrentBlockVotes         []Vote
-	CurrentBlockProposals     []Proposal
-	CurrentBlockDeclares      []Declare
 	ModifyPredecessorVotes    []Vote
 	LoopStartTime             uint64
 	SignersPool               []common.Address
@@ -237,14 +167,10 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 						if txDataInfo[posCategory] == inbCategoryEvent {
 							if len(txDataInfo) > inbMinSplitLen {
 								// check is vote or not
-								if txDataInfo[posEventVote] == inbEventVote && (!candidateNeedPD || snap.isCandidate(*tx.To())) {
+								if txDataInfo[posEventVote] == inbEventVote {
 									headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, tx, txSender)
 								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
-								} else if txDataInfo[posEventProposal] == inbEventProposal {
-									headerExtra.CurrentBlockProposals = v.processEventProposal(headerExtra.CurrentBlockProposals, txDataInfo, state, tx, txSender, snap)
-								} else if txDataInfo[posEventDeclare] == inbEventDeclare && snap.isCandidate(txSender) {
-									headerExtra.CurrentBlockDeclares = v.processEventDeclare(headerExtra.CurrentBlockDeclares, txDataInfo, tx, txSender)
 								}
 							} else {
 								// todo : leave this transaction to process as normal transaction
@@ -278,101 +204,6 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 	}
 
 	return refundGas
-}
-
-func (v *Vdpos) processEventProposal(currentBlockProposals []Proposal, txDataInfo []string, state *state.StateDB, tx *types.Transaction, proposer common.Address, snap *Snapshot) []Proposal {
-	// sample for declare
-	// eth.sendTransaction({from:eth.accounts[0],to:eth.accounts[0],value:0,data:web3.toHex("inb:1:event:declare:hash:0x853e10706e6b9d39c5f4719018aa2417e8b852dec8ad18f9c592d526db64c725:decision:yes")})
-	if len(txDataInfo) <= posEventProposal+2 {
-		return currentBlockProposals
-	}
-
-	proposal := Proposal{
-		Hash:              tx.Hash(),
-		ReceivedNumber:    big.NewInt(0),
-		CurrentDeposit:    proposalDeposit, // for all type of deposit
-		ValidationLoopCnt: defaultValidationLoopCnt,
-		ProposalType:      proposalTypeCandidateAdd,
-		Proposer:          proposer,
-		TargetAddress:     common.Address{},
-		MinerReward:       defaultMinerReward,
-		Declares:          []*Declare{},
-		MinVoterBalance:   new(big.Int).Div(minVoterBalance, big.NewInt(1e+18)).Uint64(),
-		ProposalDeposit:   new(big.Int).Div(proposalDeposit, big.NewInt(1e+18)).Uint64(), // default value
-	}
-
-	for i := 0; i < len(txDataInfo[posEventProposal+1:])/2; i++ {
-		k, v := txDataInfo[posEventProposal+1+i*2], txDataInfo[posEventProposal+2+i*2]
-		switch k {
-		case "vlcnt":
-			// If vlcnt is missing then user default value, but if the vlcnt is beyond the min/max value then ignore this proposal
-			if validationLoopCnt, err := strconv.Atoi(v); err != nil || validationLoopCnt < minValidationLoopCnt || validationLoopCnt > maxValidationLoopCnt {
-				return currentBlockProposals
-			} else {
-				proposal.ValidationLoopCnt = uint64(validationLoopCnt)
-			}
-		case "proposal_type":
-			if proposalType, err := strconv.Atoi(v); err != nil {
-				return currentBlockProposals
-			} else {
-				proposal.ProposalType = uint64(proposalType)
-			}
-		case "candidate":
-			proposal.TargetAddress.UnmarshalText([]byte(v))
-		case "mvb":
-			// minVoterBalance
-			if mvb, err := strconv.Atoi(v); err != nil || mvb <= 0 {
-				return currentBlockProposals
-			} else {
-				proposal.MinVoterBalance = uint64(mvb)
-			}
-		case "mpd":
-			// proposalDeposit
-			if mpd, err := strconv.Atoi(v); err != nil || mpd <= 0 || mpd > maxProposalDeposit {
-				return currentBlockProposals
-			} else {
-				proposal.ProposalDeposit = uint64(mpd)
-			}
-		}
-	}
-	// now the proposal is built
-	currentProposalPay := new(big.Int).Set(proposalDeposit)
-	// check enough balance for deposit
-	if state.GetBalance(proposer).Cmp(currentProposalPay) < 0 {
-		return currentBlockProposals
-	}
-	// collection the fee for this proposal (deposit and other fee , sc rent fee ...)
-	state.SetBalance(proposer, new(big.Int).Sub(state.GetBalance(proposer), currentProposalPay))
-
-	return append(currentBlockProposals, proposal)
-}
-
-func (v *Vdpos) processEventDeclare(currentBlockDeclares []Declare, txDataInfo []string, tx *types.Transaction, declarer common.Address) []Declare {
-	if len(txDataInfo) <= posEventDeclare+2 {
-		return currentBlockDeclares
-	}
-	declare := Declare{
-		ProposalHash: common.Hash{},
-		Declarer:     declarer,
-		Decision:     true,
-	}
-	for i := 0; i < len(txDataInfo[posEventDeclare+1:])/2; i++ {
-		k, v := txDataInfo[posEventDeclare+1+i*2], txDataInfo[posEventDeclare+2+i*2]
-		switch k {
-		case "hash":
-			declare.ProposalHash.UnmarshalText([]byte(v))
-		case "decision":
-			if v == "yes" {
-				declare.Decision = true
-			} else if v == "no" {
-				declare.Decision = false
-			} else {
-				return currentBlockDeclares
-			}
-		}
-	}
-
-	return append(currentBlockDeclares, declare)
 }
 
 func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address) []Vote {
