@@ -30,20 +30,10 @@ import (
 )
 
 const (
-	defaultFullCredit       = 28800 // no punished
-	missingPublishCredit    = 100   // punished for missing one block seal
-	signRewardCredit        = 10    // seal one block
-	autoRewardCredit        = 1     // credit auto recover for each block
-	minCalSignersPoolCredit = 10000 // when calculate the signersPool
-
-	maxUncheckBalanceVoteCount = 10000 // not check current balance when calculate expired
-	// the credit of one signer is at least minCalSignersPoolCredit
-	candidateStateNormal = 1
-	candidateMaxLen      = 500 // if candidateNeedPD is false and candidate is more than candidateMaxLen, then minimum tickets candidates will be remove in each LCRS*loop
-
-	// proposal refund
-	proposalRefundDelayLoopCount   = 0
-	proposalRefundExpiredLoopCount = proposalRefundDelayLoopCount + 2
+	defaultFullCredit    = 1 // weight of the signer's stake
+	maxVoteCount         = 10000
+	candidateStateNormal = 1  //default candidateState
+	candidateMaxLen      = 50 // if candidate is more than candidateMaxLen, then minimum tickets candidates will be remove in each LCRS*loop
 )
 
 // Snapshot is the state of the authorization voting at a given point in time.
@@ -52,22 +42,21 @@ type Snapshot struct {
 	sigcache *lru.ARCCache       // Cache of recent block signatures to speed up ecrecover
 	LCRS     uint64              // Loop count to recreate signers from top tally
 
-	Period          uint64                                 `json:"period"`          // Period of seal each block
-	Number          uint64                                 `json:"number"`          // Block number where the snapshot was created
-	ConfirmedNumber uint64                                 `json:"confirmedNumber"` // Block number confirmed when the snapshot was created
-	Hash            common.Hash                            `json:"hash"`            // Block hash where the snapshot was created
-	HistoryHash     []common.Hash                          `json:"historyHash"`     // Block hash list for two recent loop
-	Signers         []*common.Address                      `json:"signers"`         // SignersPool in current header
-	Votes           map[common.Address]*Vote               `json:"votes"`           // All validate votes from genesis block
-	Tally           map[common.Address]*big.Int            `json:"tally"`           // Stake for each candidate address
-	Voters          map[common.Address]*big.Int            `json:"voters"`          // Block number for each voter address
-	Candidates      map[common.Address]uint64              `json:"candidates"`      // Candidates for Signers (0- adding procedure 1- normal 2- removing procedure)
-	Punished        map[common.Address]uint64              `json:"punished"`        // The signer be punished count cause of missing seal
-	Confirmations   map[uint64][]*common.Address           `json:"confirms"`        // The signer confirm given block number
-	Proposals       map[common.Hash]*Proposal              `json:"proposals"`       // The Proposals going or success (failed proposal will be removed)
-	HeaderTime      uint64                                 `json:"headerTime"`      // Time of the current header
-	LoopStartTime   uint64                                 `json:"loopStartTime"`   // Start Time of the current loop
-	ProposalRefund  map[uint64]map[common.Address]*big.Int `json:"proposalRefund"`  // Refund proposal deposit
+	Period          uint64                       `json:"period"`          // Period of seal each block
+	SignerPeriod    uint64                       `json:"signerPeriod"`    // Period of seal each block between two signers
+	Number          uint64                       `json:"number"`          // Block number where the snapshot was created
+	ConfirmedNumber uint64                       `json:"confirmedNumber"` // Block number confirmed when the snapshot was created
+	Hash            common.Hash                  `json:"hash"`            // Block hash where the snapshot was created
+	HistoryHash     []common.Hash                `json:"historyHash"`     // Block hash list for two recent loop
+	Signers         []*common.Address            `json:"signers"`         // SignersPool in current header
+	Votes           map[common.Address]*Vote     `json:"votes"`           // All validate votes from genesis block
+	Tally           map[common.Address]*big.Int  `json:"tally"`           // Stake for each candidate address
+	Voters          map[common.Address]*big.Int  `json:"voters"`          // Block number for each voter address
+	Candidates      map[common.Address]uint64    `json:"candidates"`      // Candidates for Signers (1- normal)
+	Punished        map[common.Address]uint64    `json:"punished"`        // The signer be punished count cause of missing seal
+	Confirmations   map[uint64][]*common.Address `json:"confirms"`        // The signer confirm given block number
+	HeaderTime      uint64                       `json:"headerTime"`      // Time of the current header
+	LoopStartTime   uint64                       `json:"loopStartTime"`   // Start Time of the current loop
 }
 
 // newSnapshot creates a new snapshot with the specified startup parameters. only ever use if for
@@ -79,6 +68,7 @@ func newSnapshot(config *params.VdposConfig, sigcache *lru.ARCCache, hash common
 		sigcache:        sigcache,
 		LCRS:            lcrs,
 		Period:          config.Period,
+		SignerPeriod:    config.SignerPeriod,
 		Number:          0,
 		ConfirmedNumber: 0,
 		Hash:            hash,
@@ -87,13 +77,11 @@ func newSnapshot(config *params.VdposConfig, sigcache *lru.ARCCache, hash common
 		Votes:           make(map[common.Address]*Vote),
 		Tally:           make(map[common.Address]*big.Int),
 		Voters:          make(map[common.Address]*big.Int),
-		Punished:        make(map[common.Address]uint64),
 		Candidates:      make(map[common.Address]uint64),
+		Punished:        make(map[common.Address]uint64),
 		Confirmations:   make(map[uint64][]*common.Address),
-		Proposals:       make(map[common.Hash]*Proposal),
 		HeaderTime:      uint64(time.Now().Unix()) - 1,
 		LoopStartTime:   config.GenesisTimestamp,
-		ProposalRefund:  make(map[uint64]map[common.Address]*big.Int),
 	}
 	snap.HistoryHash = append(snap.HistoryHash, hash)
 
@@ -156,6 +144,7 @@ func (s *Snapshot) copy() *Snapshot {
 		sigcache:        s.sigcache,
 		LCRS:            s.LCRS,
 		Period:          s.Period,
+		SignerPeriod:    s.SignerPeriod,
 		Number:          s.Number,
 		ConfirmedNumber: s.ConfirmedNumber,
 		Hash:            s.Hash,
@@ -167,12 +156,10 @@ func (s *Snapshot) copy() *Snapshot {
 		Voters:        make(map[common.Address]*big.Int),
 		Candidates:    make(map[common.Address]uint64),
 		Punished:      make(map[common.Address]uint64),
-		Proposals:     make(map[common.Hash]*Proposal),
 		Confirmations: make(map[uint64][]*common.Address),
 
-		HeaderTime:     s.HeaderTime,
-		LoopStartTime:  s.LoopStartTime,
-		ProposalRefund: make(map[uint64]map[common.Address]*big.Int),
+		HeaderTime:    s.HeaderTime,
+		LoopStartTime: s.LoopStartTime,
 	}
 	copy(cpy.HistoryHash, s.HistoryHash)
 	copy(cpy.Signers, s.Signers)
@@ -198,15 +185,6 @@ func (s *Snapshot) copy() *Snapshot {
 	for blockNumber, confirmers := range s.Confirmations {
 		cpy.Confirmations[blockNumber] = make([]*common.Address, len(confirmers))
 		copy(cpy.Confirmations[blockNumber], confirmers)
-	}
-	for txHash, proposal := range s.Proposals {
-		cpy.Proposals[txHash] = proposal.copy()
-	}
-	for number, refund := range s.ProposalRefund {
-		cpy.ProposalRefund[number] = make(map[common.Address]*big.Int)
-		for proposer, deposit := range refund {
-			cpy.ProposalRefund[number][proposer] = new(big.Int).Set(deposit)
-		}
 	}
 
 	return cpy
@@ -269,25 +247,16 @@ func (s *Snapshot) apply(headers []*types.Header) (*Snapshot, error) {
 		// deal the voter which balance modified
 		snap.updateSnapshotByMPVotes(headerExtra.ModifyPredecessorVotes)
 
-		// deal the snap related with punished
-		snap.updateSnapshotForPunish(headerExtra.SignerMissing, header.Number, header.Coinbase)
-
-		// deal proposals
-		snap.updateSnapshotByProposals(headerExtra.CurrentBlockProposals, header.Number)
-
-		// deal declares
-		snap.updateSnapshotByDeclares(headerExtra.CurrentBlockDeclares, header.Number)
-
 		// deal trantor upgrade
 		if snap.Period == 0 {
 			snap.Period = snap.config.Period
 		}
+		if snap.SignerPeriod == 0 {
+			snap.SignerPeriod = snap.config.SignerPeriod
+		}
 
-		// calculate proposal result
-		snap.calculateProposalResult(header.Number)
-
-		// check the len of candidate if not candidateNeedPD
-		if !candidateNeedPD && (snap.Number+1)%(snap.config.MaxSignerCount*snap.config.SignerBlocks*snap.LCRS) == 0 && len(snap.Candidates) > candidateMaxLen {
+		// check the len of candidate
+		if (snap.Number+1)%(snap.config.MaxSignerCount*snap.config.SignerBlocks*snap.LCRS) == 0 && len(snap.Candidates) > candidateMaxLen {
 			snap.removeExtraCandidate()
 		}
 		snap.updateSnapshotForExpired(header.Number)
@@ -336,110 +305,12 @@ func (s *Snapshot) verifyTallyCnt() error {
 	return nil
 }
 
-func (s *Snapshot) updateSnapshotByDeclares(declares []Declare, headerNumber *big.Int) {
-	for _, declare := range declares {
-		if proposal, ok := s.Proposals[declare.ProposalHash]; ok {
-			// check the proposal enable status and valid block number
-			if proposal.ReceivedNumber.Uint64()+proposal.ValidationLoopCnt*s.config.MaxSignerCount*s.config.SignerBlocks < headerNumber.Uint64() || !s.isCandidate(declare.Declarer) {
-				continue
-			}
-			// check if this signer already declare on this proposal
-			alreadyDeclare := false
-			for _, v := range proposal.Declares {
-				if v.Declarer.Str() == declare.Declarer.Str() {
-					// this declarer already declare for this proposal
-					alreadyDeclare = true
-					break
-				}
-			}
-			if alreadyDeclare {
-				continue
-			}
-			// add declare to proposal
-			s.Proposals[declare.ProposalHash].Declares = append(s.Proposals[declare.ProposalHash].Declares,
-				&Declare{declare.ProposalHash, declare.Declarer, declare.Decision})
-
-		}
-	}
-}
-
-//TODO change MaxSignerBlocks
-func (s *Snapshot) calculateProposalResult(headerNumber *big.Int) {
-	// process the expire proposal refund record
-	expiredHeaderNumber := headerNumber.Uint64() - proposalRefundExpiredLoopCount*s.config.MaxSignerCount*s.config.SignerBlocks
-	if _, ok := s.ProposalRefund[expiredHeaderNumber]; ok {
-		delete(s.ProposalRefund, expiredHeaderNumber)
-	}
-
-	for hashKey, proposal := range s.Proposals {
-		// the result will be calculate at receiverdNumber + vlcnt + 1
-		if proposal.ReceivedNumber.Uint64()+proposal.ValidationLoopCnt*s.config.MaxSignerCount*s.config.SignerBlocks+1 == headerNumber.Uint64() {
-			//return deposit for proposal
-			if _, ok := s.ProposalRefund[headerNumber.Uint64()]; !ok {
-				s.ProposalRefund[headerNumber.Uint64()] = make(map[common.Address]*big.Int)
-			}
-			if _, ok := s.ProposalRefund[headerNumber.Uint64()][proposal.Proposer]; !ok {
-				s.ProposalRefund[headerNumber.Uint64()][proposal.Proposer] = new(big.Int).Set(proposal.CurrentDeposit)
-			} else {
-				s.ProposalRefund[headerNumber.Uint64()][proposal.Proposer].Add(s.ProposalRefund[headerNumber.Uint64()][proposal.Proposer], proposal.CurrentDeposit)
-			}
-
-			// calculate the current stake of this proposal
-			judgementStake := big.NewInt(0)
-			for _, tally := range s.Tally {
-				judgementStake.Add(judgementStake, tally)
-			}
-			judgementStake.Mul(judgementStake, big.NewInt(2))
-			judgementStake.Div(judgementStake, big.NewInt(3))
-			// calculate declare stake
-			yesDeclareStake := big.NewInt(0)
-			for _, declare := range proposal.Declares {
-				if declare.Decision {
-					if _, ok := s.Tally[declare.Declarer]; ok {
-						yesDeclareStake.Add(yesDeclareStake, s.Tally[declare.Declarer])
-					}
-				}
-			}
-			if yesDeclareStake.Cmp(judgementStake) > 0 {
-				// process add candidate
-				switch proposal.ProposalType {
-				case proposalTypeCandidateAdd:
-					if candidateNeedPD {
-						s.Candidates[proposal.TargetAddress] = candidateStateNormal
-					}
-				case proposalTypeCandidateRemove:
-					if _, ok := s.Candidates[proposal.TargetAddress]; ok && candidateNeedPD {
-						delete(s.Candidates, proposal.TargetAddress)
-					}
-				case proposalTypeMinVoterBalanceModify:
-					minVoterBalance = new(big.Int).Mul(new(big.Int).SetUint64(s.Proposals[hashKey].MinVoterBalance), big.NewInt(1e+18))
-				case proposalTypeProposalDepositModify:
-					proposalDeposit = new(big.Int).Mul(new(big.Int).SetUint64(s.Proposals[hashKey].ProposalDeposit), big.NewInt(1e+18))
-				default:
-					// TODO
-				}
-			}
-			// remove all proposal
-			delete(s.Proposals, hashKey)
-		}
-
-	}
-
-}
-
-func (s *Snapshot) updateSnapshotByProposals(proposals []Proposal, headerNumber *big.Int) {
-	for _, proposal := range proposals {
-		proposal.ReceivedNumber = new(big.Int).Set(headerNumber)
-		s.Proposals[proposal.Hash] = &proposal
-	}
-}
-
 func (s *Snapshot) updateSnapshotForExpired(headerNumber *big.Int) {
 
 	// deal the expired vote
 	var expiredVotes []*Vote
 	checkBalance := false
-	if len(s.Voters) > maxUncheckBalanceVoteCount {
+	if len(s.Voters) > maxVoteCount {
 		checkBalance = true
 	}
 
@@ -511,9 +382,8 @@ func (s *Snapshot) updateSnapshotByVotes(votes []Vote, headerNumber *big.Int) {
 			s.Tally[vote.Candidate].Add(s.Tally[vote.Candidate], vote.Stake)
 		} else {
 			s.Tally[vote.Candidate] = vote.Stake
-			if !candidateNeedPD {
-				s.Candidates[vote.Candidate] = candidateStateNormal
-			}
+			s.Candidates[vote.Candidate] = candidateStateNormal
+
 		}
 
 		s.Votes[vote.Voter] = &Vote{vote.Voter, vote.Candidate, vote.Stake}
@@ -533,49 +403,6 @@ func (s *Snapshot) updateSnapshotByMPVotes(votes []Vote) {
 	}
 }
 
-func (s *Snapshot) updateSnapshotForPunish(signerMissing []common.Address, headerNumber *big.Int, coinbase common.Address) {
-	// set punished count to half of origin in Epoch
-	/*
-		if headerNumber.Uint64()%s.config.Epoch == 0 {
-			for bePublished := range s.Punished {
-				if count := s.Punished[bePublished] / 2; count > 0 {
-					s.Punished[bePublished] = count
-				} else {
-					delete(s.Punished, bePublished)
-				}
-			}
-		}
-	*/
-	// punish the missing signer
-	for _, signerEach := range signerMissing {
-		if _, ok := s.Punished[signerEach]; ok {
-			// 10 times of defaultFullCredit is big enough for calculate signer order
-			if s.Punished[signerEach] <= 10*defaultFullCredit {
-				s.Punished[signerEach] += missingPublishCredit
-			}
-		} else {
-			s.Punished[signerEach] = missingPublishCredit
-		}
-	}
-	// reduce the punish of sign signer
-	if _, ok := s.Punished[coinbase]; ok {
-
-		if s.Punished[coinbase] > signRewardCredit {
-			s.Punished[coinbase] -= signRewardCredit
-		} else {
-			delete(s.Punished, coinbase)
-		}
-	}
-	// reduce the punish for all punished
-	for signerEach := range s.Punished {
-		if s.Punished[signerEach] > autoRewardCredit {
-			s.Punished[signerEach] -= autoRewardCredit
-		} else {
-			delete(s.Punished, signerEach)
-		}
-	}
-}
-
 // signers retrieves the list of signers
 func (s *Snapshot) signers() []common.Address {
 	sigs := make([]common.Address, 0, len(s.Signers))
@@ -588,7 +415,11 @@ func (s *Snapshot) signers() []common.Address {
 // inturn returns if a signer at a given block height is in-turn or not.
 func (s *Snapshot) inturn(signer common.Address, headerTime uint64) bool {
 	if signersCount := len(s.Signers); signersCount > 0 {
-		if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
+		//config.Period != config.SignerPeriod
+		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
+		//	return true
+		//}
+		if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period*(s.config.SignerBlocks-1) + s.config.SignerPeriod)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
 			return true
 		}
 	}
