@@ -57,7 +57,7 @@ func (s SignerSlice) Less(i, j int) bool {
 	return bytes.Compare(s[i].hash.Bytes(), s[j].hash.Bytes()) > 0
 }
 
-// verify the SignerQueue base on block hash
+// verify the SignersPool base on block hash
 func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
 
 	if len(signersPool) > int(s.config.MaxSignerCount) {
@@ -82,19 +82,7 @@ func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
 func (s *Snapshot) buildTallySlice() TallySlice {
 	var tallySlice TallySlice
 	for address, stake := range s.Tally {
-		if !candidateNeedPD || s.isCandidate(address) {
-			if _, ok := s.Punished[address]; ok {
-				var creditWeight uint64
-				if s.Punished[address] > defaultFullCredit-minCalSignersPoolCredit {
-					creditWeight = minCalSignersPoolCredit
-				} else {
-					creditWeight = defaultFullCredit - s.Punished[address]
-				}
-				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(int64(creditWeight)))})
-			} else {
-				tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
-			}
-		}
+		tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
 	}
 	return tallySlice
 }
@@ -112,14 +100,11 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 		// before recalculate the signers, clear the candidate is not in snap.Candidates
 		// only recalculate signers from to tally per 10 loop,
 		// other loop end just reset the order of signers by block hash (nearly random)
-		log.Debug("~~~~~~~~~~~~~~~~~~~now we recreate signers~~~~~~~~~~~")
 		tallySlice := s.buildTallySlice()
 		sort.Sort(TallySlice(tallySlice))
-		log.Debug("~~~~~~~~~~~~~~~~~~~tallySlice begin~~~~~~~~~~~~~~~~~~")
 		for _, item := range tallySlice {
 			log.Debug(item.addr.Hex())
 		}
-		log.Debug("~~~~~~~~~~~~~~~~~~~tallySlice end~~~~~~~~~~~~~~~~~~~~")
 
 		poolLength := int(s.config.MaxSignerCount)
 		if poolLength > len(tallySlice) {
@@ -128,11 +113,9 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 		for i, tallyItem := range tallySlice[:poolLength] {
 			signerSlice = append(signerSlice, SignerItem{tallyItem.addr, s.HistoryHash[len(s.HistoryHash)-1-i]})
 		}
-		log.Debug("~~~~~~~~~~~~~~~~~~~signerSlice begin~~~~~~~~~~~~~~~~~~")
 		for _, itemx := range signerSlice {
 			log.Debug(itemx.addr.Hex())
 		}
-		log.Debug("~~~~~~~~~~~~~~~~~~~signerSlice end~~~~~~~~~~~~~~~~~~~~")
 	} else {
 		for i, signer := range s.Signers {
 			signerSlice = append(signerSlice, SignerItem{*signer, s.HistoryHash[len(s.HistoryHash)-1-i]})
