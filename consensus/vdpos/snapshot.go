@@ -89,11 +89,15 @@ func newSnapshot(config *params.VdposConfig, sigcache *lru.ARCCache, hash common
 		// init Votes from each vote
 		snap.Votes[vote.Voter] = vote
 		// init Tally
-		_, ok := snap.Tally[vote.Candidate]
-		if !ok {
-			snap.Tally[vote.Candidate] = big.NewInt(0)
+		//achilles
+		for _, candidate := range vote.Candidate {
+			_, ok := snap.Tally[candidate]
+			if !ok {
+				snap.Tally[candidate] = big.NewInt(0)
+			}
+			snap.Tally[candidate].Add(snap.Tally[candidate], vote.Stake)
 		}
-		snap.Tally[vote.Candidate].Add(snap.Tally[vote.Candidate], vote.Stake)
+
 		// init Voters
 		snap.Voters[vote.Voter] = big.NewInt(0) // block number is 0 , vote in genesis block
 		// init Candidates
@@ -284,14 +288,17 @@ func (s *Snapshot) removeExtraCandidate() {
 }
 
 func (s *Snapshot) verifyTallyCnt() error {
-
+	//achilles
 	tallyTarget := make(map[common.Address]*big.Int)
 	for _, v := range s.Votes {
-		if _, ok := tallyTarget[v.Candidate]; ok {
-			tallyTarget[v.Candidate].Add(tallyTarget[v.Candidate], v.Stake)
-		} else {
-			tallyTarget[v.Candidate] = new(big.Int).Set(v.Stake)
+		for _, candidate := range v.Candidate {
+			if _, ok := tallyTarget[candidate]; ok {
+				tallyTarget[candidate].Add(tallyTarget[candidate], v.Stake)
+			} else {
+				tallyTarget[candidate] = new(big.Int).Set(v.Stake)
+			}
 		}
+
 	}
 
 	for address, tally := range s.Tally {
@@ -325,12 +332,15 @@ func (s *Snapshot) updateSnapshotForExpired(headerNumber *big.Int) {
 	// remove expiredVotes only enough voters left
 	if uint64(len(s.Voters)-len(expiredVotes)) >= s.config.MaxSignerCount {
 		for _, expiredVote := range expiredVotes {
-			if _, ok := s.Tally[expiredVote.Candidate]; ok {
-				s.Tally[expiredVote.Candidate].Sub(s.Tally[expiredVote.Candidate], expiredVote.Stake)
-				if s.Tally[expiredVote.Candidate].Cmp(big.NewInt(0)) == 0 {
-					delete(s.Tally, expiredVote.Candidate)
+			for _, candidate := range expiredVote.Candidate {
+				if _, ok := s.Tally[candidate]; ok {
+					s.Tally[candidate].Sub(s.Tally[candidate], expiredVote.Stake)
+					if s.Tally[candidate].Cmp(big.NewInt(0)) == 0 {
+						delete(s.Tally, candidate)
+					}
 				}
 			}
+
 			delete(s.Votes, expiredVote.Voter)
 			delete(s.Voters, expiredVote.Voter)
 		}
@@ -376,14 +386,19 @@ func (s *Snapshot) updateSnapshotByVotes(votes []Vote, headerNumber *big.Int) {
 	for _, vote := range votes {
 		// update Votes, Tally, Voters data
 		if lastVote, ok := s.Votes[vote.Voter]; ok {
-			s.Tally[lastVote.Candidate].Sub(s.Tally[lastVote.Candidate], lastVote.Stake)
-		}
-		if _, ok := s.Tally[vote.Candidate]; ok {
-			s.Tally[vote.Candidate].Add(s.Tally[vote.Candidate], vote.Stake)
-		} else {
-			s.Tally[vote.Candidate] = vote.Stake
-			s.Candidates[vote.Candidate] = candidateStateNormal
+			for _, candidate := range lastVote.Candidate {
+				s.Tally[candidate].Sub(s.Tally[candidate], lastVote.Stake)
+			}
 
+		}
+		for _, candidate := range vote.Candidate {
+			if _, ok := s.Tally[candidate]; ok {
+				s.Tally[candidate].Add(s.Tally[candidate], vote.Stake)
+			} else {
+				s.Tally[candidate] = vote.Stake
+				s.Candidates[candidate] = candidateStateNormal
+
+			}
 		}
 
 		s.Votes[vote.Voter] = &Vote{vote.Voter, vote.Candidate, vote.Stake}
@@ -395,8 +410,10 @@ func (s *Snapshot) updateSnapshotByMPVotes(votes []Vote) {
 	for _, txVote := range votes {
 
 		if lastVote, ok := s.Votes[txVote.Voter]; ok {
-			s.Tally[lastVote.Candidate].Sub(s.Tally[lastVote.Candidate], lastVote.Stake)
-			s.Tally[lastVote.Candidate].Add(s.Tally[lastVote.Candidate], txVote.Stake)
+			for _, candidate := range lastVote.Candidate {
+				s.Tally[candidate].Sub(s.Tally[candidate], lastVote.Stake)
+				s.Tally[candidate].Add(s.Tally[candidate], txVote.Stake)
+			}
 			s.Votes[txVote.Voter] = &Vote{Voter: txVote.Voter, Candidate: lastVote.Candidate, Stake: txVote.Stake}
 			// do not modify header number of snap.Voters
 		}
