@@ -694,7 +694,6 @@ func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendT
 	return submitTransaction(ctx, s.b, signed)
 }
 
-
 //Resource by zc
 // Result structs for GetProof
 type AccountResult struct {
