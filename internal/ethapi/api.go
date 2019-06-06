@@ -32,6 +32,7 @@ import (
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
 	"github.com/insight-chain/inb-go/consensus/ethash"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core"
 	"github.com/insight-chain/inb-go/core/rawdb"
 	"github.com/insight-chain/inb-go/core/types"
@@ -496,6 +497,25 @@ func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber) // latest header should always be available
 	return hexutil.Uint64(header.Number.Uint64())
 }
+
+// vdpos by ssh begin
+// Get last confirmed block number
+func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
+	var err error
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		return hexutil.Uint64(val.ConfirmedBlockNumber)
+	} else {
+		return hexutil.Uint64(0)
+	}
+
+}
+
+// vdpos by ssh end
 
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
