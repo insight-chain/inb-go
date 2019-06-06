@@ -33,18 +33,22 @@ const (
 	/*
 	 *  inb:version:category:action/data
 	 */
-	inbPrefix             = "inb"
-	inbVersion            = "1"
-	inbCategoryEvent      = "event"
-	inbEventVote          = "vote"
-	inbEventConfirm       = "confirm"
-	inbMinSplitLen        = 3
-	posPrefix             = 0
-	posVersion            = 1
-	posCategory           = 2
-	posEventVote          = 3
-	posEventConfirm       = 3
-	posEventConfirmNumber = 4
+	inbPrefix              = "inb"
+	inbVersion             = "1"
+	inbCategoryEvent       = "event"
+	inbEventVote           = "vote"
+	inbEventVoteCandidates = "candidates"
+	inbEventConfirm        = "confirm"
+	inbMinSplitLen         = 3
+	posPrefix              = 0
+	posVersion             = 1
+	posCategory            = 2
+	posEventVote           = 3
+	posEventConfirm        = 3
+	posEventConfirmNumber  = 4
+	//achilles
+	posEventVoteCandidates       = 4
+	posEventVoteCandidatesNumber = 5
 )
 
 // RefundGas :
@@ -65,8 +69,9 @@ type RefundHash map[common.Hash]RefundPair
 // Sender of tx is Voter, the tx.to is Candidate
 // Stake is the balance of Voter when create this vote
 type Vote struct {
-	Voter     common.Address
-	Candidate common.Address
+	Voter common.Address
+	//achilles
+	Candidate []common.Address
 	Stake     *big.Int
 }
 
@@ -168,7 +173,16 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 							if len(txDataInfo) > inbMinSplitLen {
 								// check is vote or not
 								if txDataInfo[posEventVote] == inbEventVote {
-									headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, tx, txSender)
+									var candidates []common.Address
+									//achilles vote
+									if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
+										candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ":")
+										for _, value := range candidatesStr {
+											address := common.HexToAddress(value)
+											candidates = append(candidates, address)
+										}
+									}
+									headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
 								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
 								}
@@ -206,16 +220,17 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 	return refundGas
 }
 
-func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address) []Vote {
+func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
 	if state.GetBalance(voter).Cmp(minVoterBalance) > 0 {
 
 		v.lock.RLock()
+		//todo balance change to cpu/net
 		stake := state.GetBalance(voter)
 		v.lock.RUnlock()
 
 		currentBlockVotes = append(currentBlockVotes, Vote{
 			Voter:     voter,
-			Candidate: *tx.To(),
+			Candidate: candidates,
 			Stake:     stake,
 		})
 	}
@@ -268,7 +283,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     voter,
-				Candidate: common.Address{},
+				Candidate: []common.Address{voter},
 				Stake:     stake,
 			})
 		}
@@ -278,7 +293,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     *tx.To(),
-				Candidate: common.Address{},
+				Candidate: []common.Address{voter},
 				Stake:     stake,
 			})
 		}
