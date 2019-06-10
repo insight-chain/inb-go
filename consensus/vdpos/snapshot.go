@@ -395,11 +395,18 @@ func (s *Snapshot) updateSnapshotByVotes(votes []Vote, headerNumber *big.Int) {
 			if _, ok := s.Tally[candidate]; ok {
 				s.Tally[candidate].Add(s.Tally[candidate], vote.Stake)
 			} else {
-				s.Tally[candidate] = vote.Stake
-				s.Candidates[candidate] = candidateStateNormal
-
+				s.Tally[candidate] = new(big.Int).Set(vote.Stake)
 			}
 		}
+
+		//s.Tally = make(map[common.Address]*big.Int)
+		//for _, candidate := range vote.Candidate {
+		//	if _, ok := s.Tally[candidate]; ok {
+		//		s.Tally[candidate].Add(s.Tally[candidate], vote.Stake)
+		//	} else {
+		//		s.Tally[candidate] = new(big.Int).Set(vote.Stake)
+		//	}
+		//}
 
 		s.Votes[vote.Voter] = &Vote{vote.Voter, vote.Candidate, vote.Stake}
 		s.Voters[vote.Voter] = headerNumber
