@@ -578,6 +578,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
+	//Resource by zc
+	inputStr := string(tx.Data())
+	//Resource by zc
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
@@ -628,8 +631,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrIntrinsicGas
 	}
 	//Resource by zc
-	addressString := tx.To().String()
-	addressN := common.HexToAddress(addressString)
+	//addressString := tx.To().String()
+	//addressN := common.HexToAddress(addressString)
+	addressN := from
 	expendCpuFromUnMortgageCpu := big.NewInt(50)
 	expendNetFromUnMortgageNet := big.NewInt(300)
 	usableCpu := pool.currentState.GetCpu(addressN)
@@ -637,7 +641,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
 	usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
 
-	inputStr := string(tx.Data())
 	if inputStr == string("unmortgageCpu") {
 		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu
 		if pool.currentState.GetMortgageInbOfCpu(addressN).Cmp(tx.Value()) < 0 {
