@@ -517,6 +517,24 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // vdpos by ssh end
 
+// vdpos by ghy begin
+// Get first head block enode msg
+func (s *PublicBlockChainAPI) GetFirstBlockEnode() []string {
+	var err error
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.EarliestBlockNumber)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		return val.Enode
+	} else {
+		return nil
+	}
+
+}
+// vdpos by ghy end
+
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.

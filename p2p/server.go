@@ -605,7 +605,6 @@ func (srv *Server) run(dialstate dialer) {
 	srv.log.Info("Started P2P networking", "self", srv.localnode.Node())
 	defer srv.loopWG.Done()
 	defer srv.nodedb.Close()
-
 	var (
 		peers        = make(map[enode.ID]*Peer)
 		inboundCount = 0

@@ -18,16 +18,15 @@ package main
 
 import (
 	"fmt"
-	"os"
-	"runtime"
-	"strconv"
-	"strings"
-
 	"github.com/insight-chain/inb-go/cmd/utils"
 	"github.com/insight-chain/inb-go/consensus/ethash"
 	"github.com/insight-chain/inb-go/eth"
 	"github.com/insight-chain/inb-go/params"
 	"gopkg.in/urfave/cli.v1"
+	"os"
+	"runtime"
+	"strconv"
+	"strings"
 )
 
 var (
