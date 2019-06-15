@@ -26,6 +26,9 @@ func NewEnv(cfg *Config) *vm.EVM {
 	context := vm.Context{
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
+		//Resource by zc
+		MortgageTrasfer:    core.MortgageTrasfer,
+		//Resource by zc
 		GetHash:     func(uint64) common.Hash { return common.Hash{} },
 
 		Origin:      cfg.Origin,

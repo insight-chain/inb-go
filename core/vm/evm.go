@@ -35,6 +35,9 @@ type (
 	CanTransferFunc func(StateDB, common.Address, *big.Int) bool
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	//Resource by zc
+	MortgageTrasferFunc func(StateDB, common.Address,common.Address, *big.Int)
+	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
@@ -75,6 +78,9 @@ type Context struct {
 	CanTransfer CanTransferFunc
 	// Transfer transfers ether from one account to the other
 	Transfer TransferFunc
+	//Resource by zc
+	MortgageTrasfer MortgageTrasferFunc
+	//Resource by zc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
 
@@ -211,10 +217,15 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
-	evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
-
+	//evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	//Resource by zc
 	inputStr := string(input)
+	if inputStr == string("unmortgageCpu") || inputStr == string("unmortgageNet")  {
+		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
+	}else {
+		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
+	}
+	//inputStr := string(input)
 	if inputStr == string("mortgageCpu") {
 		evm.StateDB.GetStateObject(caller.Address(), value, 0)
 	} else if inputStr == string("mortgageNet") {

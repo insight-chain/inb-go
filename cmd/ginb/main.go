@@ -200,6 +200,7 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		nodekeyCommand,
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 

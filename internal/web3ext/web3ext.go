@@ -535,8 +535,14 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'signPaymentTransaction',
 			call: 'eth_signPaymentTransaction',
-			params: 2,
-			inputFormatter: [web3._extend.utils.toHex, web3._extend.utils.toAddress]
+			params: 1,
+			inputFormatter: [web3._extend.utils.toHex]
+		}),
+		new web3._extend.Method({
+			name: 'sendVote',
+			call: 'eth_sendVote',
+			params: 1,
+			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',

@@ -59,7 +59,7 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-	totalAddress string = "0x2665b90e035f036720f912b92c4d90e43dd7b047"
+  totalAddress string = "0x67a14a27d0ff8b4f2efc703305b7fac06a1d3d81"
 )
 
 //Resource by zc
@@ -280,6 +280,7 @@ func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
 	}
 	return common.Big0
 }
+
 //Resource by zc
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
@@ -405,6 +406,20 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetBalance(amount)
+	}
+}
+
+//achilles addnet subnet
+func (self *StateDB) AddNet(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.AddNet(amount)
+	}
+}
+func (self *StateDB) UseNet(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.UseNet(amount)
 	}
 }
 

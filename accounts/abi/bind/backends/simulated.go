@@ -442,8 +442,9 @@ func (m callmsg) Gas() uint64          { return m.CallMsg.Gas }
 func (m callmsg) Value() *big.Int      { return m.CallMsg.Value }
 func (m callmsg) Data() []byte         { return m.CallMsg.Data }
 
-//tianx
-func (m callmsg) PaymentFrom() common.Address { return [20]byte{} }
+//achilles repayment add apis
+func (m callmsg) ResourcePayer() common.Address { return [20]byte{} }
+func (m callmsg) IsRePayment() bool             { return false }
 
 // filterBackend implements filters.Backend to support filtering for logs without
 // taking bloom-bits acceleration structures into account.

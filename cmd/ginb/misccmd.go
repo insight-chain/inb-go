@@ -17,17 +17,18 @@
 package main
 
 import (
+	"crypto/ecdsa"
 	"fmt"
+	"github.com/insight-chain/inb-go/cmd/utils"
+	"github.com/insight-chain/inb-go/consensus/ethash"
+	"github.com/insight-chain/inb-go/eth"
+	"github.com/insight-chain/inb-go/crypto"
+	"github.com/insight-chain/inb-go/params"
+	"gopkg.in/urfave/cli.v1"
 	"os"
 	"runtime"
 	"strconv"
 	"strings"
-
-	"github.com/insight-chain/inb-go/cmd/utils"
-	"github.com/insight-chain/inb-go/consensus/ethash"
-	"github.com/insight-chain/inb-go/eth"
-	"github.com/insight-chain/inb-go/params"
-	"gopkg.in/urfave/cli.v1"
 )
 
 var (
@@ -73,6 +74,13 @@ The output of this command is supposed to be machine-readable.
 		Usage:     "Display license information",
 		ArgsUsage: " ",
 		Category:  "MISCELLANEOUS COMMANDS",
+	}
+	nodekeyCommand = cli.Command{
+		Action:    utils.MigrateFlags(nodekey),
+		Name:      "nodekey",
+		Usage:     "create nodekey before init",
+		ArgsUsage: " data-source path",
+		Category:  "create nodekey before init",
 	}
 )
 
@@ -135,5 +143,31 @@ GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with ginb. If not, see <http://www.gnu.org/licenses/>.`)
+	return nil
+}
+
+//Create file nodekey for generate nodeid
+func nodekey(ctx *cli.Context) error {
+	args := ctx.Args()
+	if len(args) != 1 {
+		utils.Fatalf(`Usage: geth nodekey <block number> <outputdir>`)
+	}
+	var nodeKey *ecdsa.PrivateKey
+	_, err := os.Stat(args[0]+"/geth/nodekey")
+	if os.IsExist(err)||err==nil {
+		fmt.Println("nodekey is already exist")
+		nodeKey, _ = crypto.LoadECDSA(args[0]+"/geth/nodekey")
+
+	}else{
+		nodeKey, _ = crypto.GenerateKey()
+
+		err = os.MkdirAll(args[0]+"/geth/", os.ModePerm)
+		if err = crypto.SaveECDSA(args[0]+"/geth/nodekey", nodeKey); err != nil {
+			utils.Fatalf(error.Error(err))
+		}
+	}
+	nodeid:=fmt.Sprintf("%x", crypto.FromECDSAPub(&nodeKey.PublicKey)[1:])
+	fmt.Println(nodeid)
+	fmt.Printf("%x",string(crypto.FromECDSAPub(&nodeKey.PublicKey)[1:]))
 	return nil
 }

@@ -56,7 +56,7 @@ func (ethash *Ethash) Seal(chain consensus.ChainReader, block *types.Block, resu
 		select {
 		case results <- block.WithSeal(header):
 		default:
-			log.Warn("Sealing result is not read by miner", "mode", "fake", "sealhash", ethash.SealHash(block.Header()))
+			log.Warn("Sealåing result is not read by miner", "mode", "fake", "sealhash", ethash.SealHash(block.Header()))
 		}
 		return nil
 	}

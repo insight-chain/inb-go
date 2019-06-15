@@ -59,11 +59,6 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 	if err != nil {
 		return nil, err
 	}
-	//tianx
-	var flag common.Address
-	if tx.data.PaymentFrom != flag && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
-		return tx.WithPaymentSignature(s, sig)
-	}
 	return tx.WithSignature(s, sig)
 }
 
@@ -89,7 +84,8 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	if tx.data.Vp == nil || tx.data.Sp == nil || tx.data.Rp == nil {
+	var flag *big.Int
+	if tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag {
 		tx.from.Store(sigCache{signer: signer, from: addr})
 	}
 	return addr, nil
@@ -135,15 +131,15 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}
-	//tianx payment
-	var flag common.Address
-	if tx.data.PaymentFrom != flag && tx.data.Vp != nil && tx.data.Rp != nil && tx.data.Sp != nil {
+	//achilles repayment add apis
+	var flag *big.Int
+	if tx.IsRepayment() && tx.data.Repayment.Vp != flag && tx.data.Repayment.Rp != flag && tx.data.Repayment.Sp != flag {
 		if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
 		}
-		V := new(big.Int).Sub(tx.data.Vp, s.chainIdMul)
+		V := new(big.Int).Sub(tx.data.Repayment.Vp, s.chainIdMul)
 		V.Sub(V, big8)
-		return recoverPlain(s.Hash(tx), tx.data.Rp, tx.data.Sp, V, true)
+		return recoverPlain(s.Hash(tx), tx.data.Repayment.Rp, tx.data.Repayment.Sp, V, true)
 	} else {
 		if tx.ChainId().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
@@ -238,34 +234,6 @@ func (fs FrontierSigner) Sender(tx *Transaction) (common.Address, error) {
 }
 
 func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
-	if Vb.BitLen() > 8 {
-		return common.Address{}, ErrInvalidSig
-	}
-	V := byte(Vb.Uint64() - 27)
-	if !crypto.ValidateSignatureValues(V, R, S, homestead) {
-		return common.Address{}, ErrInvalidSig
-	}
-	// encode the signature in uncompressed format
-	r, s := R.Bytes(), S.Bytes()
-	sig := make([]byte, 65)
-	copy(sig[32-len(r):32], r)
-	copy(sig[64-len(s):64], s)
-	sig[64] = V
-	// recover the public key from the signature
-	pub, err := crypto.Ecrecover(sighash[:], sig)
-	if err != nil {
-		return common.Address{}, err
-	}
-	if len(pub) == 0 || pub[0] != 4 {
-		return common.Address{}, errors.New("invalid public key")
-	}
-	var addr common.Address
-	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
-	return addr, nil
-}
-
-// tianx
-func RecoverPaymentPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (common.Address, error) {
 	if Vb.BitLen() > 8 {
 		return common.Address{}, ErrInvalidSig
 	}

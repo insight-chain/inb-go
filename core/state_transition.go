@@ -74,9 +74,9 @@ type Message interface {
 	CheckNonce() bool
 	Data() []byte
 
-	//tianx
-	//payment
-	PaymentFrom() common.Address
+	//achilles repayment add apis
+	ResourcePayer() common.Address
+	IsRePayment() bool
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -153,13 +153,22 @@ func (st *StateTransition) useGas(amount uint64) error {
 	return nil
 }
 
-//tianx
+//achilles use net
+func (st *StateTransition) useNet(amount uint64) error {
+	if st.gas < amount {
+		return vm.ErrOutOfGas
+	}
+	st.gas -= amount
+
+	return nil
+}
+
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
-	var flag common.Address
+	//achilles repayment add apis
 	payment := st.msg.From()
-	if flag != st.msg.PaymentFrom() {
-		payment = st.msg.PaymentFrom()
+	if st.msg.IsRePayment() {
+		payment = st.msg.ResourcePayer()
 	}
 	if st.state.GetBalance(payment).Cmp(mgval) < 0 {
 		return errInsufficientBalanceForGas
@@ -187,25 +196,59 @@ func (st *StateTransition) preCheck() error {
 	return st.buyGas()
 }
 
+func (st *StateTransition) preCheckForNet() error {
+	// Make sure this transaction's nonce is correct.
+	if st.msg.CheckNonce() {
+		nonce := st.state.GetNonce(st.msg.From())
+		if nonce < st.msg.Nonce() {
+			return ErrNonceTooHigh
+		} else if nonce > st.msg.Nonce() {
+			return ErrNonceTooLow
+		}
+	}
+	return nil
+}
+
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
 func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
-	if err = st.preCheck(); err != nil {
+	//achilles replace gas with net
+	//if err = st.preCheck(); err != nil {
+	//	return
+	//}
+	if err = st.preCheckForNet(); err != nil {
 		return
 	}
+
+	//achilles repayment add apis
+	netPayment := st.msg.From()
+	if st.msg.IsRePayment() {
+		netPayment = st.msg.ResourcePayer()
+	}
+	//mgval := new(big.Int).SetUint64(st.msg.Gas())
+	if string("mortgageNet") != string(st.data) && string("unmortgageNet") != string(st.data) {
+		if st.state.GetNet(netPayment).Cmp(big.NewInt(300)) < 0 {
+			return nil, 0, false, errInsufficientBalanceForGas
+		}
+	}
+
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
+	//homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
-	gas, err := IntrinsicGas(st.data, contractCreation, homestead)
-	if err != nil {
-		return nil, 0, false, err
-	}
-	if err = st.useGas(gas); err != nil {
-		return nil, 0, false, err
+	////achilles replace gas with net
+	//gas, err := IntrinsicGas(st.data, contractCreation, homestead)
+	//if err != nil {
+	//	return nil, 0, false, err
+	//}
+	//if err = st.useGas(gas); err != nil {
+	//	return nil, 0, false, err
+	//}
+	if string("mortgageNet") != string(st.data) && string("unmortgageNet") != string(st.data) {
+		st.state.UseNet(netPayment, big.NewInt(300))
 	}
 
 	var (
@@ -231,8 +274,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 			return nil, 0, false, vmerr
 		}
 	}
-	st.refundGas()
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	//achilles
+	//st.refundGas()
+	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }
@@ -247,9 +291,9 @@ func (st *StateTransition) refundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	var flag common.Address
-	if flag != st.msg.PaymentFrom() {
-		st.state.AddBalance(st.msg.PaymentFrom(), remaining)
+	//achilles repayment add apis
+	if st.msg.IsRePayment() {
+		st.state.AddBalance(st.msg.ResourcePayer(), remaining)
 	} else {
 		st.state.AddBalance(st.msg.From(), remaining)
 	}
