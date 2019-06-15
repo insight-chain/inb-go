@@ -19,21 +19,24 @@ package node
 import (
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/accounts"
+	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/ethdb"
+	"github.com/insight-chain/inb-go/event"
+	"github.com/insight-chain/inb-go/internal/debug"
+	"github.com/insight-chain/inb-go/internal/ethapi"
+	"github.com/insight-chain/inb-go/log"
+	"github.com/insight-chain/inb-go/p2p"
+	"github.com/insight-chain/inb-go/p2p/enode"
+	"github.com/insight-chain/inb-go/rpc"
+	"github.com/insight-chain/inb-go/vdpos"
+	"github.com/prometheus/prometheus/util/flock"
 	"net"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"sync"
-
-	"github.com/insight-chain/inb-go/accounts"
-	"github.com/insight-chain/inb-go/ethdb"
-	"github.com/insight-chain/inb-go/event"
-	"github.com/insight-chain/inb-go/internal/debug"
-	"github.com/insight-chain/inb-go/log"
-	"github.com/insight-chain/inb-go/p2p"
-	"github.com/insight-chain/inb-go/rpc"
-	"github.com/prometheus/prometheus/util/flock"
 )
 
 // Node is a container on which services can be registered.
@@ -72,6 +75,9 @@ type Node struct {
 
 	log log.Logger
 }
+//TODO Test save current node
+var CurrentNode *Node
+
 
 // New creates a new P2P node, ready for protocol registration.
 func New(conf *Config) (*Node, error) {
@@ -224,7 +230,85 @@ func (n *Node) Start() error {
 	n.server = running
 	n.stop = make(chan struct{})
 
+
+	CurrentNode = n
+
+
+	go ConnectAllSuperNodes(n)
+
+	//go ConnectAllSuperNodes()
+
 	return nil
+}
+
+func ConnectAllSuperNodes(n *Node){
+		//Get first block's supernodeecodes
+		SuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetFirstBlockEnode()
+
+		for _,v:=range SuperNodeEcodes {
+			if !n.server.Self().Equals(v){
+				superNode, _ := enode.ParseV4(v)
+				//Add node to p2p net
+				n.server.AddPeer(superNode)
+			}
+
+		}
+//todo: connect new supernodes when update blockchain
+
+}
+
+//func ConnectAllSuperNodes1() {
+//	superNodes := vdpos.GetSuperNodes()
+//	if len(superNodes.Nodes) > 0 {
+//		start := false
+//		for index := range superNodes.Nodes {
+//			superNode := superNodes.Nodes[index]
+//			if start {
+//				// Only connect the node after the squence of the current node
+//				ConnectSuperNode(superNode)
+//			} else {
+//				//TODO Better to see if connected, if not connect it
+//				fmt.Println(superNode.Id)
+//				start = true
+//				if CurrentNode.server.Self().Equals(superNode.Id) {
+//					//start = true
+//				}
+//			}
+//		}
+//	}
+//}
+//
+//func ConnectAllSuperNodes() {
+//	superNodes := vdpos.GetSuperNodes()
+//	if len(superNodes.Nodes) > 0 {
+//		for{
+//
+//
+//			for index := range superNodes.Nodes {
+//				superNode := superNodes.Nodes[index]
+//				// Only connect the node after the squence of the current node
+//				ConnectSuperNode(superNode)
+//			}
+//			time.Sleep(10*time.Second)
+//
+//		}
+//	}
+//}
+
+
+
+func ConnectSuperNode(superNode *vdpos.SuperNode) (bool, error) {
+	url := vdpos.ParsePeerUrl(superNode)
+	if !common.IsBlank(url) {
+		node, err := enode.ParseV4(url)
+		if err != nil {
+			return false, fmt.Errorf("invalid enode: %v", err)
+		}
+		//CurrentNode.Server().AddTrustedPeer(node)
+		CurrentNode.Server().AddPeer(node)
+		return true, nil
+	}
+	return false, nil
 }
 
 func (n *Node) openDataDir() error {

@@ -22,6 +22,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"math/big"
 	"strings"
 
@@ -253,6 +254,20 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Coinbase:   g.Coinbase,
 		Root:       root,
 	}
+
+	headE:=new(vdpos.HeaderExtra)
+	headE.Enode=g.Config.Vdpos.Enode
+	if len(head.Extra) < 32 {
+		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
+	}
+	head.Extra = head.Extra[:32]
+	toBytes, _ := rlp.EncodeToBytes(headE)
+	head.Extra = append(head.Extra, toBytes...)
+	head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
+	//headee:=new(vdpos.HeaderExtra)
+	//rlp.DecodeBytes(head.Extra[32:len(head.Extra)-65],headee)
+
+
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit
 	}

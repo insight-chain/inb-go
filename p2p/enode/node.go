@@ -21,6 +21,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/common"
 	"math/bits"
 	"math/rand"
 	"net"
@@ -140,6 +141,15 @@ func (n *Node) UnmarshalText(text []byte) error {
 		*n = *dec
 	}
 	return err
+}
+// is equals node
+func (n *Node) Equals(id string) bool {
+	if common.IsEmpty(id) {
+		return false
+	}
+	//TODO Test This is not very good
+	contains := strings.Contains(n.v4URL(), id)
+	return contains
 }
 
 // ID is a unique identifier for each node.
