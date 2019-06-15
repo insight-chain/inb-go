@@ -5522,6 +5522,11 @@ var properties = function () {
             outputFormatter: utils.toDecimal
         }),
         new Property({
+            name: 'confirmedBlockNumber',
+            getter: 'eth_confirmedBlockNumber',
+            outputFormatter: utils.toDecimal
+        }),
+        new Property({
             name: 'protocolVersion',
             getter: 'eth_protocolVersion'
         })

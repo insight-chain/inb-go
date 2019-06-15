@@ -471,7 +471,7 @@ func (s *Snapshot) getLastConfirmedBlockNumber(confirmations []Confirmation) *bi
 	}
 
 	i := s.Number
-	for ; i > s.Number-s.config.MaxSignerCount*2/3+1; i-- {
+	for ; i > s.Number-s.config.SignerBlocks*(s.config.MaxSignerCount*2/3+1); i-- {
 		if confirmers, ok := cpyConfirmations[i]; ok {
 			if len(confirmers) > int(s.config.MaxSignerCount*2/3) {
 				return big.NewInt(int64(i))

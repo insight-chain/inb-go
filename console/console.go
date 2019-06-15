@@ -275,7 +275,7 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 // console's available modules.
 func (c *Console) Welcome() {
 	// Print some generic Geth metadata
-	fmt.Fprintf(c.printer, "Welcome to the Geth JavaScript console!\n\n")
+	fmt.Fprintf(c.printer, "Welcome to the Ginb JavaScript console!\n\n")
 	c.jsre.Run(`
 		console.log("instance: " + web3.version.node);
 		console.log("coinbase: " + eth.coinbase);
@@ -286,6 +286,11 @@ func (c *Console) Welcome() {
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))
 		for api, version := range apis {
+			//inb by ssh begin
+			if api == "eth" {
+				api = "inb"
+			}
+			//inb by ssh end
 			modules = append(modules, fmt.Sprintf("%s:%s", api, version))
 		}
 		sort.Strings(modules)
@@ -329,6 +334,17 @@ func (c *Console) Interactive() {
 				close(scheduler)
 				return
 			}
+
+			//inb by ssh begin
+			if len(line) >= 3 {
+				midLine := line[:3]
+				endLine := line[3:]
+				if midLine == "inb" {
+					line = "eth" + endLine
+				}
+			}
+			//inb by ssh end
+
 			// User input retrieved, send for interpretation and loop
 			scheduler <- line
 		}
