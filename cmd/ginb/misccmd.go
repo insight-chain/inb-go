@@ -75,6 +75,7 @@ The output of this command is supposed to be machine-readable.
 		ArgsUsage: " ",
 		Category:  "MISCELLANEOUS COMMANDS",
 	}
+	//inb by ghy begin
 	nodekeyCommand = cli.Command{
 		Action:    utils.MigrateFlags(nodekey),
 		Name:      "nodekey",
@@ -82,6 +83,7 @@ The output of this command is supposed to be machine-readable.
 		ArgsUsage: " data-source path",
 		Category:  "create nodekey before init",
 	}
+	//inb by ghy end
 )
 
 // makecache generates an ethash verification cache into the provided folder.
@@ -131,7 +133,7 @@ func version(ctx *cli.Context) error {
 }
 
 func license(_ *cli.Context) error {
-	fmt.Println(`Geth is free software: you can redistribute it and/or modify
+	fmt.Println(`Ginb is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
@@ -146,28 +148,29 @@ along with ginb. If not, see <http://www.gnu.org/licenses/>.`)
 	return nil
 }
 
+//inb by ghy begin
 //Create file nodekey for generate nodeid
 func nodekey(ctx *cli.Context) error {
 	args := ctx.Args()
 	if len(args) != 1 {
-		utils.Fatalf(`Usage: geth nodekey <block number> <outputdir>`)
+		utils.Fatalf(`Usage: ginb nodekey <block number> <outputdir>`)
 	}
 	var nodeKey *ecdsa.PrivateKey
-	_, err := os.Stat(args[0]+"/geth/nodekey")
+	_, err := os.Stat(args[0]+"/ginb/nodekey")
 	if os.IsExist(err)||err==nil {
 		fmt.Println("nodekey is already exist")
-		nodeKey, _ = crypto.LoadECDSA(args[0]+"/geth/nodekey")
+		nodeKey, _ = crypto.LoadECDSA(args[0]+"/ginb/nodekey")
 
 	}else{
 		nodeKey, _ = crypto.GenerateKey()
 
-		err = os.MkdirAll(args[0]+"/geth/", os.ModePerm)
-		if err = crypto.SaveECDSA(args[0]+"/geth/nodekey", nodeKey); err != nil {
+		err = os.MkdirAll(args[0]+"/ginb/", os.ModePerm)
+		if err = crypto.SaveECDSA(args[0]+"/ginb/nodekey", nodeKey); err != nil {
 			utils.Fatalf(error.Error(err))
 		}
 	}
 	nodeid:=fmt.Sprintf("%x", crypto.FromECDSAPub(&nodeKey.PublicKey)[1:])
 	fmt.Println(nodeid)
-	fmt.Printf("%x",string(crypto.FromECDSAPub(&nodeKey.PublicKey)[1:]))
 	return nil
 }
+//inb by ghy end

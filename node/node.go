@@ -20,7 +20,6 @@ import (
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/accounts"
-	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/internal/debug"
@@ -29,7 +28,6 @@ import (
 	"github.com/insight-chain/inb-go/p2p"
 	"github.com/insight-chain/inb-go/p2p/enode"
 	"github.com/insight-chain/inb-go/rpc"
-	"github.com/insight-chain/inb-go/vdpos"
 	"github.com/prometheus/prometheus/util/flock"
 	"net"
 	"os"
@@ -233,14 +231,13 @@ func (n *Node) Start() error {
 
 	CurrentNode = n
 
-
+	//inb by ghy begin
 	go ConnectAllSuperNodes(n)
-
-	//go ConnectAllSuperNodes()
+	//inb by ghy end
 
 	return nil
 }
-
+//inb by ghy begin
 func ConnectAllSuperNodes(n *Node){
 		//Get first block's supernodeecodes
 		SuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetFirstBlockEnode()
@@ -256,60 +253,8 @@ func ConnectAllSuperNodes(n *Node){
 //todo: connect new supernodes when update blockchain
 
 }
+//inb by ghy end
 
-//func ConnectAllSuperNodes1() {
-//	superNodes := vdpos.GetSuperNodes()
-//	if len(superNodes.Nodes) > 0 {
-//		start := false
-//		for index := range superNodes.Nodes {
-//			superNode := superNodes.Nodes[index]
-//			if start {
-//				// Only connect the node after the squence of the current node
-//				ConnectSuperNode(superNode)
-//			} else {
-//				//TODO Better to see if connected, if not connect it
-//				fmt.Println(superNode.Id)
-//				start = true
-//				if CurrentNode.server.Self().Equals(superNode.Id) {
-//					//start = true
-//				}
-//			}
-//		}
-//	}
-//}
-//
-//func ConnectAllSuperNodes() {
-//	superNodes := vdpos.GetSuperNodes()
-//	if len(superNodes.Nodes) > 0 {
-//		for{
-//
-//
-//			for index := range superNodes.Nodes {
-//				superNode := superNodes.Nodes[index]
-//				// Only connect the node after the squence of the current node
-//				ConnectSuperNode(superNode)
-//			}
-//			time.Sleep(10*time.Second)
-//
-//		}
-//	}
-//}
-
-
-
-func ConnectSuperNode(superNode *vdpos.SuperNode) (bool, error) {
-	url := vdpos.ParsePeerUrl(superNode)
-	if !common.IsBlank(url) {
-		node, err := enode.ParseV4(url)
-		if err != nil {
-			return false, fmt.Errorf("invalid enode: %v", err)
-		}
-		//CurrentNode.Server().AddTrustedPeer(node)
-		CurrentNode.Server().AddPeer(node)
-		return true, nil
-	}
-	return false, nil
-}
 
 func (n *Node) openDataDir() error {
 	if n.config.DataDir == "" {

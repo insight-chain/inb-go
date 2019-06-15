@@ -254,7 +254,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Coinbase:   g.Coinbase,
 		Root:       root,
 	}
-
+	//inb by ghy begin
 	headE:=new(vdpos.HeaderExtra)
 	headE.Enode=g.Config.Vdpos.Enode
 	if len(head.Extra) < 32 {
@@ -264,8 +264,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	toBytes, _ := rlp.EncodeToBytes(headE)
 	head.Extra = append(head.Extra, toBytes...)
 	head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
-	//headee:=new(vdpos.HeaderExtra)
-	//rlp.DecodeBytes(head.Extra[32:len(head.Extra)-65],headee)
+
+	//inb by ghy end
 
 
 	if g.GasLimit == 0 {

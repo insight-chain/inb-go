@@ -94,7 +94,9 @@ type HeaderExtra struct {
 	SignersPool               []common.Address
 	SignerMissing             []common.Address
 	ConfirmedBlockNumber      uint64
+	//inb by ghy begin
 	Enode 					  []string
+	//inb by ghy end
 }
 
 // Encode HeaderExtra

@@ -517,7 +517,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // vdpos by ssh end
 
-// vdpos by ghy begin
+// inb by ghy begin
 // Get first head block enode msg
 func (s *PublicBlockChainAPI) GetFirstBlockEnode() []string {
 	var err error
@@ -533,7 +533,7 @@ func (s *PublicBlockChainAPI) GetFirstBlockEnode() []string {
 	}
 
 }
-// vdpos by ghy end
+// inb by ghy end
 
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
