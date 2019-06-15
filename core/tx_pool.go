@@ -578,6 +578,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
+	//Resource by zc
+	inputStr := string(tx.Data())
+	//Resource by zc
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
@@ -650,8 +653,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	//Resource by zc
 	inputStr := string(tx.Data())
-	addressString := tx.To().String()
-	addressN := common.HexToAddress(addressString)
+	//addressString := tx.To().String()
+	//addressN := common.HexToAddress(addressString)
+	addressN := from
 	expendCpuFromUnMortgageCpu := big.NewInt(50)
 	expendNetFromUnMortgageNet := big.NewInt(300)
 	usableCpu := pool.currentState.GetCpu(addressN)

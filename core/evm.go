@@ -47,6 +47,9 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 	return vm.Context{
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
+		//Resource by zc
+		MortgageTrasfer:    MortgageTrasfer,
+		//Resource by zc
 		GetHash:     GetHashFn(header, chain),
 		Origin:      msg.From(),
 		Coinbase:    beneficiary,
@@ -95,3 +98,9 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
+//Resource by zc
+func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int)  {
+	db.SubBalance(recipient, amount)
+	db.AddBalance(sender, amount)
+}
+//Resource by zc

@@ -517,6 +517,24 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // vdpos by ssh end
 
+// vdpos by ghy begin
+// Get first head block enode msg
+func (s *PublicBlockChainAPI) GetFirstBlockEnode() []string {
+	var err error
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.EarliestBlockNumber)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		return val.Enode
+	} else {
+		return nil
+	}
+
+}
+// vdpos by ghy end
+
 // GetBalance returns the amount of wei for the given address in the state of the
 // given block number. The rpc.LatestBlockNumber and rpc.PendingBlockNumber meta
 // block numbers are also allowed.
@@ -543,17 +561,30 @@ func (s *PublicBlockChainAPI) GetNet(ctx context.Context, address common.Address
 	}
 	return (*hexutil.Big)(state.GetNet(address)), state.Error()
 }
-
+func (s *PublicBlockChainAPI) GetCpuOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetMortgageInbOfCpu(address)), state.Error()
+}
+func (s *PublicBlockChainAPI) GetNetOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetMortgageInbOfNet(address)), state.Error()
+}
 //mortageCpu
 func (s *PublicTransactionPoolAPI) MortgageCpu(ctx context.Context, args SendTxArgs) (common.Hash, error) {
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
-	//Resource by zc
+
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 	totalAccount := state.GetPrivilegedSateObject()
 	address := totalAccount.Address()
 	args.To = &address
-	//Resource by zc
+
 	wallet, err := s.b.AccountManager().Find(account)
 	if err != nil {
 		return common.Hash{}, err
@@ -589,12 +620,10 @@ func (s *PublicTransactionPoolAPI) MortgageNet(ctx context.Context, args SendTxA
 	// Look up the wallet containing the requested signer
 	account := accounts.Account{Address: args.From}
 
-	//Resource by zc
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 	totalAccount := state.GetPrivilegedSateObject()
 	address := totalAccount.Address()
 	args.To = &address
-	//Resource by zc
 
 	wallet, err := s.b.AccountManager().Find(account)
 	if err != nil {
@@ -638,28 +667,24 @@ func (s *PublicTransactionPoolAPI) MortgageRawNet(ctx context.Context, encodedTx
 //unMortgageCpu
 func (s *PublicTransactionPoolAPI) UnMortgageCpu(ctx context.Context, args SendTxArgs) (common.Hash, error) {
 	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: *args.To}
-	//Resource by zc
+	account := accounts.Account{Address: args.From}
+
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 	totalAccount := state.GetPrivilegedSateObject()
 	address := totalAccount.Address()
-	args.From = address
-
-	//Resource by zc
+	args.To = &address
 
 	wallet, err := s.b.AccountManager().Find(account)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
-		addressTo := *args.To
-		s.nonceLock.LockAddr(addressTo)
-		defer s.nonceLock.UnlockAddr(addressTo)
-		//s.nonceLock.LockAddr(args.From)
-		//defer s.nonceLock.UnlockAddr(args.From)
+		s.nonceLock.LockAddr(args.From)
+		defer s.nonceLock.UnlockAddr(args.From)
 	}
 
 	// Set some sanity defaults and terminate on failure
@@ -683,26 +708,24 @@ func (s *PublicTransactionPoolAPI) UnMortgageCpu(ctx context.Context, args SendT
 //unMortageNet
 func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendTxArgs) (common.Hash, error) {
 	// Look up the wallet containing the requested signer
+	account := accounts.Account{Address: args.From}
 
-	//Resource by zc
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 	totalAccount := state.GetPrivilegedSateObject()
 	address := totalAccount.Address()
-	args.From = address
-	account := accounts.Account{Address: args.From}
-	//Resource by zc
+	args.To = &address
 
 	wallet, err := s.b.AccountManager().Find(account)
 	if err != nil {
 		return common.Hash{}, err
 	}
 
+
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
 		// the same nonce to multiple accounts.
-		addressTo := *args.To
-		s.nonceLock.LockAddr(addressTo)
-		defer s.nonceLock.UnlockAddr(addressTo)
+		s.nonceLock.LockAddr(args.From)
+		defer s.nonceLock.UnlockAddr(args.From)
 	}
 
 	// Set some sanity defaults and terminate on failure

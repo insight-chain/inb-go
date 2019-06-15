@@ -5295,6 +5295,20 @@ var methods = function () {
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
     });
+    var getCpuOfMortgageINB = new Method({
+      name: 'getCpuOfMortgageINB',
+      call: 'eth_getCpuOfMortgageINB',
+      params: 2,
+      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+      outputFormatter: formatters.outputBigNumberFormatter
+    });
+    var getNetOfMortgageINB = new Method({
+      name: 'getNetOfMortgageINB',
+      call: 'eth_getNetOfMortgageINB',
+      params: 2,
+      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+      outputFormatter: formatters.outputBigNumberFormatter
+    });
     //Resource by zc
     var getBalance = new Method({
         name: 'getBalance',
@@ -5464,6 +5478,8 @@ var methods = function () {
         //Resource by zc
         getCpu,
         getNet,
+        getCpuOfMortgageINB,
+        getNetOfMortgageINB,
         //Resource by zc
         getBalance,
         getStorageAt,
