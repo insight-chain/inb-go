@@ -59,19 +59,24 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash *common.Hash `json:"hash" rlp:"-"`
 
-	//payment
-	PaymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
-	Vp          *big.Int       `json:"v" gencodec:"required"`
-	Rp          *big.Int       `json:"r" gencodec:"required"`
-	Sp          *big.Int       `json:"s" gencodec:"required"`
+	//achilles
+	//payment the real account that pay resources for transactions
+	//PaymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
+	//// payment signature values
+	//Vp          *big.Int       `json:"v" gencodec:"required"`
+	//Rp          *big.Int       `json:"r" gencodec:"required"`
+	//Sp          *big.Int       `json:"s" gencodec:"required"`
+	Repayment payment
 }
 
-//tianx
-type txDataPayment struct {
-	paymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
-	V           *big.Int       `json:"v" gencodec:"required"`
-	R           *big.Int       `json:"r" gencodec:"required"`
-	S           *big.Int       `json:"s" gencodec:"required"`
+//payment the real account that pay resources for transactions
+type payment struct {
+	//payment address
+	ResourcePayer common.Address `json:"resourcePayer" gencodec:"required"`
+	// payment signature values
+	Vp *big.Int `json:"vp" gencodec:"required"`
+	Rp *big.Int `json:"rp" gencodec:"required"`
+	Sp *big.Int `json:"sp" gencodec:"required"`
 }
 
 type txdataMarshaling struct {
@@ -86,16 +91,24 @@ type txdataMarshaling struct {
 }
 
 func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data)
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, nil)
+}
+
+func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment)
 }
 
 func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data)
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, nil)
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, resourcePayer *common.Address) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
+	}
+	var rePayment payment
+	if nil != resourcePayer {
+		rePayment.ResourcePayer = *resourcePayer
 	}
 	d := txdata{
 		AccountNonce: nonce,
@@ -107,6 +120,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
+		Repayment:    rePayment,
 	}
 	if amount != nil {
 		d.Amount.Set(amount)
@@ -123,9 +137,10 @@ func (tx *Transaction) ChainId() *big.Int {
 	return deriveChainId(tx.data.V)
 }
 
-//tianx ChainId returns which chain id this transaction was signed for (if at all)
+//achilles repayment
+// ChainId returns which chain id this transaction was signed for (if at all)
 func (tx *Transaction) ChainId4Payment() *big.Int {
-	return deriveChainId(tx.data.Vp)
+	return deriveChainId(tx.data.Repayment.Vp)
 }
 
 // Protected returns whether the transaction is protected from replay protection.
@@ -191,12 +206,13 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
-func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
-func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) CheckNonce() bool   { return true }
+func (tx *Transaction) Data() []byte                  { return common.CopyBytes(tx.data.Payload) }
+func (tx *Transaction) Gas() uint64                   { return tx.data.GasLimit }
+func (tx *Transaction) GasPrice() *big.Int            { return new(big.Int).Set(tx.data.Price) }
+func (tx *Transaction) Value() *big.Int               { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64                 { return tx.data.AccountNonce }
+func (tx *Transaction) CheckNonce() bool              { return true }
+func (tx *Transaction) ResourcePayer() common.Address { return tx.data.Repayment.ResourcePayer }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -238,14 +254,14 @@ func (tx *Transaction) Size() common.StorageSize {
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	msg := Message{
-		nonce:       tx.data.AccountNonce,
-		gasLimit:    tx.data.GasLimit,
-		gasPrice:    new(big.Int).Set(tx.data.Price),
-		to:          tx.data.Recipient,
-		amount:      tx.data.Amount,
-		data:        tx.data.Payload,
-		checkNonce:  true,
-		paymentFrom: tx.data.PaymentFrom,
+		nonce:         tx.data.AccountNonce,
+		gasLimit:      tx.data.GasLimit,
+		gasPrice:      new(big.Int).Set(tx.data.Price),
+		to:            tx.data.Recipient,
+		amount:        tx.data.Amount,
+		data:          tx.data.Payload,
+		checkNonce:    true,
+		resourcePayer: tx.data.Repayment.ResourcePayer,
 	}
 
 	var err error
@@ -261,19 +277,12 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 		return nil, err
 	}
 	cpy := &Transaction{data: tx.data}
-	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
-	return cpy, nil
-}
-
-//tianx
-// WithSignature returns a new transaction with the given payment signature.
-func (tx *Transaction) WithPaymentSignature(signer Signer, sig []byte) (*Transaction, error) {
-	r, s, v, err := signer.SignatureValues(tx, sig)
-	if err != nil {
-		return nil, err
+	//achilles repayment
+	if tx.IsRepayment() && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
+		cpy.data.Repayment.Rp, cpy.data.Repayment.Sp, cpy.data.Repayment.Vp = r, s, v
+		return cpy, nil
 	}
-	cpy := &Transaction{data: tx.data}
-	cpy.data.Rp, cpy.data.Sp, cpy.data.Vp = r, s, v
+	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
 	return cpy, nil
 }
 
@@ -289,13 +298,40 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 }
 
 func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
-	return tx.data.Vp, tx.data.Rp, tx.data.Sp
+	return tx.data.Repayment.Vp, tx.data.Repayment.Rp, tx.data.Repayment.Sp
 }
-func (tx *Transaction) RemovePaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
-	tx.data.Vp = nil
-	tx.data.Sp = nil
-	tx.data.Rp = nil
-	return tx.data.Vp, tx.data.Rp, tx.data.Sp
+func (tx *Transaction) RemovePaymentSignatureValues() {
+	tx.data.Repayment.Vp = nil
+	tx.data.Repayment.Sp = nil
+	tx.data.Repayment.Rp = nil
+}
+
+//achilles
+//  type of transaction is repayment
+func (tx *Transaction) IsRepayment() bool {
+	var resourcePayer common.Address
+	if resourcePayer == tx.data.Repayment.ResourcePayer {
+		return false
+	}
+	return true
+}
+
+//type of transaction is mortgagenet
+func (tx *Transaction) IsMortgageNet() bool {
+	inputStr := string(tx.Data())
+	if inputStr == string("mortgageNet") {
+		return true
+	}
+	return false
+}
+
+//type of transaction is um mortgagenet
+func (tx *Transaction) IsUnMortgageNet() bool {
+	inputStr := string(tx.Data())
+	if inputStr == string("unmortgageNet") {
+		return true
+	}
+	return false
 }
 
 // Transactions is a Transaction slice type for basic sorting.
@@ -435,9 +471,8 @@ type Message struct {
 	data       []byte
 	checkNonce bool
 
-	//tianx
-	//payment
-	paymentFrom common.Address
+	//achilles repayment
+	resourcePayer common.Address
 }
 
 func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, checkNonce bool) Message {
@@ -462,5 +497,12 @@ func (m Message) Nonce() uint64        { return m.nonce }
 func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }
 
-//tianx
-func (m Message) PaymentFrom() common.Address { return m.paymentFrom }
+//achilles repayment add apis
+func (m Message) ResourcePayer() common.Address { return m.resourcePayer }
+func (m Message) IsRePayment() bool {
+	var resourcePayer common.Address
+	if resourcePayer != m.resourcePayer {
+		return true
+	}
+	return false
+}
