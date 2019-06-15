@@ -222,11 +222,10 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 }
 
 func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
-	if state.GetBalance(voter).Cmp(minVoterBalance) > 0 {
+	if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
 
 		v.lock.RLock()
-		//todo balance change to cpu/net
-		stake := state.GetBalance(voter)
+		stake := state.GetMortgageInbOfNet(voter)
 		v.lock.RUnlock()
 
 		currentBlockVotes = append(currentBlockVotes, Vote{
@@ -280,7 +279,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
 		if snap.isVoter(voter) {
 			v.lock.RLock()
-			stake := state.GetBalance(voter)
+			stake := state.GetMortgageInbOfNet(voter)
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     voter,
@@ -290,7 +289,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 		}
 		if snap.isVoter(*tx.To()) {
 			v.lock.RLock()
-			stake := state.GetBalance(*tx.To())
+			stake := state.GetMortgageInbOfNet(*tx.To())
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     *tx.To(),
