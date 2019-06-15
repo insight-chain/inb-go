@@ -34,12 +34,27 @@ func (jsre *JSRE) CompleteKeywords(line string) []string {
 }
 
 func getCompletions(vm *otto.Otto, line string) (results []string) {
+	//inb by ssh begin
+	if strings.Contains(line, "eth") {
+		return nil
+	}
+	line = strings.Replace(line, "inb", "eth", -1)
+	flag1 := false
+	flag2 := false
+
 	parts := strings.Split(line, ".")
 	objRef := "this"
 	prefix := line
 	if len(parts) > 1 {
 		objRef = strings.Join(parts[0:len(parts)-1], ".")
 		prefix = parts[len(parts)-1]
+	} else {
+		if prefix == "i" || prefix == "in" {
+			flag1 = true
+		}
+		if prefix == "e" || prefix == "et" {
+			flag2 = true
+		}
 	}
 
 	obj, _ := vm.Object(objRef)
@@ -56,6 +71,10 @@ func getCompletions(vm *otto.Otto, line string) (results []string) {
 		}
 	})
 
+	if flag1 {
+		results = append(results, "inb")
+	}
+
 	// Append opening parenthesis (for functions) or dot (for objects)
 	// if the line itself is the only completion.
 	if len(results) == 1 && results[0] == line {
@@ -69,6 +88,13 @@ func getCompletions(vm *otto.Otto, line string) (results []string) {
 		}
 	}
 
+	if !flag2 {
+		for i, result := range results {
+			results[i] = strings.Replace(result, "eth", "inb", -1)
+		}
+	}
+
 	sort.Strings(results)
 	return results
+	//inb by ssh end
 }
