@@ -154,7 +154,7 @@ func getIPCEndpoint(ctx *cli.Context) string {
 	endpoint := cfg.IPCEndpoint()
 
 	if strings.HasPrefix(endpoint, "rpc:") || strings.HasPrefix(endpoint, "ipc:") {
-		// Backwards compatibility with geth < 1.5 which required
+		// Backwards compatibility with ginb < 1.5 which required
 		// these prefixes.
 		endpoint = endpoint[4:]
 	}
