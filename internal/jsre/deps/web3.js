@@ -3763,6 +3763,11 @@ var inputTransactionFormatter = function (options){
         options.to = inputAddressFormatter(options.to);
     }
 
+    //achilles repayment add apis
+    if (options.resourcePayer) { // it might be repayment
+        options.resourcePayer = inputAddressFormatter(options.resourcePayer);
+    }
+
     ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
         return options[key] !== undefined;
     }).forEach(function(key){

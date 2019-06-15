@@ -177,7 +177,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 									var candidates []common.Address
 									//achilles vote
 									if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
-										candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ":")
+										candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
 										for _, value := range candidatesStr {
 											address := common.HexToAddress(value)
 											candidates = append(candidates, address)

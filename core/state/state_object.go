@@ -112,9 +112,9 @@ type Resources struct {
 	Date string
 }
 type Resource struct {
-	Used         *big.Int
-	Usableness   *big.Int
-	MortgagteINB *big.Int
+	Used         *big.Int // used
+	Usableness   *big.Int // unuse
+	MortgagteINB *big.Int //
 }
 type CPU struct {
 	Resource
@@ -428,6 +428,7 @@ func (self *stateObject) MortgageOfCpu() *big.Int {
 func (self *stateObject) MortgageOfNet() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
 }
+
 //Resource by zc
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce

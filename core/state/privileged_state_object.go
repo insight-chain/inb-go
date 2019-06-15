@@ -172,7 +172,7 @@ func (c *stateObject) SubCpu(amount *big.Int) {
 	PrivilegedSateObject.SubMortgageINBOfCpu(amount)
 }
 func (c *stateObject) SubNet(amount *big.Int) {
-	expendCpuFromUnMortgageCpu := big.NewInt(50)
+	//expendCpuFromUnMortgageCpu := big.NewInt(50)
 	expendNetFromUnMortgageNet := big.NewInt(300)
 
 	used := c.AddUsableNet(expendNetFromUnMortgageNet)
@@ -182,12 +182,21 @@ func (c *stateObject) SubNet(amount *big.Int) {
 	usable := c.AddUsableNet(remainingNetNumber)
 	c.SetNet(used, usable, mortgagetion)
 
-	cpuUsed := c.AddUsedCpu(expendCpuFromUnMortgageCpu)
-	cpuUsable := c.SubUsableCpu(expendCpuFromUnMortgageCpu)
-	c.SetCpu(cpuUsed, cpuUsable, c.data.Resources.CPU.MortgagteINB)
+	//achilles replace gas with net
+	//cpuUsed := c.AddUsedCpu(expendCpuFromUnMortgageCpu)
+	//cpuUsable := c.SubUsableCpu(expendCpuFromUnMortgageCpu)
+	//c.SetCpu(cpuUsed, cpuUsable, c.data.Resources.CPU.MortgagteINB)
 
 	c.db.GetPrivilegedSateObject()
 	PrivilegedSateObject.SubMortgageINBOfNet(amount)
+}
+
+//achilles replace gas with net
+func (c *stateObject) UseNet(amount *big.Int) {
+	expendNetFromUnMortgageNet := big.NewInt(300)
+	usable := c.SubUsableNet(expendNetFromUnMortgageNet)
+	used := c.AddUsedNet(expendNetFromUnMortgageNet)
+	c.SetNet(used, usable, c.data.Resources.NET.MortgagteINB)
 }
 
 //Set up the user's CPU and net

@@ -585,11 +585,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		return ErrNegativeValue
 	}
 	// Ensure the transaction doesn't exceed the current block limit gas.
-	if pool.currentMaxGas < tx.Gas() {
-		return ErrGasLimit
-	}
+	//achilles replace gas with net
+	//if pool.currentMaxGas < tx.Gas() {
+	//	return ErrGasLimit
+	//}
 
-	//tianx make sure the payment is signed properly
+	//achilles repayment
 	//v, r, s := tx.RawPaymentSignatureValues()
 	//if v != nil && r != nil && s != nil{
 	//	payment, err := types.RecoverPaymentPlain(tx.Hash(),v,r,s,false) //todo how to define true or false; payment gas blance valid
@@ -598,39 +599,60 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	}
 	//	fmt.Println(payment)
 	//}
-	payment, err := types.Sender(pool.signer, tx)
-	if err != nil {
-		return ErrInvalidSender
+	var netPayment common.Address
+	if tx.IsRepayment() {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return ErrInvalidSender
+		}
+		netPayment = payment
 	}
-	fmt.Println(payment)
 	tx.RemovePaymentSignatureValues()
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
 	}
-	// Drop non-local transactions under our own minimal accepted gas price
-	local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
-	if !local && pool.gasPrice.Cmp(tx.GasPrice()) > 0 {
-		return ErrUnderpriced
+	if !tx.IsRepayment() {
+		netPayment = from
 	}
+
+	// Drop non-local transactions under our own minimal accepted gas price
+	//achilles replace gas with net
+	//local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
+	//if !local && pool.gasPrice.Cmp(tx.GasPrice()) > 0 {
+	//	return ErrUnderpriced
+	//}
 	// Ensure the transaction adheres to nonce ordering
 	if pool.currentState.GetNonce(from) > tx.Nonce() {
 		return ErrNonceTooLow
 	}
 	// Transactor should have enough funds to cover the costs
 	// cost == V + GP * GL
-	if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+	//achilles replace gas with net
+	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
+	//	return ErrInsufficientFunds
+	//}
+	if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 		return ErrInsufficientFunds
 	}
-	intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	if err != nil {
-		return err
+	//achilles replace gas with net
+	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	//if err != nil {
+	//	return err
+	//}
+	//if tx.Gas() < intrGas {
+	//	return ErrIntrinsicGas
+	//}
+	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
+	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
+		if usableMorgageNetOfInb.Cmp(big.NewInt(300)) < 0 {
+			return ErrOverAuableNetValue
+		}
 	}
-	if tx.Gas() < intrGas {
-		return ErrIntrinsicGas
-	}
+
 	//Resource by zc
+	inputStr := string(tx.Data())
 	//addressString := tx.To().String()
 	//addressN := common.HexToAddress(addressString)
 	addressN := from
@@ -639,7 +661,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	usableCpu := pool.currentState.GetCpu(addressN)
 	usableNet := pool.currentState.GetNet(addressN)
 	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
-	usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
+	//usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
 
 	if inputStr == string("unmortgageCpu") {
 		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu

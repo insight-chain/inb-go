@@ -30,8 +30,14 @@ type StateDB interface {
 	SubBalance(common.Address, *big.Int)
 	AddBalance(common.Address, *big.Int)
 	GetBalance(common.Address) *big.Int
+
+	//achilles
+	AddNet(addr common.Address, amount *big.Int)
+	UseNet(addr common.Address, amount *big.Int)
+	GetNet(addr common.Address) *big.Int
+
 	//Resource by zc
-	GetStateObject(address common.Address,num *big.Int,variety int)
+	GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
