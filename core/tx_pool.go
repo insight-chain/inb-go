@@ -652,10 +652,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	//Resource by zc
-	inputStr := string(tx.Data())
-	//addressString := tx.To().String()
-	//addressN := common.HexToAddress(addressString)
-	addressN := from
+	//inputStr := string(tx.Data())
+	addressString := tx.To().String()
+	addressN := common.HexToAddress(addressString)
+	//addressN := from
 	expendCpuFromUnMortgageCpu := big.NewInt(50)
 	expendNetFromUnMortgageNet := big.NewInt(300)
 	usableCpu := pool.currentState.GetCpu(addressN)
