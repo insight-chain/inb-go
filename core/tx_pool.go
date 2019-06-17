@@ -22,6 +22,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -81,7 +82,6 @@ var (
 	ErrOverUnMortgageInbOfNetValue = errors.New("over MortgageInbOfNet number")
 	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
-	//Resource by zc
 )
 
 var (
@@ -143,6 +143,7 @@ type TxPoolConfig struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
+
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -599,6 +600,22 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	}
 	//	fmt.Println(payment)
 	//}
+	//achilles config validate candidates size
+	if strings.Contains(inputStr, "candidates") {
+		var candidatesSlice []common.Address
+		candidates := strings.Split(inputStr, ":")
+		if candidates[0] == "candidates" {
+			candidatesStr := strings.Split(candidates[1], ",")
+			for _, value := range candidatesStr {
+				address := common.HexToAddress(value)
+				candidatesSlice = append(candidatesSlice, address)
+			}
+			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+				return errors.New("candidates over size")
+			}
+		}
+	}
+
 	var netPayment common.Address
 	if tx.IsRepayment() {
 		payment, err := types.Sender(pool.signer, tx)
@@ -646,7 +663,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
-		if usableMorgageNetOfInb.Cmp(big.NewInt(300)) < 0 {
+		if usableMorgageNetOfInb.Cmp(big.NewInt(params.TxConfig.UseNet)) < 0 {
 			return ErrOverAuableNetValue
 		}
 	}
@@ -656,8 +673,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	addressString := tx.To().String()
 	addressN := common.HexToAddress(addressString)
 	//addressN := from
-	expendCpuFromUnMortgageCpu := big.NewInt(50)
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 	usableCpu := pool.currentState.GetCpu(addressN)
 	usableNet := pool.currentState.GetNet(addressN)
 	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
