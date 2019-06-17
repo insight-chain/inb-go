@@ -18,6 +18,8 @@
 package vdpos
 
 import (
+	"github.com/insight-chain/inb-go/params"
+	"github.com/pkg/errors"
 	"math/big"
 	"strings"
 
@@ -94,7 +96,7 @@ type HeaderExtra struct {
 	SignersPool               []common.Address
 	SignerMissing             []common.Address
 	ConfirmedBlockNumber      uint64
-	Enode 					  []string
+	Enode                     []string
 }
 
 // Encode HeaderExtra
@@ -163,8 +165,25 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			continue
 		}
 
-		if len(string(tx.Data())) >= len(inbPrefix) {
-			txData := string(tx.Data())
+		txData := string(tx.Data())
+		//achilles config
+		if strings.Contains(txData, "candidates") {
+			var candidates []common.Address
+			txDataInfo := strings.Split(txData, ":")
+			if txDataInfo[0] == "candidates" {
+				candidatesStr := strings.Split(txDataInfo[1], ",")
+				for _, value := range candidatesStr {
+					address := common.HexToAddress(value)
+					candidates = append(candidates, address)
+				}
+				if params.TxConfig.CandidateSize < uint64(len(candidates)) {
+					return headerExtra, nil, errors.Errorf("candidates over size")
+				}
+				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+			}
+		}
+
+		if len(txData) >= len(inbPrefix) {
 			txDataInfo := strings.Split(txData, ":")
 			if len(txDataInfo) >= inbMinSplitLen {
 				if txDataInfo[posPrefix] == inbPrefix {
@@ -174,16 +193,19 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 							if len(txDataInfo) > inbMinSplitLen {
 								// check is vote or not
 								if txDataInfo[posEventVote] == inbEventVote {
-									var candidates []common.Address
-									//achilles vote
-									if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
-										candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
-										for _, value := range candidatesStr {
-											address := common.HexToAddress(value)
-											candidates = append(candidates, address)
-										}
-									}
-									headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+									//var candidates []common.Address
+									////achilles vote
+									//if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
+									//	candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
+									//	for _, value := range candidatesStr {
+									//		address := common.HexToAddress(value)
+									//		candidates = append(candidates, address)
+									//	}
+									//	if core.DefaultTxPoolConfig.CandidateSize < uint64(len(candidates)) {
+									//		return headerExtra,nil,errors.Errorf("candidates of vote length over size")
+									//	}
+									//}
+									//headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
 								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
 								}
@@ -196,9 +218,9 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 		}
 		// check each address
-		if number > 1 {
-			headerExtra.ModifyPredecessorVotes = v.processPredecessorVoter(headerExtra.ModifyPredecessorVotes, state, tx, txSender, snap)
-		}
+		//if number > 1 {
+		//	headerExtra.ModifyPredecessorVotes = v.processPredecessorVoter(headerExtra.ModifyPredecessorVotes, state, tx, txSender, snap)
+		//}
 
 	}
 
@@ -222,18 +244,17 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 }
 
 func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
-	if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
+	//if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
+	v.lock.RLock()
+	stake := state.GetMortgageInbOfNet(voter)
+	v.lock.RUnlock()
 
-		v.lock.RLock()
-		stake := state.GetMortgageInbOfNet(voter)
-		v.lock.RUnlock()
-
-		currentBlockVotes = append(currentBlockVotes, Vote{
-			Voter:     voter,
-			Candidate: candidates,
-			Stake:     stake,
-		})
-	}
+	currentBlockVotes = append(currentBlockVotes, Vote{
+		Voter:     voter,
+		Candidate: candidates,
+		Stake:     stake,
+	})
+	//}
 
 	return currentBlockVotes
 }

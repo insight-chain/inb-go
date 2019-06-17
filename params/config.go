@@ -155,6 +155,13 @@ var (
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
 )
+var (
+	TxConfig = &CommonConfig{
+		UseNet:        300,
+		UseCpu:        50,
+		CandidateSize: 30,
+	}
+)
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
 // BloomTrie) associated with the appropriate section index and head hash. It is
@@ -201,6 +208,14 @@ type ChainConfig struct {
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
 type EthashConfig struct{}
 
+// achilles config
+type CommonConfig struct {
+	//achilles config
+	UseNet        int64  // use gas for transaction
+	UseCpu        int64  //use cpu for transaction
+	CandidateSize uint64 //Maximum number of candidater for vote
+}
+
 // String implements the stringer interface, returning the consensus engine details.
 func (c *EthashConfig) String() string {
 	return "ethash"
@@ -237,8 +252,8 @@ type VdposConfig struct {
 	GenesisTimestamp uint64                     `json:"genesisTimestamp"` // The LoopStartTime of first Block
 	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
 	PBFTEnable       bool                       `json:"pbft"`
-	Enode          []string `json:"enode"` 									//Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
-	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
+	Enode            []string                   `json:"enode"` //Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
+	LightConfig      *VdposLightConfig          `json:"lightConfig,omitempty"`
 }
 
 // String implements the stringer interface, returning the consensus engine details.
