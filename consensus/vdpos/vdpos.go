@@ -414,14 +414,13 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		alreadyVote := make(map[common.Address]struct{})
 		for _, unPrefixVoter := range v.config.SelfVoteSigners {
 			voter := common.Address(unPrefixVoter)
-			//achilles
-			//todo first block candidates config
+			//achilles vote
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
 				genesisVotes = append(genesisVotes, &Vote{
 					Voter:     voter,
 					Candidate: candidates,
-					Stake:     state.GetBalance(voter),
+					Stake:     state.GetMortgageInbOfNet(voter),
 				})
 				alreadyVote[voter] = struct{}{}
 			}

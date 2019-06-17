@@ -18,6 +18,8 @@
 package vdpos
 
 import (
+	"github.com/insight-chain/inb-go/params"
+	"github.com/pkg/errors"
 	"math/big"
 	"strings"
 
@@ -39,16 +41,24 @@ const (
 	inbEventVote           = "vote"
 	inbEventVoteCandidates = "candidates"
 	inbEventConfirm        = "confirm"
+	inbEventDeclare        = "declare"
 	inbMinSplitLen         = 3
 	posPrefix              = 0
 	posVersion             = 1
 	posCategory            = 2
 	posEventVote           = 3
 	posEventConfirm        = 3
+	posEventDeclare        = 3
 	posEventConfirmNumber  = 4
+	posEventDeclareInfo    = 4
 	//achilles
 	posEventVoteCandidates       = 4
 	posEventVoteCandidatesNumber = 5
+
+	posEventDeclareInfoSplitLen = 3
+	posEventDeclareInfoId       = 0
+	posEventDeclareInfoIp       = 1
+	posEventDeclareInfoPort     = 2
 )
 
 // RefundGas :
@@ -84,6 +94,16 @@ type Confirmation struct {
 	BlockNumber *big.Int
 }
 
+// Declare :
+// declare come from custom tx which data like "inb:1:event:declare:id~ip~port"
+// Sender of tx is Signer or Candidate
+type EnodeInfo struct {
+	Address common.Address
+	Id      string
+	Ip      string
+	Port    string
+}
+
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
@@ -94,8 +114,13 @@ type HeaderExtra struct {
 	SignersPool               []common.Address
 	SignerMissing             []common.Address
 	ConfirmedBlockNumber      uint64
+
+	//inb by ssh begin
+	Enodes []EnodeInfo
+	//inb by ssh end
+
 	//inb by ghy begin
-	Enode 					  []string
+	Enode []string
 	//inb by ghy end
 }
 
@@ -165,8 +190,25 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			continue
 		}
 
-		if len(string(tx.Data())) >= len(inbPrefix) {
-			txData := string(tx.Data())
+		txData := string(tx.Data())
+		//achilles config
+		if strings.Contains(txData, "candidates") {
+			var candidates []common.Address
+			txDataInfo := strings.Split(txData, ":")
+			if txDataInfo[0] == "candidates" {
+				candidatesStr := strings.Split(txDataInfo[1], ",")
+				for _, value := range candidatesStr {
+					address := common.HexToAddress(value)
+					candidates = append(candidates, address)
+				}
+				if params.TxConfig.CandidateSize < uint64(len(candidates)) {
+					return headerExtra, nil, errors.Errorf("candidates over size")
+				}
+				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+			}
+		}
+
+		if len(txData) >= len(inbPrefix) {
 			txDataInfo := strings.Split(txData, ":")
 			if len(txDataInfo) >= inbMinSplitLen {
 				if txDataInfo[posPrefix] == inbPrefix {
@@ -176,18 +218,23 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 							if len(txDataInfo) > inbMinSplitLen {
 								// check is vote or not
 								if txDataInfo[posEventVote] == inbEventVote {
-									var candidates []common.Address
-									//achilles vote
-									if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
-										candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
-										for _, value := range candidatesStr {
-											address := common.HexToAddress(value)
-											candidates = append(candidates, address)
-										}
-									}
-									headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+									//var candidates []common.Address
+									////achilles vote
+									//if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
+									//	candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
+									//	for _, value := range candidatesStr {
+									//		address := common.HexToAddress(value)
+									//		candidates = append(candidates, address)
+									//	}
+									//	if core.DefaultTxPoolConfig.CandidateSize < uint64(len(candidates)) {
+									//		return headerExtra,nil,errors.Errorf("candidates of vote length over size")
+									//	}
+									//}
+									//headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
 								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
+								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
+									headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
 								}
 							} else {
 								// todo : leave this transaction to process as normal transaction
@@ -198,9 +245,9 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 		}
 		// check each address
-		if number > 1 {
-			headerExtra.ModifyPredecessorVotes = v.processPredecessorVoter(headerExtra.ModifyPredecessorVotes, state, tx, txSender, snap)
-		}
+		//if number > 1 {
+		//	headerExtra.ModifyPredecessorVotes = v.processPredecessorVoter(headerExtra.ModifyPredecessorVotes, state, tx, txSender, snap)
+		//}
 
 	}
 
@@ -223,20 +270,44 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 	return refundGas
 }
 
-func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
-	if state.GetBalance(voter).Cmp(minVoterBalance) > 0 {
-
-		v.lock.RLock()
-		//todo balance change to cpu/net
-		stake := state.GetBalance(voter)
-		v.lock.RUnlock()
-
-		currentBlockVotes = append(currentBlockVotes, Vote{
-			Voter:     voter,
-			Candidate: candidates,
-			Stake:     stake,
-		})
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []EnodeInfo, txDataInfo []string, declarer common.Address) []EnodeInfo {
+	if len(txDataInfo) > posEventDeclareInfo {
+		midEnodeInfo := strings.Split(txDataInfo[posEventDeclareInfo], "~")
+		if len(midEnodeInfo) >= posEventDeclareInfoSplitLen {
+			enodeInfo := EnodeInfo{
+				Id:      midEnodeInfo[posEventDeclareInfoId],
+				Ip:      midEnodeInfo[posEventDeclareInfoIp],
+				Port:    midEnodeInfo[posEventDeclareInfoPort],
+				Address: declarer,
+			}
+			flag := false
+			for i, enode := range currentEnodeInfos {
+				if enode.Address == declarer {
+					flag = true
+					currentEnodeInfos[i] = enodeInfo
+					break
+				}
+			}
+			if !flag {
+				currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
+			}
+		}
 	}
+	return currentEnodeInfos
+}
+
+func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
+	//if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
+	v.lock.RLock()
+	stake := state.GetMortgageInbOfNet(voter)
+	v.lock.RUnlock()
+
+	currentBlockVotes = append(currentBlockVotes, Vote{
+		Voter:     voter,
+		Candidate: candidates,
+		Stake:     stake,
+	})
+	//}
 
 	return currentBlockVotes
 }
@@ -282,7 +353,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
 		if snap.isVoter(voter) {
 			v.lock.RLock()
-			stake := state.GetBalance(voter)
+			stake := state.GetMortgageInbOfNet(voter)
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     voter,
@@ -292,7 +363,7 @@ func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *st
 		}
 		if snap.isVoter(*tx.To()) {
 			v.lock.RLock()
-			stake := state.GetBalance(*tx.To())
+			stake := state.GetMortgageInbOfNet(*tx.To())
 			v.lock.RUnlock()
 			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
 				Voter:     *tx.To(),

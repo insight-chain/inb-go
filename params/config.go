@@ -155,6 +155,13 @@ var (
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), nil, false, big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
 )
+var (
+	TxConfig = &CommonConfig{
+		UseNet:        300,
+		UseCpu:        50,
+		CandidateSize: 30,
+	}
+)
 
 // TrustedCheckpoint represents a set of post-processed trie roots (CHT and
 // BloomTrie) associated with the appropriate section index and head hash. It is
@@ -200,6 +207,14 @@ type ChainConfig struct {
 
 // EthashConfig is the consensus engine configs for proof-of-work based sealing.
 type EthashConfig struct{}
+
+// achilles config
+type CommonConfig struct {
+	//achilles config
+	UseNet        int64  // use gas for transaction
+	UseCpu        int64  //use cpu for transaction
+	CandidateSize uint64 //Maximum number of candidater for vote
+}
 
 // String implements the stringer interface, returning the consensus engine details.
 func (c *EthashConfig) String() string {

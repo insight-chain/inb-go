@@ -2,6 +2,7 @@ package state
 
 import (
 	"errors"
+	"github.com/insight-chain/inb-go/params"
 	"math/big"
 	"time"
 )
@@ -64,6 +65,7 @@ func (self *stateObject) MortgageNet(amount *big.Int) {
 	self.db.Commit(false)
 	self.db.Database().TrieDB().Commit(root, true)
 }
+
 //UnMortgage
 func (self *stateObject) UnMortgageCpu(amount *big.Int) {
 
@@ -72,8 +74,8 @@ func (self *stateObject) UnMortgageCpu(amount *big.Int) {
 	mortgageCpuOfINB := self.data.Resources.CPU.MortgagteINB
 
 	//You need to convert number to the type of big
-	expendCpuFromUnMortgageCpu := big.NewInt(50)
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 
 	//self.updateAccountCpuAndNet()
 	if (amount.Cmp(big.NewInt(0)) == 0) || (amount.Cmp(self.data.Resources.CPU.MortgagteINB) == 1) {
@@ -103,8 +105,8 @@ func (self *stateObject) UnMortgageNet(amount *big.Int) {
 	mortgageNetOfINB := self.data.Resources.NET.MortgagteINB
 
 	//You need to convert number to the type of big
-	expendCpuFromUnMortgageCpu := big.NewInt(50)
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 
 	//self.updateAccountCpuAndNet()
 	if (amount.Cmp(big.NewInt(0)) == 0) || (amount.Cmp(self.data.Resources.NET.MortgagteINB) == 1) {
@@ -127,6 +129,7 @@ func (self *stateObject) UnMortgageNet(amount *big.Int) {
 		self.SubNet(amount)
 	}
 }
+
 //Increase or decrease the user's CPU or net
 //Mortgage
 func (c *stateObject) AddCpu(amount *big.Int) {
@@ -154,8 +157,8 @@ func (c *stateObject) AddNet(amount *big.Int) {
 
 //unMorgage
 func (c *stateObject) SubCpu(amount *big.Int) {
-	expendCpuFromUnMortgageCpu := big.NewInt(50)
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 
 	used := c.AddUsableCpu(expendCpuFromUnMortgageCpu)
 	mortgagetion := c.SubMortgageINBOfCpu(amount)
@@ -173,7 +176,7 @@ func (c *stateObject) SubCpu(amount *big.Int) {
 }
 func (c *stateObject) SubNet(amount *big.Int) {
 	//expendCpuFromUnMortgageCpu := big.NewInt(50)
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 
 	used := c.AddUsableNet(expendNetFromUnMortgageNet)
 	mortgagetion := c.SubMortgageINBOfNet(amount)
@@ -193,7 +196,7 @@ func (c *stateObject) SubNet(amount *big.Int) {
 
 //achilles replace gas with net
 func (c *stateObject) UseNet(amount *big.Int) {
-	expendNetFromUnMortgageNet := big.NewInt(300)
+	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
 	usable := c.SubUsableNet(expendNetFromUnMortgageNet)
 	used := c.AddUsedNet(expendNetFromUnMortgageNet)
 	c.SetNet(used, usable, c.data.Resources.NET.MortgagteINB)
@@ -268,6 +271,7 @@ func (self *stateObject) SubMortgageINBOfCpu(amout *big.Int) *big.Int {
 func (self *stateObject) SubMortgageINBOfNet(amout *big.Int) *big.Int {
 	return self.data.Resources.NET.MortgagteINB.Sub(self.data.Resources.NET.MortgagteINB, amout)
 }
+
 //Updates the user's CPU and net 24 hours a day
 func (self *stateObject) updateAccountCpuAndNet() {
 	for {
@@ -279,7 +283,7 @@ func (self *stateObject) updateAccountCpuAndNet() {
 		//Update the CPU and Net owned by the user
 		if self.data.Resources.CPU.MortgagteINB != big.NewInt(0) {
 			self.SetCpu(big.NewInt(0), self.db.GainNumberOfCpu(self.data.Resources.CPU.MortgagteINB), self.data.Resources.CPU.MortgagteINB)
-		}else if self.data.Resources.NET.MortgagteINB != big.NewInt(0){
+		} else if self.data.Resources.NET.MortgagteINB != big.NewInt(0) {
 			self.SetNet(big.NewInt(0), self.db.GainNumberOfNet(self.data.Resources.NET.MortgagteINB), self.data.Resources.NET.MortgagteINB)
 		}
 	}
