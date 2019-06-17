@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
@@ -59,6 +59,7 @@ var (
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(5)                // Default loop count to recreate signers from top tally
 	defaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
+ Chanel = make(chan int,0)
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -344,7 +345,6 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (v *Vdpos) Prepare(chain consensus.ChainReader, header *types.Header) error {
-
 	// Set the correct difficulty
 	header.Difficulty = new(big.Int).Set(defaultDifficulty)
 
