@@ -200,7 +200,9 @@ func init() {
 		licenseCommand,
 		// See config.go
 		dumpConfigCommand,
+		//inb by ghy begin
 		nodekeyCommand,
+		//inb by ghy end
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
 
