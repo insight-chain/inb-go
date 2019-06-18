@@ -519,15 +519,33 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // inb by ghy begin
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetFirstBlockEnode() []string {
+func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []string {
 	var err error
-	header, _ := s.b.HeaderByNumber(context.Background(), rpc.EarliestBlockNumber)
+	header, _ := s.b.HeaderByNumber(context.Background(),num)
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
 	err = rlp.DecodeBytes(b, val)
 	if err == nil {
 		return val.Enode
+	} else {
+		return nil
+	}
+
+}
+// inb by ghy end
+
+// inb by ghy begin
+// Get first head block enode msg
+func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
+	var err error
+	header, _ := s.b.HeaderByNumber(context.Background(),rpc.LatestBlockNumber)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		return val
 	} else {
 		return nil
 	}

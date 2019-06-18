@@ -22,13 +22,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/insight-chain/inb-go/consensus/vdpos"
-	"math/big"
-	"strings"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core/rawdb"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
@@ -36,6 +33,8 @@ import (
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/rlp"
+	"math/big"
+	"strings"
 )
 
 //go:generate gencodec -type Genesis -field-override genesisSpecMarshaling -out gen_genesis.go

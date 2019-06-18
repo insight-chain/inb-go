@@ -17,9 +17,12 @@
 package node
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/accounts"
+	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/internal/debug"
@@ -35,6 +38,7 @@ import (
 	"reflect"
 	"strings"
 	"sync"
+	"time"
 )
 
 // Node is a container on which services can be registered.
@@ -73,9 +77,9 @@ type Node struct {
 
 	log log.Logger
 }
+
 //TODO Test save current node
 var CurrentNode *Node
-
 
 // New creates a new P2P node, ready for protocol registration.
 func New(conf *Config) (*Node, error) {
@@ -228,7 +232,6 @@ func (n *Node) Start() error {
 	n.server = running
 	n.stop = make(chan struct{})
 
-
 	CurrentNode = n
 
 	//inb by ghy begin
@@ -238,23 +241,53 @@ func (n *Node) Start() error {
 	return nil
 }
 //inb by ghy begin
-func ConnectAllSuperNodes(n *Node){
-		//Get first block's supernodeecodes
-		SuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetFirstBlockEnode()
+func ConnectAllSuperNodes(n *Node) {
+	//Get first block's supernodeecodes
+	//AddedNode := make(map[string]bool)
+	BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
+	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(rpc.EarliestBlockNumber)
+	for _, v := range GenesisSuperNodeEcodes {
+		if !n.server.Self().Equals(v) {
+			superNode, _ := enode.ParseV4(v)
+			//Add node to p2p net
+			n.server.AddPeer(superNode)
+			//AddedNode[v] = true
+		}
 
-		for _,v:=range SuperNodeEcodes {
-			if !n.server.Self().Equals(v){
-				superNode, _ := enode.ParseV4(v)
-				//Add node to p2p net
-				n.server.AddPeer(superNode)
+	}
+
+	for {
+		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+		for _,v:=range LatesSuperNodeEcodes.SignersPool{
+			for _,vv:=range LatesSuperNodeEcodes.Enodes{
+				if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
+					latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
+					n.server.AddPeer(latessuperNode)
+					//AddedNode[v] = true
+				}
 			}
 
 		}
-//todo: connect new supernodes when update blockchain
 
+		time.Sleep(50*21*6*3*time.Second)
+	}
 }
-//inb by ghy end
 
+
+func ParsePeerUrl(nodeinfo vdpos.EnodeInfo) string {
+	var urlBuffer bytes.Buffer
+	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip)  {
+		urlBuffer.WriteString("enode://")
+		urlBuffer.WriteString(nodeinfo.Id)
+		urlBuffer.WriteString("@")
+		urlBuffer.WriteString(nodeinfo.Ip)
+		urlBuffer.WriteString(":")
+		urlBuffer.WriteString(nodeinfo.Port)
+	}
+	return urlBuffer.String()
+}
+
+//inb by ghy end
 
 func (n *Node) openDataDir() error {
 	if n.config.DataDir == "" {
