@@ -17,9 +17,12 @@
 package node
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/accounts"
+	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/internal/debug"
@@ -240,7 +243,7 @@ func (n *Node) Start() error {
 //inb by ghy begin
 func ConnectAllSuperNodes(n *Node) {
 	//Get first block's supernodeecodes
-	AddedNode := make(map[string]bool)
+	//AddedNode := make(map[string]bool)
 	BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
 	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(rpc.EarliestBlockNumber)
 	for _, v := range GenesisSuperNodeEcodes {
@@ -248,28 +251,43 @@ func ConnectAllSuperNodes(n *Node) {
 			superNode, _ := enode.ParseV4(v)
 			//Add node to p2p net
 			n.server.AddPeer(superNode)
-			AddedNode[v] = true
+			//AddedNode[v] = true
 		}
 
 	}
 
 	for {
-		LatesSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(rpc.LatestBlockNumber)
-		fmt.Println("ttttttttttttttttttt",BlockChainApi.ConfirmedBlockNumber())
-		for _, v := range LatesSuperNodeEcodes {
-			if !n.server.Self().Equals(v) && AddedNode[v] != true {
-				latessuperNode, _ := enode.ParseV4(v)
-				//Add node to p2p net
-				n.server.AddPeer(latessuperNode)
-				AddedNode[v] = true
+		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+		for _,v:=range LatesSuperNodeEcodes.SignersPool{
+			for _,vv:=range LatesSuperNodeEcodes.Enodes{
+				if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
+					latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
+					n.server.AddPeer(latessuperNode)
+					//AddedNode[v] = true
+				}
 			}
+
 		}
 
-		time.Sleep(3*time.Second)
+		time.Sleep(50*21*6*3*time.Second)
 	}
 }
-//inb by ghy end
 
+
+func ParsePeerUrl(nodeinfo vdpos.EnodeInfo) string {
+	var urlBuffer bytes.Buffer
+	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip)  {
+		urlBuffer.WriteString("enode://")
+		urlBuffer.WriteString(nodeinfo.Id)
+		urlBuffer.WriteString("@")
+		urlBuffer.WriteString(nodeinfo.Ip)
+		urlBuffer.WriteString(":")
+		urlBuffer.WriteString(nodeinfo.Port)
+	}
+	return urlBuffer.String()
+}
+
+//inb by ghy end
 
 func (n *Node) openDataDir() error {
 	if n.config.DataDir == "" {

@@ -435,6 +435,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.ConfirmedBlockNumber = parentHeaderExtra.ConfirmedBlockNumber
 		currentHeaderExtra.SignersPool = parentHeaderExtra.SignersPool
 		currentHeaderExtra.LoopStartTime = parentHeaderExtra.LoopStartTime
+		currentHeaderExtra.Enodes = parentHeaderExtra.Enodes
 		newLoop := false
 		if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
 			newLoop = true
