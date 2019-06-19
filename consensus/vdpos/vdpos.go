@@ -59,7 +59,7 @@ var (
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(5)                // Default loop count to recreate signers from top tally
 	defaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
- Chanel = make(chan int,0)
+	Chanel                           = make(chan int, 0)
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -420,7 +420,8 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				genesisVotes = append(genesisVotes, &Vote{
 					Voter:     voter,
 					Candidate: candidates,
-					Stake:     state.GetMortgageInbOfNet(voter),
+					//Stake:     state.GetMortgageInbOfNet(voter),
+					Stake: big.NewInt(1),
 				})
 				alreadyVote[voter] = struct{}{}
 			}
