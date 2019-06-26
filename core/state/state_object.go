@@ -421,6 +421,9 @@ func (self *stateObject) Cpu() *big.Int {
 func (self *stateObject) Net() *big.Int {
 	return self.data.Resources.NET.Usableness
 }
+func (self *stateObject) UsedNet() *big.Int {
+	return self.data.Resources.NET.Used
+}
 func (self *stateObject) MortgageOfCpu() *big.Int {
 
 	return self.data.Resources.CPU.MortgagteINB
