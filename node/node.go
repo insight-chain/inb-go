@@ -239,6 +239,7 @@ func (n *Node) Start() error {
 
 	return nil
 }
+
 //inb by ghy begin
 func ConnectAllSuperNodes(n *Node) {
 	//Get first block's supernodeecodes
@@ -261,6 +262,7 @@ func ConnectAllSuperNodes(n *Node) {
 
 	for {
 		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+
 		//fmt.Println(len(LatesSuperNodeEcodes.SignersPool))
 		//fmt.Println(len(LatesSuperNodeEcodes.Enodes))
 		//if len(LatesSuperNodeEcodes.Enodes)>0{
@@ -279,12 +281,8 @@ func ConnectAllSuperNodes(n *Node) {
 						}
 					}
 				}
-
-
 			}
 		}
-
-
 		time.Sleep(60*3*time.Second)
 	}
 }
@@ -292,7 +290,7 @@ func ConnectAllSuperNodes(n *Node) {
 
 func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
 	var urlBuffer bytes.Buffer
-	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip)  {
+	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip) {
 		urlBuffer.WriteString("enode://")
 		urlBuffer.WriteString(nodeinfo.Id)
 		urlBuffer.WriteString("@")

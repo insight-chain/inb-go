@@ -19,12 +19,11 @@ package rawdb
 import (
 	"bytes"
 	"encoding/binary"
-	"math/big"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/rlp"
+	"math/big"
 )
 
 // ReadCanonicalHash retrieves the hash assigned to a canonical block number.
@@ -209,28 +208,49 @@ func HasBody(db DatabaseReader, hash common.Hash, number uint64) bool {
 	return true
 }
 
+//inb by ssh begin
+type midBody struct {
+	RLPTransactions []*types.RLPTransaction
+	Uncles          []*types.Header
+}
+
 // ReadBody retrieves the block body corresponding to the hash.
 func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 	data := ReadBodyRLP(db, hash, number)
 	if len(data) == 0 {
 		return nil
 	}
-	body := new(types.Body)
-	if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
+	mid := new(midBody)
+	if err := rlp.Decode(bytes.NewReader(data), mid); err != nil {
 		log.Error("Invalid block body RLP", "hash", hash, "err", err)
 		return nil
 	}
+	body := new(types.Body)
+	body.Transactions = types.DecodeTransactionStruct(mid.RLPTransactions)
+	body.Uncles = mid.Uncles
+	//if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
+	//	log.Error("Invalid block body RLP", "hash", hash, "err", err)
+	//	return nil
+	//}
 	return body
 }
 
 // WriteBody storea a block body into the database.
 func WriteBody(db DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
-	data, err := rlp.EncodeToBytes(body)
+	rlpTxs := types.EncodeTransactionStruct(body.Transactions)
+	mid := &midBody{
+		RLPTransactions: rlpTxs,
+		Uncles:          body.Uncles,
+	}
+	//data, err := rlp.EncodeToBytes(body)
+	data, err := rlp.EncodeToBytes(mid)
 	if err != nil {
 		log.Crit("Failed to RLP encode body", "err", err)
 	}
 	WriteBodyRLP(db, hash, number, data)
 }
+
+//inb by ssh end
 
 // DeleteBody removes all block body data associated with a hash.
 func DeleteBody(db DatabaseDeleter, hash common.Hash, number uint64) {
