@@ -240,6 +240,7 @@ func (n *Node) Start() error {
 
 	return nil
 }
+
 //inb by ghy begin
 func ConnectAllSuperNodes(n *Node) {
 	//Get first block's supernodeecodes
@@ -258,9 +259,9 @@ func ConnectAllSuperNodes(n *Node) {
 
 	for {
 		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
-		for _,v:=range LatesSuperNodeEcodes.SignersPool{
-			for _,vv:=range LatesSuperNodeEcodes.Enodes{
-				if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
+		for _, v := range LatesSuperNodeEcodes.SignersPool {
+			for _, vv := range LatesSuperNodeEcodes.Enodes {
+				if v == vv.Address && !n.server.Self().Equals(ParsePeerUrl(vv)) {
 					latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
 					n.server.AddPeer(latessuperNode)
 					//AddedNode[v] = true
@@ -269,14 +270,13 @@ func ConnectAllSuperNodes(n *Node) {
 
 		}
 
-		time.Sleep(50*21*6*3*time.Second)
+		time.Sleep(3 * time.Second)
 	}
 }
 
-
 func ParsePeerUrl(nodeinfo vdpos.EnodeInfo) string {
 	var urlBuffer bytes.Buffer
-	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip)  {
+	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip) {
 		urlBuffer.WriteString("enode://")
 		urlBuffer.WriteString(nodeinfo.Id)
 		urlBuffer.WriteString("@")
