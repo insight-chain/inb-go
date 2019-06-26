@@ -20,6 +20,7 @@ package vdpos
 import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/rlp"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -71,3 +72,37 @@ func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
 	}
 	return snap.signers(), nil
 }
+
+
+//inb by ghy begin
+func (api *API) GetSuperNodesInfo() []common.EnodeInfo {
+	var err error
+	header:= api.chain.CurrentHeader()
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+
+	snapshot, err := api.GetSnapshot(header.Number.Uint64())
+
+	newval:= HeaderExtra{}
+			for k,vote:=range snapshot.Tally{
+
+				for _,v:=range val.Enodes{
+					if k==v.Address&&vote.Uint64()>0{
+
+						v.Vote=vote.Uint64()
+						newval.Enodes= append(newval.Enodes,v)
+					}
+				}
+
+			}
+
+	if err == nil {
+		return newval.Enodes
+	} else {
+		return nil
+	}
+}
+//inb by ghy end

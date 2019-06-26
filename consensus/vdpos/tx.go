@@ -59,6 +59,15 @@ const (
 	posEventDeclareInfoId       = 0
 	posEventDeclareInfoIp       = 1
 	posEventDeclareInfoPort     = 2
+	//inb by ghy begin
+	posEventDeclareInfoName     = 3
+	posEventDeclareInfoNation   = 4
+	posEventDeclareInfoCity     = 5
+	posEventDeclareInfoImage    = 6
+	posEventDeclareInfoWebsite  = 7
+	posEventDeclareInfoEmail    = 8
+	posEventDeclareInfodata     = 9
+	//inb by ghy end
 )
 
 // RefundGas :
@@ -94,15 +103,7 @@ type Confirmation struct {
 	BlockNumber *big.Int
 }
 
-// Declare :
-// declare come from custom tx which data like "inb:1:event:declare:id~ip~port"
-// Sender of tx is Signer or Candidate
-type EnodeInfo struct {
-	Address common.Address
-	Id      string
-	Ip      string
-	Port    string
-}
+
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
@@ -116,7 +117,7 @@ type HeaderExtra struct {
 	ConfirmedBlockNumber      uint64
 
 	//inb by ssh begin
-	Enodes []EnodeInfo
+	Enodes []common.EnodeInfo
 	//inb by ssh end
 
 	//inb by ghy begin
@@ -270,16 +271,56 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 	return refundGas
 }
 
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []EnodeInfo, txDataInfo []string, declarer common.Address) []EnodeInfo {
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo []string, declarer common.Address) []common.EnodeInfo {
 	if len(txDataInfo) > posEventDeclareInfo {
 		midEnodeInfo := strings.Split(txDataInfo[posEventDeclareInfo], "~")
 		if len(midEnodeInfo) >= posEventDeclareInfoSplitLen {
-			enodeInfo := EnodeInfo{
+			enodeInfo := common.EnodeInfo{
 				Id:      midEnodeInfo[posEventDeclareInfoId],
 				Ip:      midEnodeInfo[posEventDeclareInfoIp],
 				Port:    midEnodeInfo[posEventDeclareInfoPort],
 				Address: declarer,
 			}
+//inb by ghy begin
+			if len(midEnodeInfo) >=4{
+				enodeInfo.Name=midEnodeInfo[posEventDeclareInfoName]
+			}
+
+			if len(midEnodeInfo) >=5{
+				enodeInfo.Nation=midEnodeInfo[posEventDeclareInfoNation]
+			}
+
+			if len(midEnodeInfo) >=6{
+				enodeInfo.City=midEnodeInfo[posEventDeclareInfoCity]
+
+			}
+
+			if len(midEnodeInfo) >=7{
+				enodeInfo.Image=midEnodeInfo[posEventDeclareInfoImage]
+
+			}
+			if len(midEnodeInfo) >=8{
+				enodeInfo.Website=midEnodeInfo[posEventDeclareInfoWebsite]
+			}
+			if len(midEnodeInfo) >=9{
+				enodeInfo.Email=midEnodeInfo[posEventDeclareInfoEmail]
+			}
+
+			data:=`{`
+			if len(midEnodeInfo) >=10{
+				enodeData:=strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
+				for _,v:=range enodeData{
+					split := strings.Split(v, "/")
+					if len(split)==2{
+						data+=`"`+split[0]+`":"`+split[1]+`",`
+					}
+				}
+						data=strings.TrimRight(data,",")
+			}
+			data+=`}`
+			enodeInfo.Data=data
+
+			//inb by ghy end
 			flag := false
 			for i, enode := range currentEnodeInfos {
 				if enode.Address == declarer {

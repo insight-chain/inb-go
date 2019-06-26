@@ -58,7 +58,7 @@ var (
 	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(5)                // Default loop count to recreate signers from top tally
-	defaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
+	DefaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
 	Chanel                           = make(chan int, 0)
 )
 
@@ -834,7 +834,7 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
-	reward := new(big.Int).Set(defaultMinerReward)
+	reward := new(big.Int).Set(DefaultMinerReward)
 	if reward.Cmp(big.NewInt(0)) > 0 {
 		state.AddBalance(header.Coinbase, reward)
 	}

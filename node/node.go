@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/common"
-	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/internal/debug"
@@ -244,11 +243,15 @@ func (n *Node) Start() error {
 func ConnectAllSuperNodes(n *Node) {
 	//Get first block's supernodeecodes
 	//AddedNode := make(map[string]bool)
+
 	BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
+
 	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(rpc.EarliestBlockNumber)
 	for _, v := range GenesisSuperNodeEcodes {
-		if !n.server.Self().Equals(v) {
-			superNode, _ := enode.ParseV4(v)
+		//fmt.Println("lasttttttttttttttttttt",v.Data)
+		url := ParsePeerUrl(v)
+		if !n.server.Self().Equals(url) {
+			superNode, _ := enode.ParseV4(url)
 			//Add node to p2p net
 			n.server.AddPeer(superNode)
 			//AddedNode[v] = true
@@ -258,23 +261,36 @@ func ConnectAllSuperNodes(n *Node) {
 
 	for {
 		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
-		for _,v:=range LatesSuperNodeEcodes.SignersPool{
-			for _,vv:=range LatesSuperNodeEcodes.Enodes{
-				if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
-					latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
-					n.server.AddPeer(latessuperNode)
-					//AddedNode[v] = true
+		//fmt.Println(len(LatesSuperNodeEcodes.SignersPool))
+		//fmt.Println(len(LatesSuperNodeEcodes.Enodes))
+		//if len(LatesSuperNodeEcodes.Enodes)>0{
+		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Address)
+		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Data)
+		//}
+		if len(LatesSuperNodeEcodes.SignersPool)>0{
+			for _,v:=range LatesSuperNodeEcodes.SignersPool{
+				if len(LatesSuperNodeEcodes.Enodes)>0{
+					for _,vv:=range LatesSuperNodeEcodes.Enodes{
+						if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
+							//fmt.Println("dont",ParsePeerUrl(vv))
+							latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
+							n.server.AddPeer(latessuperNode)
+							//AddedNode[v] = true
+						}
+					}
 				}
-			}
 
+
+			}
 		}
 
-		time.Sleep(50*21*6*3*time.Second)
+
+		time.Sleep(60*3*time.Second)
 	}
 }
 
 
-func ParsePeerUrl(nodeinfo vdpos.EnodeInfo) string {
+func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
 	var urlBuffer bytes.Buffer
 	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip)  {
 		urlBuffer.WriteString("enode://")
@@ -283,6 +299,7 @@ func ParsePeerUrl(nodeinfo vdpos.EnodeInfo) string {
 		urlBuffer.WriteString(nodeinfo.Ip)
 		urlBuffer.WriteString(":")
 		urlBuffer.WriteString(nodeinfo.Port)
+		urlBuffer.WriteString("?discport=0")
 	}
 	return urlBuffer.String()
 }
