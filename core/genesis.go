@@ -254,8 +254,18 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Root:       root,
 	}
 	//inb by ghy begin
+	//headE:=new(vdpos.HeaderExtra)
+	//headE.Enode=g.Config.Vdpos.Enode
+
+
 	headE:=new(vdpos.HeaderExtra)
-	headE.Enode=g.Config.Vdpos.Enode
+	//for i,v:=range g.Config.Vdpos.Enodes{
+	//	marshal, _:= json.Marshal(v.Data)
+	//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
+	//}
+	headE.Enodes=g.Config.Vdpos.Enodes
+
+
 	if len(head.Extra) < 32 {
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
 	}

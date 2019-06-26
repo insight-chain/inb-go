@@ -519,7 +519,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // inb by ghy begin
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []string {
+func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []common.EnodeInfo {
 	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(),num)
 	b := header.Extra[32 : len(header.Extra)-65]
@@ -527,15 +527,13 @@ func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []
 	val := &headerExtra
 	err = rlp.DecodeBytes(b, val)
 	if err == nil {
-		return val.Enode
+		return val.Enodes
 	} else {
 		return nil
 	}
 
 }
-// inb by ghy end
 
-// inb by ghy begin
 // Get first head block enode msg
 func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
 	var err error
@@ -579,6 +577,16 @@ func (s *PublicBlockChainAPI) GetNet(ctx context.Context, address common.Address
 	}
 	return (*hexutil.Big)(state.GetNet(address)), state.Error()
 }
+
+func (s *PublicBlockChainAPI) GetUsedNet(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
+	if state == nil || err != nil {
+		return nil, err
+	}
+	return (*hexutil.Big)(state.GetUsedNet(address)), state.Error()
+}
+
+
 func (s *PublicBlockChainAPI) GetCpuOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
@@ -1844,6 +1852,12 @@ func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (stri
 	}
 	return fmt.Sprintf("%x", encoded), nil
 }
+
+//inb by ghy begin
+func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
+	return vdpos.DefaultMinerReward.Uint64()
+}
+//inb by ghy end
 
 // PrintBlock retrieves a block and returns its pretty printed form.
 func (api *PublicDebugAPI) PrintBlock(ctx context.Context, number uint64) (string, error) {

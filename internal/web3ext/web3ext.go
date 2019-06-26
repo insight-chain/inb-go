@@ -92,9 +92,16 @@ web3._extend({
 			call: 'vdpos_getSignersAtHash',
 			params: 1
 		}),
+		
+		new web3._extend.Method({
+			name: 'getSuperNodesInfo',
+			call: 'vdpos_getSuperNodesInfo',
+			params: 0
+		}),
 	]
 });
 `
+// getSuperNodesInfo inb by ghy
 
 //vdpos by ssh end
 
@@ -481,6 +488,7 @@ web3._extend({
 });
 `
 
+//minerReward inb by ghy
 const Eth_JS = `
 web3._extend({
 	property: 'eth',
@@ -512,6 +520,11 @@ web3._extend({
 		new web3._extend.Method({
 			name: 'chainId',
 			call: 'eth_chainId',
+			params: 0
+		}),
+		new web3._extend.Method({
+			name: 'minerReward',
+			call: 'eth_minerReward',
 			params: 0
 		}),
 		new web3._extend.Method({

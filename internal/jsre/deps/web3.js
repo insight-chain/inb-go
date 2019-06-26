@@ -5295,6 +5295,15 @@ var methods = function () {
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
     });
+    //inb by ghy begin
+  var getUsedNet = new Method({
+    name: 'getUsedNet',
+    call: 'eth_getUsedNet',
+    params: 2,
+    inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
+    outputFormatter: formatters.outputBigNumberFormatter
+  });
+//inb by ghy end
     var getCpuOfMortgageINB = new Method({
       name: 'getCpuOfMortgageINB',
       call: 'eth_getCpuOfMortgageINB',
@@ -5478,6 +5487,9 @@ var methods = function () {
         //Resource by zc
         getCpu,
         getNet,
+        //inb by ghy begin
+        getUsedNet,
+      //inb by ghy end
         getCpuOfMortgageINB,
         getNetOfMortgageINB,
         //Resource by zc

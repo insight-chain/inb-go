@@ -266,6 +266,13 @@ func (self *StateDB) GetNet(addr common.Address) *big.Int {
 	}
 	return common.Big0
 }
+func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.UsedNet()
+	}
+	return common.Big0
+}
 func (self *StateDB) GetMortgageInbOfCpu(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {

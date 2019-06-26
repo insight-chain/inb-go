@@ -254,6 +254,7 @@ type VdposConfig struct {
 	PBFTEnable       bool                       `json:"pbft"`
 	//inb by ghy begin
 	Enode          []string `json:"enode"` 									//Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
+	Enodes []common.EnodeInfo `json:"enodes"`
 	//inb by ghy end
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
 }
