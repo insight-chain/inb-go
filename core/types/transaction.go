@@ -66,7 +66,7 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	Repayment payment `json:"repayment" gencodec:"required"`
+	Repayment payment
 }
 
 //payment the real account that pay resources for transactions
@@ -506,3 +506,126 @@ func (m Message) IsRePayment() bool {
 	}
 	return false
 }
+
+//inb by ssh begin
+type RLPTransaction struct {
+	Id            common.Hash
+	CpuUsage      *big.Int
+	NetUsage      *big.Int
+	MaxCpuUsage   *big.Int
+	MaxNetUsage   *big.Int
+	Actions       []*action
+	Signatures    []*signature
+	PaySignatures []*payment
+
+	// caches
+	Hash atomic.Value
+	Size atomic.Value
+	From atomic.Value
+}
+
+type action struct {
+	Name    string
+	Nonce   uint64
+	Account common.Address
+	Data    []byte
+}
+
+type signature struct {
+	V *big.Int
+	R *big.Int
+	S *big.Int
+}
+
+type RLPTransactions []*RLPTransaction
+
+// From return the account who send the transaction.
+func (tx *Transaction) From() common.Address {
+	signer := NewEIP155Signer(tx.ChainId())
+	v, _ := signer.Sender(tx)
+	return v
+}
+
+// EncodeTransactionStruct change normal Transaction to RLPTransaction.
+func EncodeTransactionStruct(txs Transactions) RLPTransactions {
+	rlpTxs := make(RLPTransactions, 0)
+	for _, tx := range txs {
+		id := tx.Hash()
+
+		data, _ := tx.MarshalJSON()
+		actionx := &action{
+			Name:    "transfer",
+			Nonce:   tx.Nonce(),
+			Account: tx.From(),
+			Data:    data,
+		}
+		actions := []*action{actionx}
+
+		signaturex := &signature{
+			V: tx.data.V,
+			R: tx.data.R,
+			S: tx.data.S,
+		}
+		signatures := []*signature{signaturex}
+
+		paySignature := &payment{
+			ResourcePayer: tx.data.Repayment.ResourcePayer,
+			Vp:            tx.data.Repayment.Vp,
+			Rp:            tx.data.Repayment.Rp,
+			Sp:            tx.data.Repayment.Sp,
+		}
+		paySignatures := []*payment{paySignature}
+
+		rlpTx := &RLPTransaction{
+			Id:            id,
+			CpuUsage:      nil,
+			NetUsage:      nil,
+			MaxCpuUsage:   nil,
+			MaxNetUsage:   nil,
+			Actions:       actions,
+			Signatures:    signatures,
+			PaySignatures: paySignatures,
+		}
+		if hash := tx.hash.Load(); hash != nil {
+			rlpTx.Hash.Store(hash)
+		}
+		if size := tx.size.Load(); size != nil {
+			rlpTx.Size.Store(size)
+		}
+		if from := tx.from.Load(); from != nil {
+			rlpTx.From.Store(from)
+		}
+		rlpTxs = append(rlpTxs, rlpTx)
+	}
+	return rlpTxs
+}
+
+// DecodeTransactionStruct change RLPTransaction to normal Transaction.
+func DecodeTransactionStruct(encodeTxs RLPTransactions) Transactions {
+	var dec txdata
+	txs := make(Transactions, 0)
+	for _, encodeTx := range encodeTxs {
+		if len(encodeTx.Actions) == 1 {
+			if err := dec.UnmarshalJSON(encodeTx.Actions[0].Data); err != nil {
+				continue
+			} else {
+				tx := &Transaction{data: dec}
+				if hash := encodeTx.Hash.Load(); hash != nil {
+					tx.hash.Store(hash)
+				}
+				if size := encodeTx.Size.Load(); size != nil {
+					tx.size.Store(size)
+				}
+				if from := encodeTx.From.Load(); from != nil {
+					tx.from.Store(from)
+				}
+				txs = append(txs, tx)
+			}
+		} else {
+			continue
+		}
+	}
+	return txs
+}
+
+//inb by ssh end
