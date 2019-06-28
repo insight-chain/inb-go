@@ -144,13 +144,11 @@ func (c *stateObject) AddCpu(amount *big.Int) {
 	PrivilegedSateObject.AddMortgageINBOfCpu(amount)
 }
 func (c *stateObject) AddNet(amount *big.Int) {
-
-	gainNumberOfNet := c.db.GainNumberOfNet(amount)
+	gainNumberOfNet := c.db.getNets(amount)
 	used := c.data.Resources.NET.Used
 	usable := c.AddUsableNet(gainNumberOfNet)
 	mortgagetion := c.AddMortgageINBOfNet(amount)
 	c.setNet(used, usable, mortgagetion)
-
 	c.db.GetPrivilegedSateObject()
 	PrivilegedSateObject.AddMortgageINBOfNet(amount)
 }
@@ -180,7 +178,7 @@ func (c *stateObject) SubNet(amount *big.Int) {
 
 	used := c.AddUsableNet(expendNetFromUnMortgageNet)
 	mortgagetion := c.SubMortgageINBOfNet(amount)
-	calculateNetNumber := c.db.GainNumberOfNet(c.data.Resources.NET.MortgagteINB)
+	calculateNetNumber := c.db.getNets(c.data.Resources.NET.MortgagteINB)
 	remainingNetNumber := calculateNetNumber.Sub(calculateNetNumber, expendNetFromUnMortgageNet)
 	usable := c.AddUsableNet(remainingNetNumber)
 	c.SetNet(used, usable, mortgagetion)
@@ -284,7 +282,7 @@ func (self *stateObject) updateAccountCpuAndNet() {
 		if self.data.Resources.CPU.MortgagteINB != big.NewInt(0) {
 			self.SetCpu(big.NewInt(0), self.db.GainNumberOfCpu(self.data.Resources.CPU.MortgagteINB), self.data.Resources.CPU.MortgagteINB)
 		} else if self.data.Resources.NET.MortgagteINB != big.NewInt(0) {
-			self.SetNet(big.NewInt(0), self.db.GainNumberOfNet(self.data.Resources.NET.MortgagteINB), self.data.Resources.NET.MortgagteINB)
+			self.SetNet(big.NewInt(0), self.db.getNets(self.data.Resources.NET.MortgagteINB), self.data.Resources.NET.MortgagteINB)
 		}
 	}
 

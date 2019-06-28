@@ -157,9 +157,14 @@ var (
 )
 var (
 	TxConfig = &CommonConfig{
-		UseNet:        300,
-		UseCpu:        50,
-		CandidateSize: 30,
+		UseNet:           300,
+		UseCpu:           50,
+		CandidateSize:    30,
+		Wei:              big.NewInt(1e+18),
+		Circulation:      big.NewInt(15e+8),
+		Net:              big.NewInt(86400 * 1024 * 1024 * 1000),
+		WeiOfUseNet:      big.NewInt(1e+14),
+		MortgageInbLimit: big.NewInt(5e+8),
 	}
 )
 
@@ -211,9 +216,14 @@ type EthashConfig struct{}
 // achilles config
 type CommonConfig struct {
 	//achilles config
-	UseNet        int64  // use gas for transaction
-	UseCpu        int64  //use cpu for transaction
-	CandidateSize uint64 //Maximum number of candidater for vote
+	UseNet           int64    // use gas for transaction
+	UseCpu           int64    //use cpu for transaction
+	CandidateSize    uint64   //Maximum number of candidater for vote
+	Wei              *big.Int // 1inb to wei
+	Circulation      *big.Int // inb amount for distribution
+	Net              *big.Int //	bandwith in one day
+	WeiOfUseNet      *big.Int // calculating unit for using net
+	MortgageInbLimit *big.Int
 }
 
 // String implements the stringer interface, returning the consensus engine details.
@@ -253,7 +263,7 @@ type VdposConfig struct {
 	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
 	PBFTEnable       bool                       `json:"pbft"`
 	//inb by ghy begin
-	Enode          []string `json:"enode"` 									//Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
+	Enode  []string           `json:"enode"` //Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
 	Enodes []common.EnodeInfo `json:"enodes"`
 	//inb by ghy end
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
