@@ -84,6 +84,7 @@ type Header struct {
 	MixDigest   common.Hash    `json:"mixHash"`
 	Nonce       BlockNonce     `json:"nonce"`
 	DataRoot    common.Hash    `json:"dataRoot"` //inb by ssh 190627
+	Reward      string       `json:"reward"           gencodec:"required"`//inb by ghy 19.6.28
 }
 
 // field type overrides for gencodec

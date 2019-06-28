@@ -253,6 +253,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Coinbase:   g.Coinbase,
 		Root:       root,
 		DataRoot:   [32]byte{}, //inb by ssh 190627
+		Reward:		vdpos.DefaultMinerReward.String(),//inb by ghy 19.6.28
 	}
 	//inb by ghy begin
 	//headE:=new(vdpos.HeaderExtra)

@@ -1172,6 +1172,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
+		"reward":			head.Reward, //2019.6.28 inb by ghy
 	}
 
 	if inclTx {
