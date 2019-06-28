@@ -112,6 +112,10 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 	return gas, nil
 }
 
+func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error) {
+	return uint64(300), nil
+}
+
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
@@ -235,11 +239,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	//homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
+	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil
 
 	// Pay intrinsic gas
 	////achilles replace gas with net
+	net, err := IntrinsicNet(st.data, contractCreation, homestead)
 	//gas, err := IntrinsicGas(st.data, contractCreation, homestead)
 	//if err != nil {
 	//	return nil, 0, false, err
@@ -248,7 +253,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//	return nil, 0, false, err
 	//}
 	if string("mortgageNet") != string(st.data) && string("unmortgageNet") != string(st.data) {
-		st.state.UseNet(netPayment, big.NewInt(300))
+		//st.state.UseNet(netPayment, big.NewInt(300))
+		st.state.UseNet(netPayment, big.NewInt(int64(net)))
 	}
 
 	var (
@@ -278,7 +284,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//st.refundGas()
 	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
-	return ret, st.gasUsed(), vmerr != nil, err
+	//return ret, st.gasUsed(), vmerr != nil, err
+	return ret, net, vmerr != nil, err
 }
 
 func (st *StateTransition) refundGas() {

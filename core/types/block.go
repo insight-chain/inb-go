@@ -83,6 +83,7 @@ type Header struct {
 	Extra       []byte         `json:"extraData"        gencodec:"required"`
 	MixDigest   common.Hash    `json:"mixHash"`
 	Nonce       BlockNonce     `json:"nonce"`
+	DataRoot    common.Hash    `json:"dataRoot"` //inb by ssh 190627
 }
 
 // field type overrides for gencodec
