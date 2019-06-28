@@ -1,4 +1,4 @@
-[Json RPC serve](https://github.com/insight-chain/inb-go/wiki) 
+[JSON RPC serve](https://github.com/insight-chain/inb-go/wiki) 
 
 ## Go Inb
 
