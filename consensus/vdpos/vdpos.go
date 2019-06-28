@@ -47,7 +47,7 @@ const (
 )
 
 var (
-	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
+	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(4e+8), big.NewInt(1e+18))
 	oneYearBySec                     = int64(365 * 86400)
 	defaultEpochLength               = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
 	defaultBlockPeriod               = uint64(3)      // Default minimum difference between two consecutive block's timestamps
@@ -500,6 +500,8 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 
 	// No uncle block
 	header.UncleHash = types.CalcUncleHash(nil)
+
+	header.Reward=DefaultMinerReward.String()
 
 	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts), nil
