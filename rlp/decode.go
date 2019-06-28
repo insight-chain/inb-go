@@ -806,7 +806,6 @@ func (s *Stream) Decode(val interface{}) error {
 	if err != nil {
 		return err
 	}
-
 	err = info.decoder(s, rval.Elem())
 	if decErr, ok := err.(*decodeError); ok && len(decErr.ctx) > 0 {
 		// add decode target type to error so context has more meaning

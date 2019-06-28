@@ -210,8 +210,8 @@ func HasBody(db DatabaseReader, hash common.Hash, number uint64) bool {
 
 //inb by ssh begin
 type midBody struct {
-	RLPTransactions []*types.RLPTransaction
-	Uncles          []*types.Header
+	ITransactions []*types.ITransaction
+	Uncles        []*types.Header
 }
 
 // ReadBody retrieves the block body corresponding to the hash.
@@ -226,7 +226,7 @@ func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 		return nil
 	}
 	body := new(types.Body)
-	body.Transactions = types.DecodeTransactionStruct(mid.RLPTransactions)
+	body.Transactions = types.DecodeTransactionStruct(mid.ITransactions)
 	body.Uncles = mid.Uncles
 	//if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
 	//	log.Error("Invalid block body RLP", "hash", hash, "err", err)
@@ -239,8 +239,8 @@ func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 func WriteBody(db DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
 	rlpTxs := types.EncodeTransactionStruct(body.Transactions)
 	mid := &midBody{
-		RLPTransactions: rlpTxs,
-		Uncles:          body.Uncles,
+		ITransactions: rlpTxs,
+		Uncles:        body.Uncles,
 	}
 	//data, err := rlp.EncodeToBytes(body)
 	data, err := rlp.EncodeToBytes(mid)

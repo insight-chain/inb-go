@@ -66,13 +66,13 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	Repayment payment `json:"repayment" gencodec:"required"`
+	Repayment *payment `json:"repayment" rlp:"-"`
 }
 
 //payment the real account that pay resources for transactions
 type payment struct {
 	//payment address
-	ResourcePayer common.Address `json:"resourcePayer" gencodec:"required"`
+	ResourcePayer *common.Address `json:"resourcePayer" gencodec:"required"`
 	// payment signature values
 	Vp *big.Int `json:"vp" gencodec:"required"`
 	Rp *big.Int `json:"rp" gencodec:"required"`
@@ -106,9 +106,9 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
-	var rePayment payment
+	var rePayment *payment
 	if nil != resourcePayer {
-		rePayment.ResourcePayer = *resourcePayer
+		rePayment.ResourcePayer = resourcePayer
 	}
 	d := txdata{
 		AccountNonce: nonce,
@@ -212,7 +212,7 @@ func (tx *Transaction) GasPrice() *big.Int            { return new(big.Int).Set(
 func (tx *Transaction) Value() *big.Int               { return new(big.Int).Set(tx.data.Amount) }
 func (tx *Transaction) Nonce() uint64                 { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool              { return true }
-func (tx *Transaction) ResourcePayer() common.Address { return tx.data.Repayment.ResourcePayer }
+func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -254,14 +254,13 @@ func (tx *Transaction) Size() common.StorageSize {
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	msg := Message{
-		nonce:         tx.data.AccountNonce,
-		gasLimit:      tx.data.GasLimit,
-		gasPrice:      new(big.Int).Set(tx.data.Price),
-		to:            tx.data.Recipient,
-		amount:        tx.data.Amount,
-		data:          tx.data.Payload,
-		checkNonce:    true,
-		resourcePayer: tx.data.Repayment.ResourcePayer,
+		nonce:      tx.data.AccountNonce,
+		gasLimit:   tx.data.GasLimit,
+		gasPrice:   new(big.Int).Set(tx.data.Price),
+		to:         tx.data.Recipient,
+		amount:     tx.data.Amount,
+		data:       tx.data.Payload,
+		checkNonce: true,
 	}
 
 	var err error
@@ -300,19 +299,36 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.Repayment.Vp, tx.data.Repayment.Rp, tx.data.Repayment.Sp
 }
+
+func (tx *Transaction) SetPayment() {
+	tx.data.Repayment = &payment{
+		ResourcePayer: nil,
+		Vp:            nil,
+		Rp:            nil,
+		Sp:            nil,
+	}
+}
+
 func (tx *Transaction) RemovePaymentSignatureValues() {
 	tx.data.Repayment.Vp = nil
-	tx.data.Repayment.Sp = nil
 	tx.data.Repayment.Rp = nil
+	tx.data.Repayment.Sp = nil
 }
 
 //achilles
 //  type of transaction is repayment
 func (tx *Transaction) IsRepayment() bool {
-	var resourcePayer common.Address
-	if resourcePayer == tx.data.Repayment.ResourcePayer {
+	if tx.data.Repayment == nil {
 		return false
+	} else {
+		if tx.data.Repayment.ResourcePayer == nil {
+			return false
+		}
 	}
+	//var resourcePayer common.Address
+	//if resourcePayer == *tx.data.Repayment.ResourcePayer {
+	//	return false
+	//}
 	return true
 }
 
@@ -508,15 +524,17 @@ func (m Message) IsRePayment() bool {
 }
 
 //inb by ssh begin
-type RLPTransaction struct {
-	Id            common.Hash
-	CpuUsage      *big.Int
-	NetUsage      *big.Int
-	MaxCpuUsage   *big.Int
-	MaxNetUsage   *big.Int
-	Actions       []*action
-	Signatures    []*signature
-	PaySignatures []*payment
+type ITransaction struct {
+	Id             common.Hash
+	TimeLimit      uint64
+	RefBlockNum    uint64
+	RefBlockPrefix string
+	delayTimeSec   uint64
+	MaxCpuUsage    *big.Int
+	MaxNetUsage    *big.Int
+	Actions        []*action
+	Signatures     []*signature
+	PaySignatures  []*payment
 
 	// caches
 	Hash atomic.Value
@@ -529,6 +547,7 @@ type action struct {
 	Nonce   uint64
 	Account common.Address
 	Data    []byte
+	hexData []byte
 }
 
 type signature struct {
@@ -537,7 +556,7 @@ type signature struct {
 	S *big.Int
 }
 
-type RLPTransactions []*RLPTransaction
+type ITransactions []*ITransaction
 
 // From return the account who send the transaction.
 func (tx *Transaction) From() common.Address {
@@ -546,9 +565,9 @@ func (tx *Transaction) From() common.Address {
 	return v
 }
 
-// EncodeTransactionStruct change normal Transaction to RLPTransaction.
-func EncodeTransactionStruct(txs Transactions) RLPTransactions {
-	rlpTxs := make(RLPTransactions, 0)
+// EncodeTransactionStruct change normal Transaction to ITransaction.
+func EncodeTransactionStruct(txs Transactions) ITransactions {
+	rlpTxs := make(ITransactions, 0)
 	for _, tx := range txs {
 		id := tx.Hash()
 
@@ -558,6 +577,7 @@ func EncodeTransactionStruct(txs Transactions) RLPTransactions {
 			Nonce:   tx.Nonce(),
 			Account: tx.From(),
 			Data:    data,
+			hexData: []byte{},
 		}
 		actions := []*action{actionx}
 
@@ -568,23 +588,28 @@ func EncodeTransactionStruct(txs Transactions) RLPTransactions {
 		}
 		signatures := []*signature{signaturex}
 
-		paySignature := &payment{
-			ResourcePayer: tx.data.Repayment.ResourcePayer,
-			Vp:            tx.data.Repayment.Vp,
-			Rp:            tx.data.Repayment.Rp,
-			Sp:            tx.data.Repayment.Sp,
+		var paySignatures []*payment
+		if tx.data.Repayment != nil {
+			paySignature := &payment{
+				ResourcePayer: tx.data.Repayment.ResourcePayer,
+				Vp:            tx.data.Repayment.Vp,
+				Rp:            tx.data.Repayment.Rp,
+				Sp:            tx.data.Repayment.Sp,
+			}
+			paySignatures = append(paySignatures, paySignature)
 		}
-		paySignatures := []*payment{paySignature}
 
-		rlpTx := &RLPTransaction{
-			Id:            id,
-			CpuUsage:      nil,
-			NetUsage:      nil,
-			MaxCpuUsage:   nil,
-			MaxNetUsage:   nil,
-			Actions:       actions,
-			Signatures:    signatures,
-			PaySignatures: paySignatures,
+		rlpTx := &ITransaction{
+			Id:             id,
+			TimeLimit:      0,
+			RefBlockNum:    0,
+			RefBlockPrefix: "",
+			delayTimeSec:   0,
+			MaxCpuUsage:    nil,
+			MaxNetUsage:    nil,
+			Actions:        actions,
+			Signatures:     signatures,
+			PaySignatures:  paySignatures,
 		}
 		if hash := tx.hash.Load(); hash != nil {
 			rlpTx.Hash.Store(hash)
@@ -600,8 +625,8 @@ func EncodeTransactionStruct(txs Transactions) RLPTransactions {
 	return rlpTxs
 }
 
-// DecodeTransactionStruct change RLPTransaction to normal Transaction.
-func DecodeTransactionStruct(encodeTxs RLPTransactions) Transactions {
+// DecodeTransactionStruct change ITransaction to normal Transaction.
+func DecodeTransactionStruct(encodeTxs ITransactions) Transactions {
 	var dec txdata
 	txs := make(Transactions, 0)
 	for _, encodeTx := range encodeTxs {

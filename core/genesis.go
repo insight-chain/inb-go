@@ -252,19 +252,18 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		MixDigest:  g.Mixhash,
 		Coinbase:   g.Coinbase,
 		Root:       root,
+		DataRoot:   [32]byte{}, //inb by ssh 190627
 	}
 	//inb by ghy begin
 	//headE:=new(vdpos.HeaderExtra)
 	//headE.Enode=g.Config.Vdpos.Enode
 
-
-	headE:=new(vdpos.HeaderExtra)
+	headE := new(vdpos.HeaderExtra)
 	//for i,v:=range g.Config.Vdpos.Enodes{
 	//	marshal, _:= json.Marshal(v.Data)
 	//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
 	//}
-	headE.Enodes=g.Config.Vdpos.Enodes
-
+	headE.Enodes = g.Config.Vdpos.Enodes
 
 	if len(head.Extra) < 32 {
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
@@ -275,7 +274,6 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
 
 	//inb by ghy end
-
 
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit

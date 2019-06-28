@@ -521,7 +521,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 // Get first head block enode msg
 func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []common.EnodeInfo {
 	var err error
-	header, _ := s.b.HeaderByNumber(context.Background(),num)
+	header, _ := s.b.HeaderByNumber(context.Background(), num)
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
@@ -537,7 +537,7 @@ func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []
 // Get first head block enode msg
 func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
 	var err error
-	header, _ := s.b.HeaderByNumber(context.Background(),rpc.LatestBlockNumber)
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
@@ -549,6 +549,7 @@ func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
 	}
 
 }
+
 // inb by ghy end
 
 // GetBalance returns the amount of wei for the given address in the state of the
@@ -586,7 +587,6 @@ func (s *PublicBlockChainAPI) GetUsedNet(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetUsedNet(address)), state.Error()
 }
 
-
 func (s *PublicBlockChainAPI) GetCpuOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
@@ -601,6 +601,7 @@ func (s *PublicBlockChainAPI) GetNetOfMortgageINB(ctx context.Context, address c
 	}
 	return (*hexutil.Big)(state.GetMortgageInbOfNet(address)), state.Error()
 }
+
 //mortageCpu
 func (s *PublicTransactionPoolAPI) MortgageCpu(ctx context.Context, args SendTxArgs) (common.Hash, error) {
 	// Look up the wallet containing the requested signer
@@ -687,6 +688,9 @@ func (s *PublicTransactionPoolAPI) MortgageRawNet(ctx context.Context, encodedTx
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
+	if !tx.IsRepayment() {
+		tx.SetPayment()
+	}
 	return submitTransaction(ctx, s.b, tx)
 }
 
@@ -704,7 +708,6 @@ func (s *PublicTransactionPoolAPI) UnMortgageCpu(ctx context.Context, args SendT
 	if err != nil {
 		return common.Hash{}, err
 	}
-
 
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
@@ -745,7 +748,6 @@ func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendT
 	if err != nil {
 		return common.Hash{}, err
 	}
-
 
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
@@ -1424,8 +1426,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from,
 		"to":                tx.To(),
-		"gasUsed":           hexutil.Uint64(receipt.GasUsed),
-		"cumulativeGasUsed": hexutil.Uint64(receipt.CumulativeGasUsed),
+		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
+		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
@@ -1437,6 +1439,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 	} else {
 		fields["status"] = hexutil.Uint(receipt.Status)
 	}
+
 	if receipt.Logs == nil {
 		fields["logs"] = [][]*types.Log{}
 	}
@@ -1600,6 +1603,10 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
+	if !tx.IsRepayment() {
+		tx.SetPayment()
+	}
+
 	return submitTransaction(ctx, s.b, tx)
 }
 
@@ -1857,6 +1864,7 @@ func (api *PublicDebugAPI) GetBlockRlp(ctx context.Context, number uint64) (stri
 func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 	return vdpos.DefaultMinerReward.Uint64()
 }
+
 //inb by ghy end
 
 // PrintBlock retrieves a block and returns its pretty printed form.

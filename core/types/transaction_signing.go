@@ -85,7 +85,7 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 		return common.Address{}, err
 	}
 	var flag *big.Int
-	if tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag {
+	if tx.data.Repayment != nil && (tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag) {
 		tx.from.Store(sigCache{signer: signer, from: addr})
 	}
 	return addr, nil
@@ -142,6 +142,8 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return recoverPlain(s.Hash(tx), tx.data.Repayment.Rp, tx.data.Repayment.Sp, V, true)
 	} else {
 		if tx.ChainId().Cmp(s.chainId) != 0 {
+			fmt.Println("tx.ChainId")
+			fmt.Println(tx.ChainId().String())
 			return common.Address{}, ErrInvalidChainId
 		}
 		V := new(big.Int).Sub(tx.data.V, s.chainIdMul)

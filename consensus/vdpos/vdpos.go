@@ -47,6 +47,8 @@ const (
 )
 
 var (
+	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
+	oneYearBySec                     = int64(365 * 86400)
 	defaultEpochLength               = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
 	defaultBlockPeriod               = uint64(3)      // Default minimum difference between two consecutive block's timestamps
 	defaultSignerPeriod              = uint64(5)      // Default minimum difference between two signer's timestamps
@@ -834,7 +836,14 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
-	reward := new(big.Int).Set(DefaultMinerReward)
+
+	//reward := new(big.Int).Set(DefaultMinerReward)
+	//reward := new(big.Int).Div(defaultInbIncreaseOneYear, new)Y
+
+	//inb by ssh 190627
+	blockNumberOneYear := oneYearBySec / int64(v.config.Period)
+	reward := new(big.Int).Div(defaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+	DefaultMinerReward = reward
 	if reward.Cmp(big.NewInt(0)) > 0 {
 		state.AddBalance(header.Coinbase, reward)
 	}
