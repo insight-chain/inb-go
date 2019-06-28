@@ -58,7 +58,7 @@ var (
 	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(5)                // Default loop count to recreate signers from top tally
-	DefaultMinerReward               = big.NewInt(3e+18)        // Default reward for miner in wei
+	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
 	Chanel                           = make(chan int, 0)
 )
 
@@ -759,6 +759,9 @@ func (v *Vdpos) snapshot(chain consensus.ChainReader, number uint64, hash common
 		}
 		log.Trace("Stored voting snapshot to disk", "number", snap.Number, "hash", snap.Hash)
 	}
+	//inb by ghy begin 2019.6.28
+	//snap.Reward=DefaultMinerReward.Uint64()
+	//inb by ghy end 2019.6.28
 	return snap, err
 }
 
