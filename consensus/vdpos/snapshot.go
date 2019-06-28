@@ -57,6 +57,9 @@ type Snapshot struct {
 	Confirmations   map[uint64][]*common.Address `json:"confirms"`        // The signer confirm given block number
 	HeaderTime      uint64                       `json:"headerTime"`      // Time of the current header
 	LoopStartTime   uint64                       `json:"loopStartTime"`   // Start Time of the current loop
+	//inb by ghy begin 2019.6.28
+	//Reward          uint64                       `json:"reward"`          // Current block reward
+	//inb by ghy begin
 }
 
 // newSnapshot creates a new snapshot with the specified startup parameters. only ever use if for
