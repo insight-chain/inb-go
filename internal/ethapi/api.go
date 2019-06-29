@@ -21,7 +21,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	st"github.com/insight-chain/inb-go/core/state"
 	"math/big"
 	"strings"
 	"time"
@@ -32,6 +31,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
+	st "github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/consensus/ethash"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core"
@@ -1867,12 +1867,10 @@ func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 }
 
 
-func (s *PublicBlockChainAPI) GetResource(ctx context.Context, address common.Address) (st.Resource, error) {
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	if state == nil || err != nil {
-		return st.Resource{}, err
-	}
-	return state.GetResource(address), state.Error()
+func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (st.Account, error) {
+	state, _, _ := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
+
+	return state.GetAccountInfo(address), state.Error()
 }
 //inb by ghy end
 
