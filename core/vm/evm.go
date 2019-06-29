@@ -36,11 +36,15 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address,common.Address, *big.Int)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
+
+	CanMortgageFunc    func(StateDB, common.Address, *big.Int) error
+	CanRedeemFunc      func(StateDB, common.Address, *big.Int) error
+	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -94,6 +98,10 @@ type Context struct {
 	BlockNumber *big.Int       // Provides information for NUMBER
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
+
+	CanMortgage   CanMortgageFunc
+	CanRedeem     CanRedeemFunc
+	RedeemTrasfer RedeemTransferFunc
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -197,6 +205,18 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
 		return nil, gas, ErrInsufficientBalance
 	}
+	// achilles improve mortgage
+	inputStr := string(input)
+
+	if inputStr == string("mortgageNet") {
+		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value); err != nil {
+			return nil, gas, err
+		}
+	} else if inputStr == string("unmortgageNet") {
+		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
+			return nil, gas, err
+		}
+	}
 
 	var (
 		to       = AccountRef(addr)
@@ -219,22 +239,27 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	}
 	//evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	//Resource by zc
-	inputStr := string(input)
-	if inputStr == string("unmortgageCpu") || inputStr == string("unmortgageNet")  {
+
+	if inputStr == string("unmortgageNet") {
+		evm.RedeemTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
+	} else if inputStr == string("mortgageNet") {
 		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
-	}else {
+	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
 	//inputStr := string(input)
-	if inputStr == string("mortgageCpu") {
-		evm.StateDB.GetStateObject(caller.Address(), value, 0)
-	} else if inputStr == string("mortgageNet") {
-		evm.StateDB.GetStateObject(caller.Address(), value, 1)
-	} else if inputStr == string("unmortgageCpu") {
-		evm.StateDB.GetStateObject(caller.Address(), value, 2)
-	} else if inputStr == string("unmortgageNet") {
-		evm.StateDB.GetStateObject(caller.Address(), value, 3)
-	}
+	//if inputStr == string("mortgageCpu") {
+	//	//evm.StateDB.GetStateObject(caller.Address(), value, 0)
+	//} else if inputStr == string("mortgageNet") {
+	//
+	//	evm.StateDB.MortgageNet(caller.Address(), value)
+	//	//evm.StateDB.GetStateObject(caller.Address(), value, 1)
+	//} else if inputStr == string("unmortgageCpu") {
+	//	//evm.StateDB.GetStateObject(caller.Address(), value, 2)
+	//} else if inputStr == string("unmortgageNet") {
+	//	evm.StateDB.RedeemNet(caller.Address(), value)
+	//	//evm.StateDB.GetStateObject(caller.Address(), value, 3)
+	//}
 	//Resource by zc
 
 	// Initialise a new contract and set the code that is to be used by the EVM.

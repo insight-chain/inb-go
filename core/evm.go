@@ -17,6 +17,9 @@
 package core
 
 import (
+	"errors"
+	"fmt"
+	"github.com/insight-chain/inb-go/params"
 	"math/big"
 
 	"github.com/insight-chain/inb-go/common"
@@ -48,16 +51,19 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		//Resource by zc
-		MortgageTrasfer:    MortgageTrasfer,
+		MortgageTrasfer: MortgageTrasfer,
 		//Resource by zc
-		GetHash:     GetHashFn(header, chain),
-		Origin:      msg.From(),
-		Coinbase:    beneficiary,
-		BlockNumber: new(big.Int).Set(header.Number),
-		Time:        new(big.Int).Set(header.Time),
-		Difficulty:  new(big.Int).Set(header.Difficulty),
-		GasLimit:    header.GasLimit,
-		GasPrice:    new(big.Int).Set(msg.GasPrice()),
+		GetHash:       GetHashFn(header, chain),
+		Origin:        msg.From(),
+		Coinbase:      beneficiary,
+		BlockNumber:   new(big.Int).Set(header.Number),
+		Time:          new(big.Int).Set(header.Time),
+		Difficulty:    new(big.Int).Set(header.Difficulty),
+		GasLimit:      header.GasLimit,
+		GasPrice:      new(big.Int).Set(msg.GasPrice()),
+		CanMortgage:   CanMortgage,
+		CanRedeem:     CanRedeem,
+		RedeemTrasfer: RedeemTrasfer,
 	}
 }
 
@@ -95,12 +101,55 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+	fmt.Println(" from balance: " + db.GetBalance(sender).String())
+	fmt.Println(" to balance: " + db.GetBalance(recipient).String())
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
+
 //Resource by zc
-func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int)  {
+func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+	db.AddBalance(recipient, amount)
+	db.SubBalance(sender, amount)
+	db.MortgageNet(sender, amount)
+}
+
+//Resource by zc
+
+//achilles
+func RedeemTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(recipient, amount)
 	db.AddBalance(sender, amount)
+	db.RedeemNet(sender, amount)
 }
-//Resource by zc
+func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int) error {
+	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
+	if temp.Cmp(big.NewInt(0)) <= 0 {
+		return errors.New(" the value for mortgaging is too low ")
+	}
+	if db.GetBalance(addr).Cmp(amount) < 0 {
+		return errors.New(" insufficient balance ")
+	}
+	return nil
+}
+
+func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
+	unit := db.UnitConvertNet()
+	usableNet := db.GetNet(addr)
+
+	if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
+		return errors.New(" the value for redeem is too low ")
+	}
+
+	if usableNet.Cmp(unit) < 0 {
+		return errors.New(" insufficient available mortgage ")
+	}
+	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
+	netUse = netUse.Mul(netUse, unit)
+	usableUnit := big.NewInt(1).Div(usableNet, unit)
+	usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	if usableInb.Cmp(amount) < 0 {
+		return errors.New(" insufficient available mortgage ")
+	}
+	return nil
+}

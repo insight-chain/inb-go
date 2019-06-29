@@ -165,6 +165,7 @@ var (
 		Net:              big.NewInt(86400 * 1024 * 1024 * 1000),
 		WeiOfUseNet:      big.NewInt(1e+14),
 		MortgageInbLimit: big.NewInt(5e+8),
+		NetUse:           big.NewInt(100),
 	}
 )
 
@@ -224,6 +225,8 @@ type CommonConfig struct {
 	Net              *big.Int //	bandwith in one day
 	WeiOfUseNet      *big.Int // calculating unit for using net
 	MortgageInbLimit *big.Int
+	NetUse           *big.Int // for net use
+
 }
 
 // String implements the stringer interface, returning the consensus engine details.

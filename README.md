@@ -57,6 +57,7 @@ Data provide some other K-V information if you want to store
     "homesteadBlock": 0,
     "eip155Block": 0,
     "eip158Block": 0,
+    "byzantiumBlock": 0,
     "vdpos": {
       "period": 3,
       "signerPeriod": 3,
@@ -250,20 +251,61 @@ aware of and agree upon. This consists of a small JSON file (e.g. call it `genes
 ```json
 {
   "config": {
-    "chainId": 0,
+    "chainId": 891,
     "homesteadBlock": 0,
     "eip155Block": 0,
-    "eip158Block": 0
-  },
-  "alloc": {},
-  "coinbase": "0x0000000000000000000000000000000000000000",
-  "difficulty": "0x20000",
-  "extraData": "",
-  "gasLimit": "0x2fefd8",
-  "nonce": "0x0000000000000042",
-  "mixhash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "parentHash": "0x0000000000000000000000000000000000000000000000000000000000000000",
-  "timestamp": "0x00"
+    "eip158Block": 0,
+    "byzantiumBlock": 0,
+    "vdpos": {
+      "period": 3,
+      "signerPeriod": 3,
+      "signerBlocks": 6,
+      "epoch": 201600,
+      "maxSignersCount": 21, 
+      "minVoterBalance": 1000000000000000000,
+      "genesisTimestamp": 1561544470,
+      "signers": [
+        "0x891b2388ce73356917b21ca54f3039cbdfc29313",
+        "0x4643ce2d6d4fe02e2b57070806364dde9eb8cac9",
+        "0x230cf5081833c4f16e69e102ea00a4583a33cb11"
+      ],
+  "enodes":[
+            {"address":"0x891b2388ce73356917b21ca54f3039cbdfc29313",
+            "id":"327d1a41974ad0a672d9b3dcfada5a934b4c21207e95a40d534bde44c2f7b39c4f10dda7a7bc060c00868a77b522878ab960dff2f23f463616736a1e6e39ea93",
+            "ip":"192.168.1.181",
+            "port":"30001",
+            "name":"inb",
+            "nation":"China",
+            "city":"beijing",
+            "image":"www.image.com",
+            "website":"www.insightchain.io",
+            "email":"insightchain@xx.com",
+            "data":"{\"hobby\":\"money\",\"age\":\"21\"}"},
+
+            {"address":"0x891b2388ce73356917b21ca54f3039cbdfc29313",
+            "id":"327d1a41974ad0a672d9b3dcfada5a934b4c21207e95a40d534bde44c2f7b39c4f10dda7a7bc060c00868a77b522878ab960dff2f23f463616736a1e6e39ea93",
+            "ip":"192.168.1.181",
+            "port":"30001",
+            "name":"inb",
+            "nation":"China",
+            "city":"beijing",
+            "image":"www.image.com",
+            "website":"www.insightchain.io",
+            "email":"insightchain@xx.com",
+            "data":"{\"hobby\":\"money\",\"age\":\"21\"}"},
+
+            {"address":"0x891b2388ce73356917b21ca54f3039cbdfc29313",
+            "id":"327d1a41974ad0a672d9b3dcfada5a934b4c21207e95a40d534bde44c2f7b39c4f10dda7a7bc060c00868a77b522878ab960dff2f23f463616736a1e6e39ea93",
+            "ip":"192.168.1.181",
+            "port":"30001",
+            "name":"inb",
+            "nation":"China",
+            "city":"beijing",
+            "image":"www.image.com",
+            "website":"www.insightchain.io",
+            "email":"insightchain@xx.com",
+            "data":"{\"hobby\":\"money\",\"age\":\"21\"}"},
+]
 }
 ```
 

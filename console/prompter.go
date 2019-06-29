@@ -152,12 +152,26 @@ func (p *terminalPrompter) PromptConfirm(prompt string) (bool, error) {
 // SetHistory sets the input scrollback history that the prompter will allow
 // the user to scroll back to.
 func (p *terminalPrompter) SetHistory(history []string) {
-	p.State.ReadHistory(strings.NewReader(strings.Join(history, "\n")))
+	// inb by ssh 190628 begin
+	inbHistory := []string{}
+	for _, v := range history {
+		//line := strings.Replace(v, "eth", "inb", -1)
+		line := changeCommandToInb(v)
+		inbHistory = append(inbHistory, line)
+	}
+	//p.State.ReadHistory(strings.NewReader(strings.Join(history, "\n")))
+	p.State.ReadHistory(strings.NewReader(strings.Join(inbHistory, "\n")))
+	// inb by ssh 190628 end
 }
 
 // AppendHistory appends an entry to the scrollback history.
 func (p *terminalPrompter) AppendHistory(command string) {
-	p.State.AppendHistory(command)
+	// inb by ssh 190628 begin
+	//inbCommand := strings.Replace(command, "eth", "inb", -1)
+	inbCommand := changeCommandToInb(command)
+	//p.State.AppendHistory(command)
+	p.State.AppendHistory(inbCommand)
+	// inb by ssh 190628 end
 }
 
 // ClearHistory clears the entire history
@@ -169,4 +183,12 @@ func (p *terminalPrompter) ClearHistory() {
 // fetch completion candidates when the user presses tab.
 func (p *terminalPrompter) SetWordCompleter(completer WordCompleter) {
 	p.State.SetWordCompleter(liner.WordCompleter(completer))
+}
+
+func changeCommandToInb(line string) string {
+	outLine := line
+	if len(line) >= 4 && line[:4] == "eth." {
+		outLine = "inb" + line[3:]
+	}
+	return outLine
 }
