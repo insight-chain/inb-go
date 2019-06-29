@@ -21,6 +21,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	st"github.com/insight-chain/inb-go/core/state"
 	"math/big"
 	"strings"
 	"time"
@@ -1865,6 +1866,14 @@ func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 	return vdpos.DefaultMinerReward.Uint64()
 }
 
+
+func (s *PublicBlockChainAPI) GetResource(ctx context.Context, address common.Address) (st.Resource, error) {
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
+	if state == nil || err != nil {
+		return st.Resource{}, err
+	}
+	return state.GetResource(address), state.Error()
+}
 //inb by ghy end
 
 // PrintBlock retrieves a block and returns its pretty printed form.
