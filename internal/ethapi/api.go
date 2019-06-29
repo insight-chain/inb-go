@@ -651,7 +651,6 @@ func (s *PublicTransactionPoolAPI) MortgageNet(ctx context.Context, args SendTxA
 	totalAccount := state.GetPrivilegedSateObject()
 	address := totalAccount.Address()
 	args.To = &address
-
 	wallet, err := s.b.AccountManager().Find(account)
 	if err != nil {
 		return common.Hash{}, err
@@ -1172,6 +1171,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
+		"reward":           head.Reward, //2019.6.28 inb by ghy
 	}
 
 	if inclTx {

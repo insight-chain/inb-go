@@ -50,21 +50,23 @@ func (self *stateObject) MortgageCpu(amount *big.Int) {
 	self.db.Commit(false)
 	self.db.Database().TrieDB().Commit(root, true)
 }
-func (self *stateObject) MortgageNet(amount *big.Int) {
 
-	//self.updateAccountCpuAndNet()
-	if (amount.Cmp(big.NewInt(0)) == 0) || (amount.Cmp(self.data.Balance) == 1) {
-		return
-	}
-
-	//Add CPU and net to the account
-	self.AddNet(amount)
-
-	self.db.Finalise(true)
-	root := self.db.IntermediateRoot(false)
-	self.db.Commit(false)
-	self.db.Database().TrieDB().Commit(root, true)
-}
+//
+//func (self *stateObject) MortgageNet(amount *big.Int) {
+//
+//	//self.updateAccountCpuAndNet()
+//	if (amount.Cmp(big.NewInt(0)) == 0) || (amount.Cmp(self.data.Balance) == 1) {
+//		return
+//	}
+//
+//	//Add CPU and net to the account
+//	self.AddNet(amount)
+//
+//	self.db.Finalise(true)
+//	root := self.db.IntermediateRoot(false)
+//	self.db.Commit(false)
+//	self.db.Database().TrieDB().Commit(root, true)
+//}
 
 //UnMortgage
 func (self *stateObject) UnMortgageCpu(amount *big.Int) {
@@ -130,6 +132,56 @@ func (self *stateObject) UnMortgageNet(amount *big.Int) {
 	}
 }
 
+//achilles
+/*func (self *stateObject) RedeemNet(amount *big.Int) error {
+
+	unit := self.db.unitConvertNet()
+
+
+	usableNet := self.data.Resources.NET.Usableness
+
+	if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
+		return errors.New(" the value for mortgaging is too low ")
+	}
+
+	if usableNet.Cmp(unit) < 0 {
+		return errors.New(" available net is too low ")
+	}
+	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
+	netUse = netUse.Mul(netUse, unit)
+	usableUnit := big.NewInt(1).Div(usableNet, unit)
+	usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+
+	if usableInb.Cmp(amount) < 0 || usableInb.Cmp(self.data.Resources.NET.MortgagteINB) < 0{
+		return errors.New(" insufficient available mortgage ")
+	}
+
+	self.UseNetForUnMortgage(amount)
+
+}*/
+
+//achilles return balance for unmortgage resource of net
+func (c *stateObject) UseNetForUnMortgage(amount *big.Int) {
+
+	unit := c.db.UnitConvertNet()
+
+	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
+	netUse = netUse.Mul(netUse, unit)
+
+	usableNet := c.data.Resources.NET.Usableness
+	used := c.data.Resources.NET.Usableness
+
+	usableUnit := big.NewInt(1).Div(usableNet, unit)
+	usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+
+	remainInb := big.NewInt(1).Sub(usableInb, amount)
+	usable := big.NewInt(1).Sub(usableNet, netUse)
+	c.SetNet(used, usable, remainInb)
+
+	c.db.GetPrivilegedSateObject()
+	PrivilegedSateObject.SubMortgageINBOfNet(amount)
+}
+
 //Increase or decrease the user's CPU or net
 //Mortgage
 func (c *stateObject) AddCpu(amount *big.Int) {
@@ -144,7 +196,7 @@ func (c *stateObject) AddCpu(amount *big.Int) {
 	PrivilegedSateObject.AddMortgageINBOfCpu(amount)
 }
 func (c *stateObject) AddNet(amount *big.Int) {
-	gainNumberOfNet := c.db.getNets(amount)
+	gainNumberOfNet := c.db.ConvertToNets(amount)
 	used := c.data.Resources.NET.Used
 	usable := c.AddUsableNet(gainNumberOfNet)
 	mortgagetion := c.AddMortgageINBOfNet(amount)
@@ -178,7 +230,7 @@ func (c *stateObject) SubNet(amount *big.Int) {
 
 	used := c.AddUsableNet(expendNetFromUnMortgageNet)
 	mortgagetion := c.SubMortgageINBOfNet(amount)
-	calculateNetNumber := c.db.getNets(c.data.Resources.NET.MortgagteINB)
+	calculateNetNumber := c.db.ConvertToNets(c.data.Resources.NET.MortgagteINB)
 	remainingNetNumber := calculateNetNumber.Sub(calculateNetNumber, expendNetFromUnMortgageNet)
 	usable := c.AddUsableNet(remainingNetNumber)
 	c.SetNet(used, usable, mortgagetion)
@@ -193,10 +245,9 @@ func (c *stateObject) SubNet(amount *big.Int) {
 }
 
 //achilles replace gas with net
-func (c *stateObject) UseNet(amount *big.Int) {
-	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
-	usable := c.SubUsableNet(expendNetFromUnMortgageNet)
-	used := c.AddUsedNet(expendNetFromUnMortgageNet)
+func (c *stateObject) UseNet(bytes *big.Int) {
+	usable := c.SubUsableNet(bytes)
+	used := c.AddUsedNet(bytes)
 	c.SetNet(used, usable, c.data.Resources.NET.MortgagteINB)
 }
 
@@ -217,21 +268,22 @@ func (self *stateObject) setCpu(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.data.Resources.CPU.Usableness = usableAmount
 	self.data.Resources.CPU.MortgagteINB = mortgageInb
 }
-func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
 
-	self.db.journal.append(netChange{
-		account:      &self.address,
-		Used:         new(big.Int).Set(self.data.Resources.NET.Used),
-		Usableness:   new(big.Int).Set(self.data.Resources.NET.Usableness),
-		MortgagteINB: new(big.Int).Set(self.data.Resources.NET.MortgagteINB),
-	})
-	self.setNet(usedAmount, usableAmount, mortgageInb)
-}
-func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
-	self.data.Resources.NET.Used = usedAmount
-	self.data.Resources.NET.Usableness = usableAmount
-	self.data.Resources.NET.MortgagteINB = mortgageInb
-}
+//func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
+//
+//	self.db.journal.append(netChange{
+//		account:      &self.address,
+//		Used:         new(big.Int).Set(self.data.Resources.NET.Used),
+//		Usableness:   new(big.Int).Set(self.data.Resources.NET.Usableness),
+//		MortgagteINB: new(big.Int).Set(self.data.Resources.NET.MortgagteINB),
+//	})
+//	self.setNet(usedAmount, usableAmount, mortgageInb)
+//}
+//func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
+//	self.data.Resources.NET.Used = usedAmount
+//	self.data.Resources.NET.Usableness = usableAmount
+//	self.data.Resources.NET.MortgagteINB = mortgageInb
+//}
 
 //Usable, usable, and mortgage are used in the CPU or Net
 //used
@@ -282,7 +334,7 @@ func (self *stateObject) updateAccountCpuAndNet() {
 		if self.data.Resources.CPU.MortgagteINB != big.NewInt(0) {
 			self.SetCpu(big.NewInt(0), self.db.GainNumberOfCpu(self.data.Resources.CPU.MortgagteINB), self.data.Resources.CPU.MortgagteINB)
 		} else if self.data.Resources.NET.MortgagteINB != big.NewInt(0) {
-			self.SetNet(big.NewInt(0), self.db.getNets(self.data.Resources.NET.MortgagteINB), self.data.Resources.NET.MortgagteINB)
+			self.SetNet(big.NewInt(0), self.db.ConvertToNets(self.data.Resources.NET.MortgagteINB), self.data.Resources.NET.MortgagteINB)
 		}
 	}
 

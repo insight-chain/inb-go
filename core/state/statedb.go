@@ -20,6 +20,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/params"
 	"math/big"
 	"sort"
 
@@ -66,9 +67,12 @@ const (
 type proofList [][]byte
 
 //Resource by zc
+//func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
+//	PrivilegedSateObject = self.GetOrNewStateObject(common.HexToAddress(totalAddress))
+//	return PrivilegedSateObject
+//}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
-	PrivilegedSateObject = self.GetOrNewStateObject(common.HexToAddress(totalAddress))
-	return PrivilegedSateObject
+	return self.GetOrNewStateObject(common.HexToAddress(totalAddress))
 }
 func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
 	newStateObject := self.getStateObject(address)
@@ -266,6 +270,20 @@ func (self *StateDB) GetNet(addr common.Address) *big.Int {
 	}
 	return common.Big0
 }
+
+func (c *StateDB) ConvertToNets(value *big.Int) *big.Int {
+	exchangeRatio := c.UnitConvertNet()
+	temp := big.NewInt(1).Div(value, params.TxConfig.WeiOfUseNet)
+	if exchangeRatio == big.NewInt(0) {
+		return big.NewInt(0)
+	} else {
+		if value != nil {
+			return new(big.Int).Mul(exchangeRatio, temp)
+		}
+		return big.NewInt(0)
+	}
+}
+
 func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -413,6 +431,20 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.SetBalance(amount)
+	}
+}
+
+//achilles set nets for mortgaging
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.MortgageNet(amount)
+	}
+}
+func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.RedeemNet(amount)
 	}
 }
 

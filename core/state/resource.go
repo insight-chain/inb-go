@@ -63,22 +63,16 @@ func (c *StateDB) PerInbIsNet() *big.Int {
 
 //achilles improve net using
 // ratio that 1e * 14 wei exchange into net
-func (c *StateDB) WeiToNet() *big.Int {
+func (c *StateDB) UnitConvertNet() *big.Int {
 
 	//get mortgaged inbs with whole network
 	totalMortgageInb := c.GetPrivilegedSateObject().data.Resources.NET.MortgagteINB
 	mortgage := totalMortgageInb.Div(totalMortgageInb, params.TxConfig.Wei)
-	// calculate current ratio that 1 inb exchange into net
-	//perINBGainNetNum := new(big.Int)
 	weiToNet := big.NewInt(1)
-	if mortgage.Cmp(big.NewInt(0)) == 0 {
-		weiToNet = big.NewInt(1).Div(params.TxConfig.Net, params.TxConfig.Circulation)
-	} else {
-		if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {
-			totalMortgageInb = params.TxConfig.MortgageInbLimit
-		}
-		weiToNet = big.NewInt(1).Div(params.TxConfig.Net, totalMortgageInb)
+	if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {
+		totalMortgageInb = params.TxConfig.MortgageInbLimit
 	}
+	weiToNet = big.NewInt(1).Div(params.TxConfig.Net, totalMortgageInb)
 	temp := big.NewInt(1).Div(params.TxConfig.Wei, params.TxConfig.WeiOfUseNet)
 	weiToNet.Div(weiToNet, temp)
 	return weiToNet
@@ -112,19 +106,6 @@ func (c *StateDB) GainNumberOfNet(inbNumber *big.Int) *big.Int {
 	} else {
 		if inbNumber != nil {
 			return big.NewInt(1).Mul(inbNumber, everyINBGainNetNum)
-		}
-		return big.NewInt(0)
-	}
-}
-
-func (c *StateDB) getNets(value *big.Int) *big.Int {
-	exchangeRatio := c.WeiToNet()
-	temp := big.NewInt(1).Div(value, params.TxConfig.WeiOfUseNet)
-	if exchangeRatio == big.NewInt(0) {
-		return big.NewInt(0)
-	} else {
-		if value != nil {
-			return new(big.Int).Mul(exchangeRatio, temp)
 		}
 		return big.NewInt(0)
 	}
