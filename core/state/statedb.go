@@ -59,7 +59,7 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-  totalAddress string = "0x67a14a27d0ff8b4f2efc703305b7fac06a1d3d81"
+	totalAddress string = "0x1000000000000000000000000000000000000000"
 )
 
 //Resource by zc
