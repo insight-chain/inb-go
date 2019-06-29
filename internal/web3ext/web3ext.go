@@ -528,8 +528,8 @@ web3._extend({
 			params: 0
 		}),
 		new web3._extend.Method({
-			name: 'getResource',
-			call: 'eth_getResource',
+			name: 'getAccountInfo',
+			call: 'eth_getAccountInfo',
 			params: 1
 		}),
 		new web3._extend.Method({

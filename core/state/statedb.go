@@ -272,12 +272,12 @@ func (self *StateDB) GetNet(addr common.Address) *big.Int {
 }
 
 //2019.6.28 inb by ghy begin
-func (self *StateDB) GetResource(addr common.Address) Resource {
+func (self *StateDB) GetAccountInfo(addr common.Address) Account{
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.Resource()
+		return stateObject.data
 	}
-	return Resource{}
+	return Account{}
 }
 
 func (c *StateDB) ConvertToNets(value *big.Int) *big.Int {
