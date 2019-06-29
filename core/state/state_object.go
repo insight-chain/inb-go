@@ -436,7 +436,11 @@ func (self *stateObject) MortgageOfNet() *big.Int {
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce
 }
-
+//2019.6.28 inb by ghy begin
+func (self *stateObject) Resource() Resource {
+	return self.data.Resources.NET.Resource
+}
+//2019.6.28 inb by ghy end
 // Never called, but must be present to allow stateObject to be used
 // as a vm.Account interface that also satisfies the vm.ContractRef
 // interface. Interfaces are awesome.

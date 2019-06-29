@@ -47,7 +47,7 @@ const (
 )
 
 var (
-	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(4e+8), big.NewInt(1e+18))
+	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	oneYearBySec                     = int64(365 * 86400)
 	defaultEpochLength               = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
 	defaultBlockPeriod               = uint64(3)      // Default minimum difference between two consecutive block's timestamps
