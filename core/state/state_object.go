@@ -19,6 +19,7 @@ package state
 import (
 	"bytes"
 	"fmt"
+	"github.com/insight-chain/inb-go/params"
 	"io"
 	"math/big"
 
@@ -333,6 +334,56 @@ func (self *stateObject) SetBalance(amount *big.Int) {
 
 func (self *stateObject) setBalance(amount *big.Int) {
 	self.data.Balance = amount
+}
+
+//achilles MortgageNet add nets from c's resource
+func (self *stateObject) MortgageNet(amount *big.Int) {
+	if amount.Sign() == 0 {
+		return
+	}
+	netUse := self.db.ConvertToNets(amount)
+	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
+
+	mortgageStateObject := self.db.GetPrivilegedSateObject()
+	mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
+	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
+
+}
+
+//achilles RedeemNet sub nets from c's balance
+func (self *stateObject) RedeemNet(amount *big.Int) {
+	if amount.Sign() == 0 {
+		return
+	}
+
+	netUse := self.db.ConvertToNets(amount)
+	usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
+	mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+
+	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), mortgageUsable))
+	mortgageStateObject := self.db.GetPrivilegedSateObject()
+	if mortgageStateObject.data.Resources.NET.MortgagteINB.Cmp(amount) < 0 {
+		return
+	}
+	redeem := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), amount)
+	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), redeem)
+}
+
+func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
+
+	self.db.journal.append(netChange{
+		account:      &self.address,
+		Used:         new(big.Int).Set(self.data.Resources.NET.Used),
+		Usableness:   new(big.Int).Set(self.data.Resources.NET.Usableness),
+		MortgagteINB: new(big.Int).Set(self.data.Resources.NET.MortgagteINB),
+	})
+	self.setNet(usedAmount, usableAmount, mortgageInb)
+}
+
+func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
+	self.data.Resources.NET.Used = usedAmount
+	self.data.Resources.NET.Usableness = usableAmount
+	self.data.Resources.NET.MortgagteINB = mortgageInb
 }
 
 // Return the gas back to the origin. Used by the Virtual machine or Closures

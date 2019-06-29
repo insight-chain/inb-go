@@ -653,6 +653,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 		return ErrInsufficientFunds
 	}
+
 	//achilles replace gas with net
 	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
 	//if err != nil {
@@ -661,9 +662,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if tx.Gas() < intrGas {
 	//	return ErrIntrinsicGas
 	//}
+	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
-		if usableMorgageNetOfInb.Cmp(big.NewInt(params.TxConfig.UseNet)) < 0 {
+		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}
 	}
@@ -674,7 +676,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	addressN := common.HexToAddress(addressString)
 	//addressN := from
 	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
-	expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
+	//expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
+	expendNetFromUnMortgageNet := big.NewInt(int64(instrNet))
 	usableCpu := pool.currentState.GetCpu(addressN)
 	usableNet := pool.currentState.GetNet(addressN)
 	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
@@ -697,19 +700,36 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	} else if inputStr == string("unmortgageNet") {
 		//Make sure the unmarshaled Net is less than the mortgaged Net
-		if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
-			return ErrOverUnMortgageInbOfNetValue
+		unit := pool.currentState.UnitConvertNet()
+		usableNet := pool.currentState.GetNet(from)
+
+		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
+			return errors.New(" the value for redeem is too low ")
 		}
+
+		if usableNet.Cmp(unit) < 0 {
+			return errors.New(" insufficient available mortgage ")
+		}
+		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
+		netUse = netUse.Mul(netUse, unit)
+		usableUnit := big.NewInt(1).Div(usableNet, unit)
+		usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+		if usableInb.Cmp(tx.Value()) < 0 {
+			return errors.New(" insufficient available mortgage ")
+		}
+		//if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
+		//	return ErrOverUnMortgageInbOfNetValue
+		//}
 		//Make sure unmarshalling Net consumes enough Cpu
-		if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
-			return ErrOverAuableCpuValue
-		}
+		//if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
+		//	return ErrOverAuableCpuValue
+		//}
 		//Make sure unmarshalling NET consumes enough NET
-		residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
-		residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
-		if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
-			return ErrOverAuableNetValue
-		}
+		//residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
+		//residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
+		//if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
+		//	return ErrOverAuableNetValue
+		//}
 	}
 	//Resource by zc
 	return nil
