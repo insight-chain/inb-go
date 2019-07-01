@@ -1,6 +1,6 @@
 [JSON RPC server](https://github.com/insight-chain/inb-go/wiki) 
 
-## Go Inb
+## INB GO
 
 Official golang implementation of the Insight Chain
 
@@ -26,9 +26,9 @@ Going through all the possible command line flags is out of scope here ,
 but we've enumerated a few common parameter combos to get you up to speed quickly
 on how you can run your own `ginb` instance.
 
-### Full node on the main Inb network
+### Full node on the main INB network
 
-By far the most common scenario is people wanting to simply interact with the Inb
+By far the most common scenario is people wanting to simply interact with the INB
 network: create accounts; transfer funds; Mortgage or release; deploy and interact with contracts. For this
 particular use-case the user doesn't care about years-old historical data, so we can
 fast-sync quickly to the current state of the network. To do so:
@@ -37,7 +37,7 @@ fast-sync quickly to the current state of the network. To do so:
 $ ginb console
 ```
 
-### Full supernode on the main Inb network
+### Full supernode on the main INB network
 
 If you want to be a supernode and have the right to mine, you have to get someone else's vote in advance and only the 21 nodes with the highest number of votes have the chance.
 
@@ -143,13 +143,13 @@ Finally start the network
 $ ginb --datadir data1/ --networkid 891 --nodiscover --rpcport 6002 --port 30002 console
 ```
 
-###  Full node on the Inb test network
+###  Full node on the INB test network
 
-Transitioning towards developers, if you'd like to play around with creating Inb
+Transitioning towards developers, if you'd like to play around with creating INB
 contracts, you almost certainly would like to do that without any real money involved until
 you get the hang of the entire system. In other words, instead of attaching to the main
 network, you want to join the **test** network with your node, which is fully equivalent to
-the main network, but with play-Inber only.
+the main network, but with play-inber only.
 
 ```shell
 $ ginb --testnet console
@@ -167,7 +167,7 @@ Specifying the `--testnet` flag, however, will reconfigure your `ginb` instance 
    production node endpoint by default. E.g.
    `ginb attach <datadir>/testnet/ginb.ipc`. Windows users are not affected by
    this.
- * Instead of connecting the main Inb network, the client will connect to the test
+ * Instead of connecting the main INB network, the client will connect to the test
    network, which uses different P2P bootnodes, different network IDs and genesis states.
    
 *Note: Although there are some internal protective measures to prevent transactions from
@@ -376,7 +376,7 @@ ones either). To start a `ginb` instance for mining, run it with all your usual 
 by:
 
 ```shell
-$ ginb <usual-flags> --mine --minerthreads=1 --Inberbase=0x0000000000000000000000000000000000000000
+$ ginb <usual-flags> --mine --minerthreads=1 --inberbase=0x0000000000000000000000000000000000000000
 ```
 
 
