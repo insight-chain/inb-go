@@ -98,10 +98,15 @@ web3._extend({
 			call: 'vdpos_getSuperNodesInfo',
 			params: 0
 		}),
+		new web3._extend.Method({
+			name: 'getCandidateNodesInfo',
+			call: 'vdpos_getCandidateNodesInfo',
+			params: 0
+		}),
 	]
 });
 `
-// getSuperNodesInfo inb by ghy
+// getSuperNodesInfo GetCandidateNodesInfo inb by ghy
 
 //vdpos by ssh end
 
