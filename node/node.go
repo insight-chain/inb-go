@@ -269,6 +269,7 @@ func ConnectAllSuperNodes(n *Node) {
 		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Address)
 		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Data)
 		//}
+		//fmt.Println("come to the latest block!",LatesSuperNodeEcodes.SignersPool)
 		if len(LatesSuperNodeEcodes.SignersPool)>0{
 			for _,v:=range LatesSuperNodeEcodes.SignersPool{
 				if len(LatesSuperNodeEcodes.Enodes)>0{
@@ -283,7 +284,7 @@ func ConnectAllSuperNodes(n *Node) {
 				}
 			}
 		}
-		time.Sleep(60*3*time.Second)
+		time.Sleep(50*60*3*time.Second)
 	}
 }
 

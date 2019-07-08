@@ -75,7 +75,7 @@ func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
 
 
 //inb by ghy begin
-func (api *API) GetSuperNodesInfo() []common.EnodeInfo {
+func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
 	var err error
 	header:= api.chain.CurrentHeader()
 
@@ -98,6 +98,36 @@ func (api *API) GetSuperNodesInfo() []common.EnodeInfo {
 				}
 
 			}
+
+	if err == nil {
+		return newval.Enodes
+	} else {
+		return nil
+	}
+}
+
+
+func (api *API) GetSuperNodesInfo() []common.EnodeInfo {
+	var err error
+	header:= api.chain.CurrentHeader()
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+
+	snapshot, err := api.GetSnapshot(header.Number.Uint64())
+
+	newval:= HeaderExtra{}
+	for _,addr:=range snapshot.Signers{
+
+		for _,v:=range val.Enodes{
+			if *addr==v.Address{
+				newval.Enodes= append(newval.Enodes,v)
+			}
+		}
+
+	}
 
 	if err == nil {
 		return newval.Enodes
