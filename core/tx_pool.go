@@ -59,7 +59,7 @@ var (
 
 	// ErrInsufficientFunds is returned if the total cost of executing a transaction
 	// is higher than the balance of the user's account.
-	ErrInsufficientFunds = errors.New("insufficient funds for gas * price + value")
+	ErrInsufficientFunds = errors.New("insufficient funds for value")
 
 	// ErrIntrinsicGas is returned if the transaction is specified to use less gas
 	// than required to start the invocation.
@@ -650,8 +650,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
-		return ErrInsufficientFunds
+	if inputStr != string("unmortgageNet") {
+		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
+			return ErrInsufficientFunds
+		}
 	}
 
 	//achilles replace gas with net
@@ -712,8 +714,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
 		netUse = netUse.Mul(netUse, unit)
-		usableUnit := big.NewInt(1).Div(usableNet, unit)
-		usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+		usableInb := pool.currentState.GetMortgageInbOfNet(from)
 		if usableInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
