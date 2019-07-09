@@ -106,6 +106,7 @@ web3._extend({
 	]
 });
 `
+
 // getSuperNodesInfo GetCandidateNodesInfo inb by ghy
 
 //vdpos by ssh end
@@ -576,6 +577,11 @@ web3._extend({
 			call: 'eth_sendVote',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'sendRawVote',
+			call: 'eth_sendRawVote',
+			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',

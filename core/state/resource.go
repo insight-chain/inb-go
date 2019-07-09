@@ -46,7 +46,7 @@ type Unmortgagtion struct {
 //1 inb can be exchanged for Net
 func (c *StateDB) PerInbIsNet() *big.Int {
 
-	as := c.GetPrivilegedSateObject().data.Resources.NET.MortgagteINB
+	as := c.GetMortgageStateObject().data.Resources.NET.MortgagteINB
 	asString := as.Set(as).String()
 	asValue, err := strconv.ParseInt(asString, 10, 64)
 	if err != nil {
@@ -66,7 +66,7 @@ func (c *StateDB) PerInbIsNet() *big.Int {
 func (c *StateDB) UnitConvertNet() *big.Int {
 
 	//get mortgaged inbs with whole network
-	totalMortgageInb := c.GetPrivilegedSateObject().data.Resources.NET.MortgagteINB
+	totalMortgageInb := c.GetMortgageStateObject().data.Resources.NET.MortgagteINB
 	mortgage := totalMortgageInb.Div(totalMortgageInb, params.TxConfig.Wei)
 	weiToNet := big.NewInt(1)
 	if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {
@@ -81,7 +81,7 @@ func (c *StateDB) UnitConvertNet() *big.Int {
 //1 inb can be exchanged for CPU
 func (c *StateDB) PerInbIsCpu() *big.Int {
 
-	as := c.GetPrivilegedSateObject().data.Resources.CPU.MortgagteINB
+	as := c.GetMortgageStateObject().data.Resources.CPU.MortgagteINB
 	asString := as.Set(as).String()
 	asValue, err := strconv.ParseInt(asString, 10, 64)
 	if err != nil {
