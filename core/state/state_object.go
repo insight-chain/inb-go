@@ -19,7 +19,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/insight-chain/inb-go/params"
 	"io"
 	"math/big"
 
@@ -355,12 +354,16 @@ func (self *stateObject) RedeemNet(amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-
 	netUse := self.db.ConvertToNets(amount)
-	usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
-	mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	if self.Net().Cmp(netUse) < 0 {
+		netUse = self.Net()
+	}//usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
+	//mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	if self.MortgageOfNet().Cmp(amount) < 0 {
+		return
+	}
 
-	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), mortgageUsable))
+	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), amount))
 	mortgageStateObject := self.db.GetPrivilegedSateObject()
 	if mortgageStateObject.data.Resources.NET.MortgagteINB.Cmp(amount) < 0 {
 		return
