@@ -87,10 +87,10 @@ func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
 	snapshot, err := api.GetSnapshot(header.Number.Uint64())
 
 	newval:= HeaderExtra{}
-			for k,vote:=range snapshot.Tally{
+			for add,vote:=range snapshot.Tally{
 
 				for _,v:=range val.Enodes{
-					if k==v.Address&&vote.Uint64()>0{
+					if add==v.Address&&vote.Uint64()>0{
 
 						v.Vote=vote.Uint64()
 						newval.Enodes= append(newval.Enodes,v)
@@ -104,6 +104,7 @@ func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
 	} else {
 		return nil
 	}
+
 }
 
 
@@ -121,10 +122,20 @@ func (api *API) GetSuperNodesInfo() []common.EnodeInfo {
 	newval:= HeaderExtra{}
 	for _,addr:=range snapshot.Signers{
 
-		for _,v:=range val.Enodes{
-			if *addr==v.Address{
-				newval.Enodes= append(newval.Enodes,v)
-			}
+		//for _,v:=range val.Enodes{
+		//	if *addr==v.Address{
+		//		newval.Enodes= append(newval.Enodes,v)
+		//	}
+		//}
+		for add,vote:=range snapshot.Tally{
+			if add==*addr{
+				for _,v:=range val.Enodes{
+					if add==v.Address&&vote.Uint64()>0{
+						v.Vote=vote.Uint64()
+						newval.Enodes= append(newval.Enodes,v)
+		}
+	}
+}
 		}
 
 	}
