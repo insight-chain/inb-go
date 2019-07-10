@@ -235,7 +235,12 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
 								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
-									headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
+									account := state.GetAccountInfo(txSender)
+									if account.Resources.NET.MortgagteINB.Cmp(new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18)))==1{
+										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
+									}else {
+										return headerExtra, nil, errors.Errorf("Account mortgageINB must be greater than 100000")
+									}
 								}
 							} else {
 								// todo : leave this transaction to process as normal transaction
@@ -272,6 +277,7 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 }
 
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo []string, declarer common.Address) []common.EnodeInfo {
+
 	if len(txDataInfo) > posEventDeclareInfo {
 		midEnodeInfo := strings.Split(txDataInfo[posEventDeclareInfo], "~")
 		if len(midEnodeInfo) >= posEventDeclareInfoSplitLen {
