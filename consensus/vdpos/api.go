@@ -93,11 +93,25 @@ func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
 					if add==v.Address&&vote.Uint64()>0{
 
 						val.Enodes[k].Vote=vote.Uint64()
-						newval.Enodes= append(newval.Enodes,v)
+						newval.Enodes= append(newval.Enodes,val.Enodes[k])
 					}
 				}
 
 			}
+
+	for k,v:=range val.Enodes{
+		flag:=true
+		for add,vote:=range snapshot.Tally{
+			if add==v.Address&&vote.Uint64()>0{
+				val.Enodes[k].Vote=vote.Uint64()
+				newval.Enodes= append(newval.Enodes,val.Enodes[k])
+				flag=false
+			}
+		}
+		if flag{
+			newval.Enodes= append(newval.Enodes,val.Enodes[k])
+		}
+	}
 
 	if err == nil {
 		return newval.Enodes
