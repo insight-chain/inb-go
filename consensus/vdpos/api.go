@@ -89,10 +89,10 @@ func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
 	newval:= HeaderExtra{}
 			for add,vote:=range snapshot.Tally{
 
-				for _,v:=range val.Enodes{
+				for k,v:=range val.Enodes{
 					if add==v.Address&&vote.Uint64()>0{
 
-						v.Vote=vote.Uint64()
+						val.Enodes[k].Vote=vote.Uint64()
 						newval.Enodes= append(newval.Enodes,v)
 					}
 				}
