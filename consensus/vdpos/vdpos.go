@@ -856,7 +856,7 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	if reward.Cmp(big.NewInt(0)) > 0 {
 		states.AddBalance(header.Coinbase, reward)
 
-		states.AddBalance(common.HexToAddress(state.TotalAddress), reward)
+		states.AddBalance(common.HexToAddress(state.MasterAccount), reward)
 	}
 }
 

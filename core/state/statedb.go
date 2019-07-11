@@ -61,8 +61,8 @@ const (
 	unMortgageNet //3
 
 
-	masterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
-	mortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+	MasterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
+	MortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
 
 )
 
@@ -76,16 +76,16 @@ type proofList [][]byte
 //}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
 
-	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
 }
 
 //achilles0709 add accounts
 func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
 }
 
 func (self *StateDB) GetMasterStateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(masterAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(MasterAccount))
 
 }
 func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
