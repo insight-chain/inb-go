@@ -31,11 +31,11 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
-	st "github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/consensus/ethash"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core"
 	"github.com/insight-chain/inb-go/core/rawdb"
+	st "github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/crypto"
@@ -609,7 +609,7 @@ func (s *PublicTransactionPoolAPI) MortgageCpu(ctx context.Context, args SendTxA
 	account := accounts.Account{Address: args.From}
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetPrivilegedSateObject()
+	totalAccount := state.GetMortgageStateObject()
 	address := totalAccount.Address()
 	args.To = &address
 
@@ -649,7 +649,7 @@ func (s *PublicTransactionPoolAPI) MortgageNet(ctx context.Context, args SendTxA
 	account := accounts.Account{Address: args.From}
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetPrivilegedSateObject()
+	totalAccount := state.GetMortgageStateObject()
 	address := totalAccount.Address()
 	args.To = &address
 	wallet, err := s.b.AccountManager().Find(account)
@@ -700,7 +700,7 @@ func (s *PublicTransactionPoolAPI) UnMortgageCpu(ctx context.Context, args SendT
 	account := accounts.Account{Address: args.From}
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetPrivilegedSateObject()
+	totalAccount := state.GetMortgageStateObject()
 	address := totalAccount.Address()
 	args.To = &address
 
@@ -740,7 +740,7 @@ func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendT
 	account := accounts.Account{Address: args.From}
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetPrivilegedSateObject()
+	totalAccount := state.GetMortgageStateObject()
 	address := totalAccount.Address()
 	args.To = &address
 
@@ -1866,12 +1866,12 @@ func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 	return vdpos.DefaultMinerReward.Uint64()
 }
 
-
 func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (st.Account, error) {
 	state, _, _ := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 
 	return state.GetAccountInfo(address), state.Error()
 }
+
 //inb by ghy end
 
 // PrintBlock retrieves a block and returns its pretty printed form.

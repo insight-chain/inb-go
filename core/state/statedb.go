@@ -60,19 +60,33 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-	TotalAddress string = "0x1000000000000000000000000000000000000000"
+
+	masterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
+	mortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+
 )
 
 //Resource by zc
 type proofList [][]byte
 
 //Resource by zc
-//func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
+//func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
 //	PrivilegedSateObject = self.GetOrNewStateObject(common.HexToAddress(totalAddress))
 //	return PrivilegedSateObject
 //}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(TotalAddress))
+
+	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+}
+
+//achilles0709 add accounts
+func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
+	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+}
+
+func (self *StateDB) GetMasterStateObject() (s *stateObject) {
+	return self.GetOrNewStateObject(common.HexToAddress(masterAccount))
+
 }
 func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
 	newStateObject := self.getStateObject(address)
@@ -272,7 +286,7 @@ func (self *StateDB) GetNet(addr common.Address) *big.Int {
 }
 
 //2019.6.28 inb by ghy begin
-func (self *StateDB) GetAccountInfo(addr common.Address) Account{
+func (self *StateDB) GetAccountInfo(addr common.Address) Account {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.data
@@ -301,6 +315,7 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+
 func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -308,6 +323,7 @@ func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
 	}
 	return common.Big0
 }
+
 //2019.6.28 inb by ghy end
 func (self *StateDB) GetMortgageInbOfCpu(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)

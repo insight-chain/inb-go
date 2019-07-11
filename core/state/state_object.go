@@ -19,7 +19,6 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"github.com/insight-chain/inb-go/params"
 	"io"
 	"math/big"
 
@@ -344,7 +343,7 @@ func (self *stateObject) MortgageNet(amount *big.Int) {
 	netUse := self.db.ConvertToNets(amount)
 	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
 
-	mortgageStateObject := self.db.GetPrivilegedSateObject()
+	mortgageStateObject := self.db.GetMortgageStateObject()
 	mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
 	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
 
@@ -355,13 +354,17 @@ func (self *stateObject) RedeemNet(amount *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-
 	netUse := self.db.ConvertToNets(amount)
-	usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
-	mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	if self.Net().Cmp(netUse) < 0 {
+		netUse = self.Net()
+	} //usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
+	//mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	if self.MortgageOfNet().Cmp(amount) < 0 {
+		return
+	}
 
-	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), mortgageUsable))
-	mortgageStateObject := self.db.GetPrivilegedSateObject()
+	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), amount))
+	mortgageStateObject := self.db.GetMortgageStateObject()
 	if mortgageStateObject.data.Resources.NET.MortgagteINB.Cmp(amount) < 0 {
 		return
 	}
@@ -487,14 +490,17 @@ func (self *stateObject) MortgageOfNet() *big.Int {
 func (self *stateObject) Nonce() uint64 {
 	return self.data.Nonce
 }
+
 //2019.6.28 inb by ghy begin
 func (self *stateObject) Resource() Resource {
 	return self.data.Resources.NET.Resource
 }
 
+
 func (self *stateObject) MortgageOfINB() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
 }
+
 //2019.6.28 inb by ghy end
 // Never called, but must be present to allow stateObject to be used
 // as a vm.Account interface that also satisfies the vm.ContractRef

@@ -18,7 +18,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"github.com/insight-chain/inb-go/params"
 	"math/big"
 
@@ -101,8 +100,6 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
 func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	fmt.Println(" from balance: " + db.GetBalance(sender).String())
-	fmt.Println(" to balance: " + db.GetBalance(recipient).String())
 	db.SubBalance(sender, amount)
 	db.AddBalance(recipient, amount)
 }
@@ -146,8 +143,7 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	}
 	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	netUse = netUse.Mul(netUse, unit)
-	usableUnit := big.NewInt(1).Div(usableNet, unit)
-	usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	usableInb := db.GetMortgageInbOfNet(addr)
 	if usableInb.Cmp(amount) < 0 {
 		return errors.New(" insufficient available mortgage ")
 	}

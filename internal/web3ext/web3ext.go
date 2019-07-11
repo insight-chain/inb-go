@@ -106,6 +106,7 @@ web3._extend({
 	]
 });
 `
+
 // getSuperNodesInfo GetCandidateNodesInfo inb by ghy
 
 //vdpos by ssh end
@@ -511,6 +512,11 @@ web3._extend({
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
+			name: 'mortgageRawNet',
+			call: 'eth_mortgageRawNet',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'unMortgageCpu',
 			call: 'eth_unMortgageCpu',
 			params: 1
@@ -521,6 +527,11 @@ web3._extend({
 			call: 'eth_unMortgageNet',
 			params: 1
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'unMortgageRawNet',
+			call: 'eth_unMortgageRawNet',
+			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'chainId',
@@ -566,6 +577,11 @@ web3._extend({
 			call: 'eth_sendVote',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+		}),
+		new web3._extend.Method({
+			name: 'sendRawVote',
+			call: 'eth_sendRawVote',
+			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',

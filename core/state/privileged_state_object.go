@@ -178,7 +178,7 @@ func (c *stateObject) UseNetForUnMortgage(amount *big.Int) {
 	usable := big.NewInt(1).Sub(usableNet, netUse)
 	c.SetNet(used, usable, remainInb)
 
-	c.db.GetPrivilegedSateObject()
+	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.SubMortgageINBOfNet(amount)
 }
 
@@ -192,7 +192,7 @@ func (c *stateObject) AddCpu(amount *big.Int) {
 	mortgagetion := c.AddMortgageINBOfCpu(amount)
 	c.SetCpu(used, usable, mortgagetion)
 
-	c.db.GetPrivilegedSateObject()
+	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.AddMortgageINBOfCpu(amount)
 }
 func (c *stateObject) AddNet(amount *big.Int) {
@@ -201,7 +201,7 @@ func (c *stateObject) AddNet(amount *big.Int) {
 	usable := c.AddUsableNet(gainNumberOfNet)
 	mortgagetion := c.AddMortgageINBOfNet(amount)
 	c.setNet(used, usable, mortgagetion)
-	c.db.GetPrivilegedSateObject()
+	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.AddMortgageINBOfNet(amount)
 }
 
@@ -221,7 +221,7 @@ func (c *stateObject) SubCpu(amount *big.Int) {
 	netUsable := c.SubUsableNet(expendNetFromUnMortgageNet)
 	c.SetNet(netUsed, netUsable, c.data.Resources.NET.MortgagteINB)
 
-	c.db.GetPrivilegedSateObject()
+	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.SubMortgageINBOfCpu(amount)
 }
 func (c *stateObject) SubNet(amount *big.Int) {
@@ -240,7 +240,7 @@ func (c *stateObject) SubNet(amount *big.Int) {
 	//cpuUsable := c.SubUsableCpu(expendCpuFromUnMortgageCpu)
 	//c.SetCpu(cpuUsed, cpuUsable, c.data.Resources.CPU.MortgagteINB)
 
-	c.db.GetPrivilegedSateObject()
+	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.SubMortgageINBOfNet(amount)
 }
 
