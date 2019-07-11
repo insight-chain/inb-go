@@ -16,6 +16,6 @@ type EnodeInfo struct {
 	Website string `json:"website"`
 	Email   string `json:"email"`
 	Data    string `json:"data"`
-	Vote    uint64 `json:"vote,omitempty"`
+	Vote    uint64 `json:"vote"`
 	//inb by ghy end
 }

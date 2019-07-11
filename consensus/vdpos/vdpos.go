@@ -59,7 +59,7 @@ var (
 	extraSeal                        = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
 	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(33600)            // Default loop count to recreate signers from top tally
+	defaultLoopCntRecalculateSigners = uint64(50)            // Default loop count to recreate signers from top tally
 	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
 	Chanel                           = make(chan int, 0)
 )
