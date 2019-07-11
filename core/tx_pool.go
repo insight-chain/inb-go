@@ -608,7 +608,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			candidatesStr := strings.Split(candidates[1], ",")
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
-				candidatesSlice = append(candidatesSlice, address)
+
+				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18)))==1 {
+					candidatesSlice = append(candidatesSlice, address)
+				}else {
+					return errors.New("poor man !!!!!!!!!!!!!")
+				}
+
+
 			}
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
 				return errors.New("candidates over size")

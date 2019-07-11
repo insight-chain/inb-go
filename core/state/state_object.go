@@ -496,6 +496,11 @@ func (self *stateObject) Resource() Resource {
 	return self.data.Resources.NET.Resource
 }
 
+
+func (self *stateObject) MortgageOfINB() *big.Int {
+	return self.data.Resources.NET.MortgagteINB
+}
+
 //2019.6.28 inb by ghy end
 // Never called, but must be present to allow stateObject to be used
 // as a vm.Account interface that also satisfies the vm.ContractRef
