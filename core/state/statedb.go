@@ -60,7 +60,7 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-	totalAddress string = "0x1000000000000000000000000000000000000000"
+	TotalAddress string = "0x1000000000000000000000000000000000000000"
 )
 
 //Resource by zc
@@ -72,7 +72,7 @@ type proofList [][]byte
 //	return PrivilegedSateObject
 //}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(totalAddress))
+	return self.GetOrNewStateObject(common.HexToAddress(TotalAddress))
 }
 func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
 	newStateObject := self.getStateObject(address)
@@ -297,6 +297,14 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.UsedNet()
+	}
+	return common.Big0
+}
+
+func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.MortgageOfINB()
 	}
 	return common.Big0
 }
