@@ -612,7 +612,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18)))==1 {
 					candidatesSlice = append(candidatesSlice, address)
 				}else {
-					return errors.New("poor man !!!!!!!!!!!!!")
+					return errors.New(fmt.Sprintf("The number of accounts mortgaged by voters is less than 100,000 inb , %v",address))
 				}
 
 
