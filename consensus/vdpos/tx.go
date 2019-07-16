@@ -236,7 +236,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
 								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
 									account := state.GetAccountInfo(txSender)
-									if account.Resources.NET.MortgagteINB.Cmp(new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18)))==1{
+									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB)==1{
 										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
 									}else {
 										return headerExtra, nil, errors.Errorf("Account mortgageINB must be greater than 100000")

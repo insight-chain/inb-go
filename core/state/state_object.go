@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/crypto"
@@ -103,6 +104,9 @@ type Account struct {
 	//Resource by zc
 	Resources Resources
 	//Resource by zc
+
+	//Store   []Store
+	//Recommender common.Address
 }
 
 //Resource by zc
@@ -122,7 +126,11 @@ type CPU struct {
 type NET struct {
 	Resource
 }
-
+type Store struct {
+	StartTime time.Time
+	MaturityTime time.Time
+	Type  uint64
+}
 //Resource by zc
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
