@@ -57,7 +57,10 @@ func (pm *ProtocolManager) syncer() {
 func (pm *ProtocolManager) needToSync(peerHead blockInfo) bool {
 	head := pm.blockchain.CurrentHeader()
 	currentTd := rawdb.ReadTd(pm.chainDb, head.Hash(), head.Number.Uint64())
-	return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
+	//vdpos by ssh 190712 begin
+	//return currentTd != nil && peerHead.Td.Cmp(currentTd) > 0
+	return currentTd != nil && peerHead.Td.Cmp(currentTd) >= 0
+	//vdpos by ssh 190712 end
 }
 
 // synchronise tries to sync up our local block chain with a remote peer.
