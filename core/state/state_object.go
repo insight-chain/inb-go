@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"math/big"
+	"time"
 
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/crypto"
@@ -103,6 +104,9 @@ type Account struct {
 	//Resource by zc
 	Resources Resources
 	//Resource by zc
+
+	//Store   []Store
+	//Recommender common.Address
 }
 
 //Resource by zc
@@ -122,7 +126,11 @@ type CPU struct {
 type NET struct {
 	Resource
 }
-
+type Store struct {
+	StartTime time.Time
+	MaturityTime time.Time
+	Type  uint64
+}
 //Resource by zc
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
@@ -494,6 +502,11 @@ func (self *stateObject) Nonce() uint64 {
 //2019.6.28 inb by ghy begin
 func (self *stateObject) Resource() Resource {
 	return self.data.Resources.NET.Resource
+}
+
+
+func (self *stateObject) MortgageOfINB() *big.Int {
+	return self.data.Resources.NET.MortgagteINB
 }
 
 //2019.6.28 inb by ghy end

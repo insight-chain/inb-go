@@ -60,8 +60,14 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-	masterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
-	mortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+
+	MasterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
+	MortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+	BonusAccount    string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
+	TeamAccount    string = "0x3000000000000000000000000000000000000000" // account record value of team
+	MarketingAccount string = "0x4000000000000000000000000000000000000000" // account record value of Marketing
+	FundAccount string = "0x5000000000000000000000000000000000000000" // account record value of Fund
+
 )
 
 //Resource by zc
@@ -73,16 +79,18 @@ type proofList [][]byte
 //	return PrivilegedSateObject
 //}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+
+	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
 }
 
 //achilles0709 add accounts
 func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(mortgageAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
 }
 
 func (self *StateDB) GetMasterStateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(masterAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(MasterAccount))
+
 }
 func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
 	newStateObject := self.getStateObject(address)
@@ -307,6 +315,15 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
 		return stateObject.UsedNet()
+	}
+	return common.Big0
+}
+
+
+func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.MortgageOfINB()
 	}
 	return common.Big0
 }

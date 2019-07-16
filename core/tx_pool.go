@@ -19,6 +19,7 @@ package core
 import (
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"math"
 	"math/big"
 	"sort"
@@ -82,6 +83,7 @@ var (
 	ErrOverUnMortgageInbOfNetValue = errors.New("over MortgageInbOfNet number")
 	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
+	ErrOverBalanceValue            = errors.New("Balance is not enough ")
 )
 
 var (
@@ -603,18 +605,30 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []common.Address
 		candidates := strings.Split(inputStr, ":")
 		if candidates[0] == "candidates" {
 			candidatesStr := strings.Split(candidates[1], ",")
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
-				candidatesSlice = append(candidatesSlice, address)
+//2019.7.15 inb mod by ghy begin
+				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
+					candidatesSlice = append(candidatesSlice, address)
+				}else {
+					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
+				}
+				}
+			if len(UnqualifiedCandidatesSlice)>0{
+				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
 			}
+			//2019.7.15 inb mod by ghy end
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
 				return errors.New("candidates over size")
 			}
 		}
 	}
+
+
 
 	var netPayment common.Address
 	if tx.IsRepayment() {
@@ -633,6 +647,19 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if !tx.IsRepayment() {
 		netPayment = from
 	}
+
+	//2019.7.16 inb add by ghy begin
+	if strings.Contains(inputStr, "investment") {
+		investment := strings.Split(inputStr, ":")
+		if len(investment)==2{
+			if investment[0] == "investment" {
+				if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
+					return ErrOverBalanceValue
+				}
+			}
+		}
+	}
+	//2019.7.16 inb add by ghy begin
 
 	// Drop non-local transactions under our own minimal accepted gas price
 	//achilles replace gas with net

@@ -61,7 +61,8 @@ var (
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(50)            // Default loop count to recreate signers from top tally
 	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
-	Chanel                           = make(chan int, 0)
+	DefaultTotalAccount  			 = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
+	BeVotedNeedINB            		 = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -474,7 +475,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
 		// create random signersPool in currentHeaderExtra by snapshot.Tally
 		currentHeaderExtra.SignersPool = []common.Address{}
+
 		newSignersPool, err := snap.createSignersPool()
+
 		if err != nil {
 			return nil, err
 		}
@@ -501,7 +504,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	// No uncle block
 	header.UncleHash = types.CalcUncleHash(nil)
 
+	//inb by ghy begin
 	header.Reward=DefaultMinerReward.String()
+	//inb by ghy end
 
 	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts), nil
@@ -840,7 +845,7 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
-func (v *Vdpos) accumulateRewards(config *params.ChainConfig, state *state.StateDB, header *types.Header) {
+func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
 
 	//reward := new(big.Int).Set(DefaultMinerReward)
 	//reward := new(big.Int).Div(defaultInbIncreaseOneYear, new)Y
@@ -850,7 +855,16 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, state *state.State
 	reward := new(big.Int).Div(defaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
 	DefaultMinerReward = reward
 	if reward.Cmp(big.NewInt(0)) > 0 {
-		state.AddBalance(header.Coinbase, reward)
+
+
+		states.AddBalance(common.HexToAddress(state.BonusAccount), reward)
+		states.AddBalance(common.HexToAddress(state.TeamAccount), reward)
+		states.AddBalance(common.HexToAddress(state.MarketingAccount), reward)
+		states.AddBalance(common.HexToAddress(state.FundAccount), reward)
+
+		states.AddBalance(header.Coinbase, reward)
+		states.SubBalance(common.HexToAddress(state.MasterAccount), reward)
+
 	}
 }
 
