@@ -143,8 +143,7 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	}
 	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	netUse = netUse.Mul(netUse, unit)
-	usableUnit := big.NewInt(1).Div(usableNet, unit)
-	usableInb := big.NewInt(1).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
+	usableInb := db.GetMortgageInbOfNet(addr)
 	if usableInb.Cmp(amount) < 0 {
 		return errors.New(" insufficient available mortgage ")
 	}

@@ -19,11 +19,10 @@ package vdpos
 
 import (
 	"bytes"
+	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/log"
 	"math/big"
 	"sort"
-
-	"github.com/insight-chain/inb-go/common"
 )
 
 type TallyItem struct {
@@ -111,14 +110,14 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 			poolLength = len(tallySlice)
 		}
 		for i, tallyItem := range tallySlice[:poolLength] {
-			signerSlice = append(signerSlice, SignerItem{tallyItem.addr, s.HistoryHash[len(s.HistoryHash)-1-i]})
+				signerSlice = append(signerSlice, SignerItem{tallyItem.addr, s.HistoryHash[len(s.HistoryHash)-1-i]})
 		}
 		for _, itemx := range signerSlice {
 			log.Debug(itemx.addr.Hex())
 		}
 	} else {
 		for i, signer := range s.Signers {
-			signerSlice = append(signerSlice, SignerItem{*signer, s.HistoryHash[len(s.HistoryHash)-1-i]})
+				signerSlice = append(signerSlice, SignerItem{*signer, s.HistoryHash[len(s.HistoryHash)-1-i]})
 		}
 	}
 
