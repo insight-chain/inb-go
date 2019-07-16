@@ -57,7 +57,7 @@ type LogConfig struct {
 // prior to the execution of the statement.
 type StructLog struct {
 	Pc            uint64                      `json:"pc"`
-	Op            OpCode                      `json:"op"`
+	Op             OpCode                      `json:"op"`
 	Gas           uint64                      `json:"gas"`
 	GasCost       uint64                      `json:"gasCost"`
 	Memory        []byte                      `json:"memory"`

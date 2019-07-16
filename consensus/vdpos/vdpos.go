@@ -62,6 +62,7 @@ var (
 	defaultLoopCntRecalculateSigners = uint64(50)            // Default loop count to recreate signers from top tally
 	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
 	DefaultTotalAccount  			 = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
+	BeVotedNeedINB            		 = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -474,9 +475,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
 		// create random signersPool in currentHeaderExtra by snapshot.Tally
 		currentHeaderExtra.SignersPool = []common.Address{}
-		//2019.7.11 inb mod parameter by ghy begin
+
 		newSignersPool, err := snap.createSignersPool()
-		//2019.7.11 inb mod parameter by ghy end
+
 		if err != nil {
 			return nil, err
 		}
@@ -854,9 +855,16 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	reward := new(big.Int).Div(defaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
 	DefaultMinerReward = reward
 	if reward.Cmp(big.NewInt(0)) > 0 {
-		states.AddBalance(header.Coinbase, reward)
 
-		states.AddBalance(common.HexToAddress(state.MasterAccount), reward)
+
+		states.AddBalance(common.HexToAddress(state.BonusAccount), reward)
+		states.AddBalance(common.HexToAddress(state.TeamAccount), reward)
+		states.AddBalance(common.HexToAddress(state.MarketingAccount), reward)
+		states.AddBalance(common.HexToAddress(state.FundAccount), reward)
+
+		states.AddBalance(header.Coinbase, reward)
+		states.SubBalance(common.HexToAddress(state.MasterAccount), reward)
+
 	}
 }
 

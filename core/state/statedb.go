@@ -63,6 +63,10 @@ const (
 
 	MasterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
 	MortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+	BonusAccount    string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
+	TeamAccount    string = "0x3000000000000000000000000000000000000000" // account record value of team
+	MarketingAccount string = "0x4000000000000000000000000000000000000000" // account record value of Marketing
+	FundAccount string = "0x5000000000000000000000000000000000000000" // account record value of Fund
 
 )
 
