@@ -412,7 +412,6 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	var genesisVotes []*Vote
 	parentHeaderExtra := HeaderExtra{}
 	currentHeaderExtra := HeaderExtra{}
-
 	if number == 1 {
 		alreadyVote := make(map[common.Address]struct{})
 		for _, unPrefixVoter := range v.config.SelfVoteSigners {
@@ -429,6 +428,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				alreadyVote[voter] = struct{}{}
 			}
 		}
+		currentHeaderExtra.Enodes = v.config.Enodes
 	} else {
 		// decode extra from last header.extra
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)

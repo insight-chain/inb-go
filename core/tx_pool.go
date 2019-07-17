@@ -659,7 +659,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 		}
 	}
-	//2019.7.16 inb add by ghy begin
+	//2019.7.16 inb add by ghy end
 
 	// Drop non-local transactions under our own minimal accepted gas price
 	//achilles replace gas with net

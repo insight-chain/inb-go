@@ -516,6 +516,12 @@ web3._extend({
 			call: 'eth_mortgageRawNet',
 			params: 1
 		}),
+new web3._extend.Method({
+			name: 'getBlockEnodeByBlockNumber',
+			call: 'eth_getBlockEnodeByBlockNumber',
+			params: 1
+		}),
+
 		new web3._extend.Method({
 			name: 'unMortgageCpu',
 			call: 'eth_unMortgageCpu',

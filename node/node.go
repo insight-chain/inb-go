@@ -247,7 +247,7 @@ func ConnectAllSuperNodes(n *Node) {
 
 	BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
 
-	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(rpc.EarliestBlockNumber)
+	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(0)
 	for _, v := range GenesisSuperNodeEcodes {
 		//fmt.Println("lasttttttttttttttttttt",v.Data)
 		url := ParsePeerUrl(v)
