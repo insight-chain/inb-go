@@ -541,9 +541,9 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // inb by ghy begin
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num rpc.BlockNumber) []common.EnodeInfo {
+func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.EnodeInfo {
 	var err error
-	header, _ := s.b.HeaderByNumber(context.Background(), num)
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.BlockNumber(num))
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
