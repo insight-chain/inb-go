@@ -325,8 +325,14 @@ func (c *ChainIndexer) updateLoop() {
 				// Cache the current section count and head to allow unlocking the mutex
 				section := c.storedSections
 				var oldHead common.Hash
+				// inb by ssh 190717 begin
+				var initParent common.Hash
 				if section > 0 {
 					oldHead = c.SectionHead(section - 1)
+				} else if section == 0 {
+					hash := rawdb.ReadCanonicalHash(c.chainDb, 0)
+					initParent = rawdb.ReadHeader(c.chainDb, hash, 0).ParentHash
+					oldHead = initParent
 				}
 				// Process the newly defined section in the background
 				c.lock.Unlock()
@@ -343,7 +349,9 @@ func (c *ChainIndexer) updateLoop() {
 				c.lock.Lock()
 
 				// If processing succeeded and no reorgs occcurred, mark the section completed
-				if err == nil && oldHead == c.SectionHead(section-1) {
+				//if err == nil && oldHead == c.SectionHead(section-1) {
+				// inb by ssh 190717 end
+				if err == nil && (section > 0 && oldHead == c.SectionHead(section-1) || (section == 0 && oldHead == initParent)) {
 					c.setSectionHead(section, newHead)
 					c.setValidSections(section + 1)
 					if c.storedSections == c.knownSections && updating {

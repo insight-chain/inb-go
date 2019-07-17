@@ -28,7 +28,6 @@ import (
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
-	"github.com/insight-chain/inb-go/consensus/misc"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/crypto"
@@ -59,10 +58,10 @@ var (
 	extraSeal                        = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
 	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)            // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(50)            // Default loop count to recreate signers from top tally
+	defaultLoopCntRecalculateSigners = uint64(50)               // Default loop count to recreate signers from top tally
 	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
-	DefaultTotalAccount  			 = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
-	BeVotedNeedINB            		 = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	DefaultTotalAccount              = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
+	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 )
 
 // Various error messages to mark blocks invalid. These should be private to
@@ -241,9 +240,9 @@ func (v *Vdpos) verifyHeader(chain consensus.ChainReader, header *types.Header, 
 	}
 
 	// If all checks passed, validate any special fields for hard forks
-	if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
-		return err
-	}
+	//if err := misc.VerifyForkHashes(chain.Config(), header, false); err != nil {
+	//	return err
+	//}
 
 	// All basic checks passed, verify cascading fields
 	return v.verifyCascadingFields(chain, header, parents)
@@ -505,7 +504,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	header.UncleHash = types.CalcUncleHash(nil)
 
 	//inb by ghy begin
-	header.Reward=DefaultMinerReward.String()
+	header.Reward = DefaultMinerReward.String()
 	//inb by ghy end
 
 	// Assemble and return the final block for sealing
@@ -855,7 +854,6 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	reward := new(big.Int).Div(defaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
 	DefaultMinerReward = reward
 	if reward.Cmp(big.NewInt(0)) > 0 {
-
 
 		states.AddBalance(common.HexToAddress(state.BonusAccount), reward)
 		states.AddBalance(common.HexToAddress(state.TeamAccount), reward)
