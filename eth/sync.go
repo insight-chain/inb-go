@@ -171,14 +171,11 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 	td := pm.blockchain.GetTd(currentBlock.Hash(), currentBlock.NumberU64())
 
 	pHead, pTd := peer.Head()
-	//vdpos by ssh 190712 begin
-	//if pTd.Cmp(td) <= 0 {
-	//	return
-	//}
-	if pTd.Cmp(td) < 0 {
+
+	if pTd.Cmp(td) <= 0 {
 		return
 	}
-	//vdpos by ssh 190712 end
+
 	// Otherwise try to sync with the downloader
 	mode := downloader.FullSync
 	if atomic.LoadUint32(&pm.fastSync) == 1 {
@@ -196,14 +193,9 @@ func (pm *ProtocolManager) synchronise(peer *peer) {
 
 	if mode == downloader.FastSync {
 		// Make sure the peer's total difficulty we are synchronizing is higher.
-		//vdpos by ssh 190712 begin
-		//if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
-		//	return
-		//}
-		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) > 0 {
+		if pm.blockchain.GetTdByHash(pm.blockchain.CurrentFastBlock().Hash()).Cmp(pTd) >= 0 {
 			return
 		}
-		//vdpos by ssh 190712 end
 	}
 
 	// Run the sync cycle, and disable fast sync if we've went past the pivot block
