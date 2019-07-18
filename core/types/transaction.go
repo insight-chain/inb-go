@@ -347,6 +347,14 @@ func (tx *Transaction) IsMortgageNet() bool {
 	return false
 }
 
+func (tx *Transaction) IsRegularMortgageNet() bool {
+	inputStr := string(tx.Data())
+	if inputStr == string("mortgageNet:") {
+		return true
+	}
+	return false
+}
+
 //type of transaction is um mortgagenet
 func (tx *Transaction) IsUnMortgageNet() bool {
 	inputStr := string(tx.Data())

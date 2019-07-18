@@ -92,18 +92,18 @@ func (self *StateDB) GetMasterStateObject() (s *stateObject) {
 	return self.GetOrNewStateObject(common.HexToAddress(MasterAccount))
 
 }
-func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
-	newStateObject := self.getStateObject(address)
-	if variety == mortgageCpu {
-		newStateObject.MortgageCpu(num)
-	} else if variety == mortgageNet {
-		newStateObject.MortgageNet(num)
-	} else if variety == unMortgageCpu {
-		newStateObject.UnMortgageCpu(num)
-	} else if variety == unMortgageNet {
-		newStateObject.UnMortgageNet(num)
-	}
-}
+//func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
+//	newStateObject := self.getStateObject(address)
+//	if variety == mortgageCpu {
+//		newStateObject.MortgageCpu(num)
+//	} else if variety == mortgageNet {
+//		newStateObject.MortgageNet(num)
+//	} else if variety == unMortgageCpu {
+//		newStateObject.UnMortgageCpu(num)
+//	} else if variety == unMortgageNet {
+//		newStateObject.UnMortgageNet(num)
+//	}
+//}
 
 //Resource by zc
 
@@ -479,6 +479,7 @@ func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int) {
 		stateObject.MortgageNet(amount)
 	}
 }
+
 func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
@@ -486,6 +487,12 @@ func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
 	}
 }
 
+func (self *StateDB) GetRegularCount(addr common.Address) int{
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.RegularCount()
+	}
+}
 //achilles addnet subnet
 func (self *StateDB) AddNet(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)

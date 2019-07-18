@@ -475,6 +475,12 @@ func (self *stateObject) Balance() *big.Int {
 	return self.data.Balance
 }
 
+//achilles0718 regular mortgagtion
+func (self *stateObject) RegularCount() int {
+	regulars := self.data.Stores
+	return len(regulars)
+}
+
 //Resource by zc
 func (self *stateObject) Cpu() *big.Int {
 

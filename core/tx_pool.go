@@ -84,6 +84,9 @@ var (
 	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
 	ErrOverBalanceValue            = errors.New("Balance is not enough ")
+
+	//achilles0718 regular mortgagtion
+	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
 )
 
 var (
@@ -655,19 +658,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		netPayment = from
 	}
 
-	//2019.7.16 inb add by ghy begin
-	if strings.Contains(inputStr, "investment") {
-		investment := strings.Split(inputStr, ":")
-		if len(investment)==2{
-			if investment[0] == "investment" {
-				if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
-					return ErrOverBalanceValue
-				}
-			}
-		}
-	}
-	//2019.7.16 inb add by ghy end
-
 	// Drop non-local transactions under our own minimal accepted gas price
 	//achilles replace gas with net
 	//local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
@@ -700,9 +690,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
+	if !tx.IsMortgageNet() {
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
+		}
+	}
+
+	if tx.IsRegularMortgageNet() {
+		if count := pool.currentState.GetRegularCount(netPayment); count > 5 {
+			return ErrCountLimit
 		}
 	}
 
@@ -737,7 +733,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	} else if inputStr == string("unmortgageNet") {
 		//Make sure the unmarshaled Net is less than the mortgaged Net
 		unit := pool.currentState.UnitConvertNet()
-		usableNet := pool.currentState.GetNet(from)
+		usableNet := pool.currentState.GetNet(netPayment)
 
 		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
 			return errors.New(" the value for redeem is too low ")
@@ -748,7 +744,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
 		netUse = netUse.Mul(netUse, unit)
-		usableInb := pool.currentState.GetMortgageInbOfNet(from)
+		usableInb := pool.currentState.GetMortgageInbOfNet(netPayment)
 		if usableInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}

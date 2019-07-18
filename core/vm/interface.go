@@ -39,8 +39,9 @@ type StateDB interface {
 	MortgageNet(addr common.Address, amount *big.Int)
 	RedeemNet(addr common.Address, amount *big.Int)
 	UnitConvertNet() *big.Int
+	GetRegularCount(addr common.Address) int
 	//Resource by zc
-	GetStateObject(address common.Address, num *big.Int, variety int)
+	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
