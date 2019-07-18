@@ -108,8 +108,8 @@ type Account struct {
 	//Store   []Store
 	//Recommender common.Address
 
-	regular *big.Int // regular mortgagtion
-	profit  *big.Int // incentive earnings
+	Regular *big.Int // regular mortgagtion
+	Profit  *big.Int // incentive earnings
 }
 
 //Resource by zc
@@ -126,8 +126,8 @@ type Resource struct {
 
 type Store struct {
 	StartTime time.Time
-	days      uint32
-	value     *big.Int
+	Days      uint32
+	Value     *big.Int
 }
 
 //Resource by zc
