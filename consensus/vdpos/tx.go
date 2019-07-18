@@ -210,7 +210,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if len(txData) >= len(inbPrefix) {
-			txDataInfo := strings.Split(txData, ":")
+			txDataInfo := strings.Split(txData, "|")
 			if len(txDataInfo) >= inbMinSplitLen {
 				if txDataInfo[posPrefix] == inbPrefix {
 					if txDataInfo[posVersion] == inbVersion {

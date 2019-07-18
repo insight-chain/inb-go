@@ -1452,4 +1452,5 @@ func (pool *TxPool)hanlecandidates(inputStr string)error{
 			}
 		}
 	}
+	return nil
 }
