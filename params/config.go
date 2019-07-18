@@ -162,7 +162,7 @@ var (
 		CandidateSize:    30,
 		Wei:              big.NewInt(1e+18),
 		Circulation:      big.NewInt(15e+8),
-		Net:              big.NewInt(86400 * 1024 * 1024 * 1000),
+		Net:              big.NewInt(86400 * 1024 * 1024 * 125),
 		WeiOfUseNet:      big.NewInt(1e+14),
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),

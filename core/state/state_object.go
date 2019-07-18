@@ -107,12 +107,15 @@ type Account struct {
 
 	//Store   []Store
 	//Recommender common.Address
+
+	regular *big.Int // regular mortgagtion
+	profit  *big.Int // incentive earnings
 }
 
 //Resource by zc
 type Resources struct {
-	CPU  CPU
-	NET  NET
+	CPU  Resource
+	NET  Resource
 	Date string
 }
 type Resource struct {
@@ -120,17 +123,13 @@ type Resource struct {
 	Usableness   *big.Int // unuse
 	MortgagteINB *big.Int //
 }
-type CPU struct {
-	Resource
-}
-type NET struct {
-	Resource
-}
+
 type Store struct {
 	StartTime time.Time
-	MaturityTime time.Time
-	Type  uint64
+	days      uint32
+	value     *big.Int
 }
+
 //Resource by zc
 // newObject creates a state object.
 func newObject(db *StateDB, address common.Address, data Account) *stateObject {
@@ -501,9 +500,8 @@ func (self *stateObject) Nonce() uint64 {
 
 //2019.6.28 inb by ghy begin
 func (self *stateObject) Resource() Resource {
-	return self.data.Resources.NET.Resource
+	return self.data.Resources.NET
 }
-
 
 func (self *stateObject) MortgageOfINB() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
