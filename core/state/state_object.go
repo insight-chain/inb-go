@@ -105,7 +105,7 @@ type Account struct {
 	Resources Resources
 	//Resource by zc
 
-	Stores   []Store // slice of regular mortgagtion
+	Stores []Store // slice of regular mortgagtion
 	//Recommender common.Address
 
 	Regular *big.Int //  total of regular mortgagtion
@@ -125,10 +125,10 @@ type Resource struct {
 }
 
 type Store struct {
-	TxHash common.Hash // transaction of regular mortgagtion
-	StartTime time.Time // start time
-	Days      uint32 // duration of mortgagtion
-	Value     *big.Int // amount of mortgagtion
+	TxHash    common.Hash // transaction of regular mortgagtion
+	StartTime big.Int     // start time
+	Days      uint        // duration of mortgagtion
+	Value     big.Int     // amount of mortgagtion
 }
 
 //Resource by zc
@@ -344,7 +344,7 @@ func (self *stateObject) setBalance(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int) {
+func (self *stateObject) MortgageNet(amount *big.Int, duration uint) {
 	if amount.Sign() == 0 {
 		return
 	}
@@ -355,6 +355,9 @@ func (self *stateObject) MortgageNet(amount *big.Int) {
 	mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
 	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
 
+	if duration > 0 {
+		self.SetStores(*amount, duration)
+	}
 }
 
 //achilles RedeemNet sub nets from c's balance
@@ -389,6 +392,18 @@ func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mort
 		MortgagteINB: new(big.Int).Set(self.data.Resources.NET.MortgagteINB),
 	})
 	self.setNet(usedAmount, usableAmount, mortgageInb)
+}
+
+//achilles0718 regular mortgagtion
+func (self *stateObject) SetStores(amount big.Int, duration uint) {
+	store := Store{
+		//todo hash
+		StartTime: *big.NewInt(time.Now().Unix()),
+		Days:      duration,
+		Value:     amount,
+	}
+	newStores := append(self.data.Stores, store)
+	self.data.Stores = newStores
 }
 
 func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
@@ -476,7 +491,7 @@ func (self *stateObject) Balance() *big.Int {
 }
 
 //achilles0718 regular mortgagtion
-func (self *stateObject) RegularCount() int {
+func (self *stateObject) StoreLength() int {
 	regulars := self.data.Stores
 	return len(regulars)
 }

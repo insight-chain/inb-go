@@ -18,6 +18,8 @@ package vm
 
 import (
 	"math/big"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -36,13 +38,13 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint)
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanMortgageFunc    func(StateDB, common.Address, *big.Int) error
+	CanMortgageFunc    func(StateDB, common.Address, *big.Int, uint) error
 	CanRedeemFunc      func(StateDB, common.Address, *big.Int) error
 	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 )
@@ -192,29 +194,36 @@ func (evm *EVM) Interpreter() Interpreter {
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, net, nil
 	}
 
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, net, ErrDepth
 	}
 	// Fail if we're trying to transfer more than the available balance
 	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
+		return nil, net, ErrInsufficientBalance
 	}
 	// achilles improve mortgage
 	inputStr := string(input)
-
+	days := 0 // duration of mortgagtion,
 	if inputStr == string("mortgageNet") {
-		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, gas, err
+		if strings.Contains(inputStr, ":") {
+			// regular mortgagtion
+			regulars := strings.Split(inputStr, ":")
+			if convert, err := strconv.Atoi(regulars[1]); err == nil {
+				days = convert
+			}
+		}
+		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
+			return nil, net, err
 		}
 	} else if inputStr == string("unmortgageNet") {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, gas, err
+			return nil, net, err
 		}
 	}
 
@@ -230,10 +239,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, gas, nil
+			return nil, net, nil
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
@@ -243,7 +252,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 	if inputStr == string("unmortgageNet") {
 		evm.RedeemTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
 	} else if inputStr == string("mortgageNet") {
-		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
+		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days))
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
@@ -264,7 +273,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
-	contract := NewContract(caller, to, value, gas)
+	contract := NewContract(caller, to, value, net)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
@@ -272,10 +281,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
 
 		defer func() { // Lazy evaluation of the parameters
-			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.vmConfig.Tracer.CaptureEnd(ret, net-contract.Gas, time.Since(start), err)
 		}()
 	}
 	ret, err = run(evm, contract, input, false)

@@ -160,6 +160,7 @@ var (
 		WeiOfUseNet:      big.NewInt(1e+14),
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),
+		RegularLimit:     5,
 	}
 )
 
@@ -221,6 +222,7 @@ type CommonConfig struct {
 	MortgageInbLimit *big.Int
 	NetUse           *big.Int // for net use
 
+	RegularLimit int // max value for regular mortgagtion
 }
 
 // String implements the stringer interface, returning the consensus engine details.

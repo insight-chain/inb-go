@@ -105,10 +105,10 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint) {
 	db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	db.MortgageNet(sender, amount)
+	db.MortgageNet(sender, amount, duration)
 }
 
 //Resource by zc
@@ -119,7 +119,14 @@ func RedeemTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.
 	db.AddBalance(sender, amount)
 	db.RedeemNet(sender, amount)
 }
-func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int) error {
+func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration uint) error {
+	if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
+		return errors.New(" exceeds mortgagtion count limit ")
+	}
+	if duration > 0 {
+		// todo check legality of days number
+	}
+
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New(" the value for mortgaging is too low ")

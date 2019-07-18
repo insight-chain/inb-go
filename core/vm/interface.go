@@ -36,10 +36,10 @@ type StateDB interface {
 	UseNet(addr common.Address, amount *big.Int)
 	GetNet(addr common.Address) *big.Int
 	GetMortgageInbOfNet(addr common.Address) *big.Int
-	MortgageNet(addr common.Address, amount *big.Int)
+	MortgageNet(addr common.Address, amount *big.Int, duration uint)
 	RedeemNet(addr common.Address, amount *big.Int)
 	UnitConvertNet() *big.Int
-	GetRegularCount(addr common.Address) int
+	StoreLength(addr common.Address) int
 	//Resource by zc
 	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc

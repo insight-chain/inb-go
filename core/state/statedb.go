@@ -60,13 +60,12 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-
-	MasterAccount   string = "0x1000000000000000000000000000000000000000" // account record value of circulation
-	MortgageAccount string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
-	BonusAccount    string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
-	TeamAccount    string = "0x3000000000000000000000000000000000000000" // account record value of team
+	MasterAccount    string = "0x1000000000000000000000000000000000000000" // account record value of circulation
+	MortgageAccount  string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+	BonusAccount     string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
+	TeamAccount      string = "0x3000000000000000000000000000000000000000" // account record value of team
 	MarketingAccount string = "0x4000000000000000000000000000000000000000" // account record value of Marketing
-	FundAccount string = "0x5000000000000000000000000000000000000000" // account record value of Fund
+	FundAccount      string = "0x5000000000000000000000000000000000000000" // account record value of Fund
 
 )
 
@@ -92,6 +91,7 @@ func (self *StateDB) GetMasterStateObject() (s *stateObject) {
 	return self.GetOrNewStateObject(common.HexToAddress(MasterAccount))
 
 }
+
 //func (self *StateDB) GetStateObject(address common.Address, num *big.Int, variety int) {
 //	newStateObject := self.getStateObject(address)
 //	if variety == mortgageCpu {
@@ -319,7 +319,6 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-
 func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -473,10 +472,10 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int) {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.MortgageNet(amount)
+		stateObject.MortgageNet(amount, duration)
 	}
 }
 
@@ -487,12 +486,14 @@ func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
 	}
 }
 
-func (self *StateDB) GetRegularCount(addr common.Address) int{
+func (self *StateDB) StoreLength(addr common.Address) int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.RegularCount()
+		return stateObject.StoreLength()
 	}
+	return 0
 }
+
 //achilles addnet subnet
 func (self *StateDB) AddNet(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
