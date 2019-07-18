@@ -105,10 +105,10 @@ type Account struct {
 	Resources Resources
 	//Resource by zc
 
-	//Store   []Store
+	Stores   []Store // slice of regular mortgagtion
 	//Recommender common.Address
 
-	Regular *big.Int // regular mortgagtion
+	Regular *big.Int //  total of regular mortgagtion
 	Profit  *big.Int // incentive earnings
 }
 
@@ -125,9 +125,10 @@ type Resource struct {
 }
 
 type Store struct {
-	StartTime time.Time
-	Days      uint32
-	Value     *big.Int
+	TxHash common.Hash // transaction of regular mortgagtion
+	StartTime time.Time // start time
+	Days      uint32 // duration of mortgagtion
+	Value     *big.Int // amount of mortgagtion
 }
 
 //Resource by zc
