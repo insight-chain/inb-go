@@ -605,60 +605,59 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	//2019.7.18 inb mod by ghy begin
-	if err:=pool.hanlecandidates(inputStr);err!=nil{
+	if err := pool.hanlecandidates(inputStr); err != nil {
 		return err
 	}
 	//2019.7.18 inb mod by ghy begin
 
-//	if strings.Contains(inputStr, "candidates") {
-//		var candidatesSlice []common.Address
-//		var UnqualifiedCandidatesSlice []common.Address
-//		candidates := strings.Split(inputStr, ":")
-//		if candidates[0] == "candidates" {
-//			candidatesStr := strings.Split(candidates[1], ",")
-//			for _, value := range candidatesStr {
-//				address := common.HexToAddress(value)
-////2019.7.15 inb mod by ghy begin
-//				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
-//					candidatesSlice = append(candidatesSlice, address)
-//				}else {
-//					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
-//				}
-//				}
-//			if len(UnqualifiedCandidatesSlice)>0{
-//				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
-//			}
-//			//2019.7.15 inb mod by ghy end
-//			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
-//				return errors.New("candidates over size")
-//			}
-//		}
-//	}
-
-
+	//	if strings.Contains(inputStr, "candidates") {
+	//		var candidatesSlice []common.Address
+	//		var UnqualifiedCandidatesSlice []common.Address
+	//		candidates := strings.Split(inputStr, ":")
+	//		if candidates[0] == "candidates" {
+	//			candidatesStr := strings.Split(candidates[1], ",")
+	//			for _, value := range candidatesStr {
+	//				address := common.HexToAddress(value)
+	////2019.7.15 inb mod by ghy begin
+	//				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
+	//					candidatesSlice = append(candidatesSlice, address)
+	//				}else {
+	//					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
+	//				}
+	//				}
+	//			if len(UnqualifiedCandidatesSlice)>0{
+	//				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
+	//			}
+	//			//2019.7.15 inb mod by ghy end
+	//			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+	//				return errors.New("candidates over size")
+	//			}
+	//		}
+	//	}
 
 	var netPayment common.Address
-	if tx.IsRepayment() {
-		payment, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			return ErrInvalidSender
-		}
-		netPayment = payment
-		tx.RemovePaymentSignatureValues()
-	}
+	//if tx.IsRepayment() {
+	//	payment, err := types.Sender(pool.signer, tx)
+	//	if err != nil {
+	//		return ErrInvalidSender
+	//	}
+	//	netPayment = payment
+	//	tx.RemovePaymentSignatureValues()
+	//}
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
 	}
-	if !tx.IsRepayment() {
-		netPayment = from
-	}
+	netPayment = from
+	//if !tx.IsRepayment() {
+	//	netPayment = from
+	//}
 
 	//2019.7.16 inb add by ghy begin
 	if strings.Contains(inputStr, "investment") {
 		investment := strings.Split(inputStr, ":")
-		if len(investment)==2{
+		if len(investment) == 2 {
 			if investment[0] == "investment" {
 				if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 					return ErrOverBalanceValue
@@ -1427,7 +1426,7 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (pool *TxPool)hanlecandidates(inputStr string)error{
+func (pool *TxPool) hanlecandidates(inputStr string) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
 		var UnqualifiedCandidatesSlice []common.Address
@@ -1437,14 +1436,14 @@ func (pool *TxPool)hanlecandidates(inputStr string)error{
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
 				//2019.7.15 inb mod by ghy begin
-				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
+				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
-				}else {
+				} else {
 					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
 				}
 			}
-			if len(UnqualifiedCandidatesSlice)>0{
-				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
+			if len(UnqualifiedCandidatesSlice) > 0 {
+				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v", UnqualifiedCandidatesSlice))
 			}
 			//2019.7.15 inb mod by ghy end
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
