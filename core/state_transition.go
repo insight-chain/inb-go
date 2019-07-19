@@ -75,8 +75,8 @@ type Message interface {
 	Data() []byte
 
 	//achilles repayment add apis
-	ResourcePayer() common.Address
-	IsRePayment() bool
+	//ResourcePayer() common.Address
+	//IsRePayment() bool
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -172,9 +172,9 @@ func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
 	//achilles repayment add apis
 	payment := st.msg.From()
-	if st.msg.IsRePayment() {
-		payment = st.msg.ResourcePayer()
-	}
+	//if st.msg.IsRePayment() {
+	//	payment = st.msg.ResourcePayer()
+	//}
 	if st.state.GetBalance(payment).Cmp(mgval) < 0 {
 		return errInsufficientBalanceForGas
 	}
@@ -228,9 +228,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 	//achilles repayment add apis
 	netPayment := st.msg.From()
-	if st.msg.IsRePayment() {
-		netPayment = st.msg.ResourcePayer()
-	}
+	//if st.msg.IsRePayment() {
+	//	netPayment = st.msg.ResourcePayer()
+	//}
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
@@ -298,11 +298,11 @@ func (st *StateTransition) refundGas() {
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
 	//achilles repayment add apis
-	if st.msg.IsRePayment() {
-		st.state.AddBalance(st.msg.ResourcePayer(), remaining)
-	} else {
-		st.state.AddBalance(st.msg.From(), remaining)
-	}
+	//if st.msg.IsRePayment() {
+	//	st.state.AddBalance(st.msg.ResourcePayer(), remaining)
+	//} else {
+	st.state.AddBalance(st.msg.From(), remaining)
+	//}
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

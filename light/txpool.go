@@ -351,14 +351,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	)
 
 	var netPayment common.Address
-	if tx.IsRepayment() {
-		payment, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			return core.ErrInvalidSender
-		}
-		netPayment = payment
-		tx.RemovePaymentSignatureValues()
-	}
+	//if tx.IsRepayment() {
+	//	payment, err := types.Sender(pool.signer, tx)
+	//	if err != nil {
+	//		return core.ErrInvalidSender
+	//	}
+	//	netPayment = payment
+	//	tx.RemovePaymentSignatureValues()
+	//}
 
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
@@ -366,9 +366,9 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		return core.ErrInvalidSender
 	}
 
-	if !tx.IsRepayment() {
-		netPayment = from
-	}
+	//if !tx.IsRepayment() {
+	netPayment = from
+	//}
 
 	// Last but not least check for nonce errors
 	currentState := pool.currentState(ctx)
@@ -391,7 +391,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	inputStr := string(tx.Data())
-	if err:= hanlecandidates(currentState, inputStr);err!=nil{
+	if err := hanlecandidates(currentState, inputStr); err != nil {
 		return err
 	}
 
@@ -626,7 +626,7 @@ func (pool *TxPool) RemoveTx(hash common.Hash) {
 	pool.relay.Discard([]common.Hash{hash})
 }
 
-func hanlecandidates(currentState *state.StateDB, inputStr string)error{
+func hanlecandidates(currentState *state.StateDB, inputStr string) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
 		var UnqualifiedCandidatesSlice []common.Address
@@ -636,14 +636,14 @@ func hanlecandidates(currentState *state.StateDB, inputStr string)error{
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
 				//2019.7.15 inb mod by ghy begin
-				if currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
+				if currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
-				}else {
+				} else {
 					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
 				}
 			}
-			if len(UnqualifiedCandidatesSlice)>0{
-				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
+			if len(UnqualifiedCandidatesSlice) > 0 {
+				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v", UnqualifiedCandidatesSlice))
 			}
 			//2019.7.15 inb mod by ghy end
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
