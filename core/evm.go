@@ -18,7 +18,6 @@ package core
 
 import (
 	"errors"
-	"fmt"
 	"github.com/insight-chain/inb-go/params"
 	"math/big"
 	"time"
@@ -132,8 +131,6 @@ func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big
 func CanReset(db vm.StateDB, addr common.Address) error {
 	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
 	now := big.NewInt(time.Now().Unix())
-	fmt.Println("expire " + expire.String())
-	fmt.Println("now " + now.String())
 	if expire.Cmp(now) > 0 {
 		return errors.New(" before reset time ")
 	}

@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"strings"
 	"sync/atomic"
 
 	"github.com/insight-chain/inb-go/common"
@@ -349,7 +350,7 @@ func (tx *Transaction) IsMortgageNet() bool {
 
 func (tx *Transaction) IsRegularMortgageNet() bool {
 	inputStr := string(tx.Data())
-	if inputStr == string("mortgageNet:") {
+	if strings.HasPrefix(inputStr, "mortgageNet:") {
 		return true
 	}
 	return false

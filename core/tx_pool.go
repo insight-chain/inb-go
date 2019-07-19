@@ -680,10 +680,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if inputStr == string("reset") {
-		fmt.Println(pool.currentState.GetDate(from).String())
-		fmt.Println(params.TxConfig.ResetDuration.String())
-		fmt.Println("1:" + big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).String())
-		fmt.Println("2:" + big.NewInt(time.Now().Unix()).String())
 		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(big.NewInt(int64(time.Now().Unix()))) > 0 {
 			return ErrBeforeResetTime
 		}
@@ -699,7 +695,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && inputStr != string("reset") {
+	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() {
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}

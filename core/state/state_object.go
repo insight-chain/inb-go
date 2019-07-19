@@ -120,6 +120,7 @@ type Resource struct {
 	Used         *big.Int // used
 	Usableness   *big.Int // unuse
 	MortgagteINB *big.Int //
+	Frozen       *big.Int // redeeming value
 }
 
 type Store struct {

@@ -262,7 +262,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 
 	if inputStr == string("unmortgageNet") {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value)
-	} else if inputStr == string("mortgageNet") {
+	} else if inputStr == string("mortgageNet") || strings.HasPrefix(inputStr, "mortgageNet:") {
 		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
 	} else if inputStr == string("reset") {
 		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
