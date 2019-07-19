@@ -18,9 +18,8 @@ package params
 
 import (
 	"fmt"
-	"math/big"
-
 	"github.com/insight-chain/inb-go/common"
+	"math/big"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -162,6 +161,7 @@ var (
 		NetUse:           big.NewInt(100),
 		RegularLimit:     5,
 		Days:             [3]uint{30, 180, 360},
+		ResetDuration:    big.NewInt(24 * 60 * 60),
 	}
 )
 
@@ -223,8 +223,9 @@ type CommonConfig struct {
 	MortgageInbLimit *big.Int
 	NetUse           *big.Int // for net use
 
-	RegularLimit int // max value for regular mortgagtion
-	Days         [3]uint
+	ResetDuration *big.Int // duration of reseting nets
+	RegularLimit  int      // max value for regular mortgagtion
+	Days          [3]uint
 }
 
 // String implements the stringer interface, returning the consensus engine details.

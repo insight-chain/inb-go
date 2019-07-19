@@ -27,20 +27,23 @@ func NewEnv(cfg *Config) *vm.EVM {
 		CanTransfer: core.CanTransfer,
 		Transfer:    core.Transfer,
 		//Resource by zc
-		MortgageTrasfer: core.MortgageTrasfer,
+		MortgageTransfer: core.MortgageTransfer,
 		//Resource by zc
 		GetHash: func(uint64) common.Hash { return common.Hash{} },
 
-		Origin:        cfg.Origin,
-		Coinbase:      cfg.Coinbase,
-		BlockNumber:   cfg.BlockNumber,
-		Time:          cfg.Time,
-		Difficulty:    cfg.Difficulty,
-		GasLimit:      cfg.GasLimit,
-		GasPrice:      cfg.GasPrice,
-		CanMortgage:   core.CanMortgage,
-		CanRedeem:     core.CanRedeem,
-		RedeemTrasfer: core.RedeemTrasfer,
+		Origin:      cfg.Origin,
+		Coinbase:    cfg.Coinbase,
+		BlockNumber: cfg.BlockNumber,
+		Time:        cfg.Time,
+		Difficulty:  cfg.Difficulty,
+		GasLimit:    cfg.GasLimit,
+		GasPrice:    cfg.GasPrice,
+
+		CanReset:       core.CanReset,
+		CanMortgage:    core.CanMortgage,
+		CanRedeem:      core.CanRedeem,
+		RedeemTransfer: core.RedeemTransfer,
+		ResetTransfer:  core.ResetTransfer,
 	}
 
 	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)

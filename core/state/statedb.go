@@ -343,6 +343,14 @@ func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+func (self *StateDB) GetDate(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Date()
+	}
+	return common.Big0
+}
+
 //Resource by zc
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
 	stateObject := self.getStateObject(addr)
@@ -472,10 +480,17 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint) {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.MortgageNet(amount, duration)
+		stateObject.MortgageNet(amount, duration, sTime)
+	}
+}
+
+func (self *StateDB) ResetNet(addr common.Address, update *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.ResetNet(update)
 	}
 }
 

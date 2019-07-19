@@ -84,6 +84,7 @@ var (
 	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
 	ErrOverBalanceValue            = errors.New("Balance is not enough ")
+	ErrBeforeResetTime             = errors.New("before reset time")
 
 	//achilles0718 regular mortgagtion
 	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
@@ -672,9 +673,19 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") || strings.HasPrefix(inputStr, "mortgageNet:") {
+	if inputStr != string("unmortgageNet") || inputStr != string("reset") {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
+		}
+	}
+
+	if inputStr == string("reset") {
+		fmt.Println(pool.currentState.GetDate(from).String())
+		fmt.Println(params.TxConfig.ResetDuration.String())
+		fmt.Println("1:" + big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).String())
+		fmt.Println("2:" + big.NewInt(time.Now().Unix()).String())
+		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(big.NewInt(int64(time.Now().Unix()))) > 0 {
+			return ErrBeforeResetTime
 		}
 	}
 
@@ -688,7 +699,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() {
+	if !tx.IsMortgageNet() && inputStr != string("reset") {
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}
@@ -734,7 +745,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		usableNet := pool.currentState.GetNet(netPayment)
 
 		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-			return errors.New(" the value for redeem is too low ")
+			return errors.New(" value for redeem is too low ")
 		}
 
 		if usableNet.Cmp(unit) < 0 {

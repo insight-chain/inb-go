@@ -19,13 +19,11 @@ package state
 import (
 	"bytes"
 	"fmt"
-	"io"
-	"math/big"
-	"time"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/rlp"
+	"io"
+	"math/big"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -116,7 +114,7 @@ type Account struct {
 type Resources struct {
 	CPU  Resource
 	NET  Resource
-	Date string
+	Date *big.Int
 }
 type Resource struct {
 	Used         *big.Int // used
@@ -350,7 +348,7 @@ func (self *stateObject) setBalance(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int, duration uint) {
+func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
@@ -364,7 +362,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint) {
 	if duration > 0 {
 		store := Store{
 			Nonce:     self.data.Nonce,
-			StartTime: *big.NewInt(time.Now().Unix()),
+			StartTime: sTime,
 			Days:      duration,
 			Value:     *amount,
 		}
@@ -372,6 +370,18 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint) {
 		regular := new(big.Int).Add(self.data.Regular, amount)
 		self.SetStores(stores, regular)
 	}
+
+	if !(big.NewInt(0).Cmp(self.Date()) < 0) {
+		self.SetDate(&sTime)
+	}
+}
+
+func (self *stateObject) ResetNet(update *big.Int) {
+	netUse := self.db.ConvertToNets(self.MortgageOfNet())
+	netUsed := big.NewInt(0)
+
+	self.SetNet(netUsed, netUse, self.MortgageOfINB())
+	self.SetDate(update)
 }
 
 //achilles RedeemNet sub nets from c's balance
@@ -412,6 +422,19 @@ func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.data.Resources.NET.Used = usedAmount
 	self.data.Resources.NET.Usableness = usableAmount
 	self.data.Resources.NET.MortgagteINB = mortgageInb
+}
+
+func (self *stateObject) SetDate(update *big.Int) {
+
+	self.db.journal.append(dateChange{
+		account: &self.address,
+		prev:    new(big.Int).Set(self.data.Resources.Date),
+	})
+	self.setDate(update)
+}
+
+func (self *stateObject) setDate(update *big.Int) {
+	self.data.Resources.Date = update
 }
 
 //achilles0718 regular mortgagtion
@@ -530,6 +553,10 @@ func (self *stateObject) MortgageOfCpu() *big.Int {
 }
 func (self *stateObject) MortgageOfNet() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
+}
+
+func (self *stateObject) Date() *big.Int {
+	return self.data.Resources.Date
 }
 
 //Resource by zc

@@ -128,6 +128,10 @@ type (
 		stores  []Store
 		regular *big.Int
 	}
+	dateChange struct {
+		account *common.Address
+		prev    *big.Int
+	}
 
 	storageChange struct {
 		account       *common.Address
@@ -160,6 +164,14 @@ func (ch regularChange) revert(s *StateDB) {
 }
 
 func (ch regularChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch dateChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).SetDate(ch.prev)
+}
+
+func (ch dateChange) dirtied() *common.Address {
 	return ch.account
 }
 

@@ -18,8 +18,10 @@ package core
 
 import (
 	"errors"
+	"fmt"
 	"github.com/insight-chain/inb-go/params"
 	"math/big"
+	"time"
 
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
@@ -50,19 +52,21 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		//Resource by zc
-		MortgageTrasfer: MortgageTrasfer,
+		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:       GetHashFn(header, chain),
-		Origin:        msg.From(),
-		Coinbase:      beneficiary,
-		BlockNumber:   new(big.Int).Set(header.Number),
-		Time:          new(big.Int).Set(header.Time),
-		Difficulty:    new(big.Int).Set(header.Difficulty),
-		GasLimit:      header.GasLimit,
-		GasPrice:      new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:   CanMortgage,
-		CanRedeem:     CanRedeem,
-		RedeemTrasfer: RedeemTrasfer,
+		GetHash:        GetHashFn(header, chain),
+		Origin:         msg.From(),
+		Coinbase:       beneficiary,
+		BlockNumber:    new(big.Int).Set(header.Number),
+		Time:           new(big.Int).Set(header.Time),
+		Difficulty:     new(big.Int).Set(header.Difficulty),
+		GasLimit:       header.GasLimit,
+		GasPrice:       new(big.Int).Set(msg.GasPrice()),
+		CanMortgage:    CanMortgage,
+		CanRedeem:      CanRedeem,
+		CanReset:       CanReset,
+		RedeemTransfer: RedeemTransfer,
+		ResetTransfer:  ResetTransfer,
 	}
 }
 
@@ -105,20 +109,37 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint) {
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) {
 	db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	db.MortgageNet(sender, amount, duration)
+	db.MortgageNet(sender, amount, duration, sTime)
+}
+
+//achilles0719 regular mortgagtion
+func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
+	db.ResetNet(sender, update)
 }
 
 //Resource by zc
 
 //achilles
-func RedeemTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
+func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(recipient, amount)
 	db.AddBalance(sender, amount)
 	db.RedeemNet(sender, amount)
 }
+
+func CanReset(db vm.StateDB, addr common.Address) error {
+	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
+	now := big.NewInt(time.Now().Unix())
+	fmt.Println("expire " + expire.String())
+	fmt.Println("now " + now.String())
+	if expire.Cmp(now) > 0 {
+		return errors.New(" before reset time ")
+	}
+	return nil
+}
+
 func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration uint) error {
 	if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
 		return errors.New(" exceeds mortgagtion count limit ")

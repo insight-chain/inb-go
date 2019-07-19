@@ -38,15 +38,17 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int)
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
+	CanResetFunc       func(StateDB, common.Address) error
 	CanMortgageFunc    func(StateDB, common.Address, *big.Int, uint) error
 	CanRedeemFunc      func(StateDB, common.Address, *big.Int) error
 	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	ResetTransferFunc  func(StateDB, common.Address, *big.Int)
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -85,7 +87,7 @@ type Context struct {
 	// Transfer transfers ether from one account to the other
 	Transfer TransferFunc
 	//Resource by zc
-	MortgageTrasfer MortgageTrasferFunc
+	MortgageTransfer MortgageTrasferFunc
 	//Resource by zc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
@@ -101,9 +103,11 @@ type Context struct {
 	Time        *big.Int       // Provides information for TIME
 	Difficulty  *big.Int       // Provides information for DIFFICULTY
 
-	CanMortgage   CanMortgageFunc
-	CanRedeem     CanRedeemFunc
-	RedeemTrasfer RedeemTransferFunc
+	CanReset       CanResetFunc
+	CanMortgage    CanMortgageFunc
+	CanRedeem      CanRedeemFunc
+	RedeemTransfer RedeemTransferFunc
+	ResetTransfer  ResetTransferFunc
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -203,10 +207,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, net, ErrDepth
 	}
-	// Fail if we're trying to transfer more than the available balance
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, net, ErrInsufficientBalance
-	}
+
 	// achilles improve mortgage
 	inputStr := string(input)
 	days := 0 // duration of mortgagtion,
@@ -225,6 +226,15 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	} else if inputStr == string("unmortgageNet") {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
 			return nil, net, err
+		}
+	} else if inputStr == string("reset") {
+		if err := evm.Context.CanReset(evm.StateDB, caller.Address()); err != nil {
+			return nil, net, err
+		}
+	} else {
+		// Fail if we're trying to transfer more than the available balance
+		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+			return nil, net, ErrInsufficientBalance
 		}
 	}
 
@@ -251,9 +261,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	//Resource by zc
 
 	if inputStr == string("unmortgageNet") {
-		evm.RedeemTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
+		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value)
 	} else if inputStr == string("mortgageNet") {
-		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days))
+		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
+	} else if inputStr == string("reset") {
+		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
