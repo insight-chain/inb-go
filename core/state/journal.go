@@ -121,6 +121,14 @@ type (
 		account *common.Address
 		prev    uint64
 	}
+
+	//achilles0718 regular mortgagtion
+	regularChange struct {
+		account *common.Address
+		stores  []Store
+		regular *big.Int
+	}
+
 	storageChange struct {
 		account       *common.Address
 		key, prevalue common.Hash
@@ -146,6 +154,14 @@ type (
 		prevDirty bool
 	}
 )
+
+func (ch regularChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setStores(ch.stores, ch.regular)
+}
+
+func (ch regularChange) dirtied() *common.Address {
+	return ch.account
+}
 
 func (ch createObjectChange) revert(s *StateDB) {
 	delete(s.stateObjects, *ch.account)

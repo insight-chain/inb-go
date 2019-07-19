@@ -161,6 +161,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),
 		RegularLimit:     5,
+		Days:             [3]uint{30, 180, 360},
 	}
 )
 
@@ -223,6 +224,7 @@ type CommonConfig struct {
 	NetUse           *big.Int // for net use
 
 	RegularLimit int // max value for regular mortgagtion
+	Days         [3]uint
 }
 
 // String implements the stringer interface, returning the consensus engine details.
@@ -490,4 +492,15 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsByzantium:      c.IsByzantium(num),
 		IsConstantinople: c.IsConstantinople(num),
 	}
+}
+
+func Contains(day uint) bool {
+	isContain := false
+	for _, value := range TxConfig.Days {
+		if value == day {
+			isContain = true
+			break
+		}
+	}
+	return isContain
 }

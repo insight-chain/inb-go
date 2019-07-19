@@ -210,9 +210,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	// achilles improve mortgage
 	inputStr := string(input)
 	days := 0 // duration of mortgagtion,
-	if inputStr == string("mortgageNet") {
-		if strings.Contains(inputStr, ":") {
-			// regular mortgagtion
+
+	if strings.HasPrefix(inputStr, "mortgageNet") {
+		// regular mortgagtion
+		if strings.Contains(inputStr, "mortgageNet:") {
 			regulars := strings.Split(inputStr, ":")
 			if convert, err := strconv.Atoi(regulars[1]); err == nil {
 				days = convert

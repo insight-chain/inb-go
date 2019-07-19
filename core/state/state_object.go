@@ -125,10 +125,10 @@ type Resource struct {
 }
 
 type Store struct {
-	TxHash    common.Hash // transaction of regular mortgagtion
-	StartTime big.Int     // start time
-	Days      uint        // duration of mortgagtion
-	Value     big.Int     // amount of mortgagtion
+	Nonce     uint64  // transaction of regular mortgagtion
+	StartTime big.Int // start time
+	Days      uint    // duration of mortgagtion
+	Value     big.Int // amount of mortgagtion
 }
 
 //Resource by zc
@@ -158,6 +158,12 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	}
 	if data.Resources.NET.MortgagteINB == nil {
 		data.Resources.NET.MortgagteINB = new(big.Int)
+	}
+	//if data.Stores == nil {
+	//	data.Stores =  make([]Store,5)
+	//}
+	if data.Regular == nil {
+		data.Regular = new(big.Int)
 	}
 	//Resource by zc
 	return &stateObject{
@@ -356,7 +362,15 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint) {
 	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
 
 	if duration > 0 {
-		self.SetStores(*amount, duration)
+		store := Store{
+			Nonce:     self.data.Nonce,
+			StartTime: *big.NewInt(time.Now().Unix()),
+			Days:      duration,
+			Value:     *amount,
+		}
+		stores := append(self.data.Stores, store)
+		regular := new(big.Int).Add(self.data.Regular, amount)
+		self.SetStores(stores, regular)
 	}
 }
 
@@ -394,22 +408,25 @@ func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.setNet(usedAmount, usableAmount, mortgageInb)
 }
 
-//achilles0718 regular mortgagtion
-func (self *stateObject) SetStores(amount big.Int, duration uint) {
-	store := Store{
-		//todo hash
-		StartTime: *big.NewInt(time.Now().Unix()),
-		Days:      duration,
-		Value:     amount,
-	}
-	newStores := append(self.data.Stores, store)
-	self.data.Stores = newStores
-}
-
 func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
 	self.data.Resources.NET.Used = usedAmount
 	self.data.Resources.NET.Usableness = usableAmount
 	self.data.Resources.NET.MortgagteINB = mortgageInb
+}
+
+//achilles0718 regular mortgagtion
+func (self *stateObject) SetStores(stores []Store, amount *big.Int) {
+	self.db.journal.append(regularChange{
+		account: &self.address,
+		stores:  self.data.Stores,
+		regular: new(big.Int).Set(self.data.Regular),
+	})
+	self.setStores(stores, amount)
+}
+
+func (self *stateObject) setStores(stores []Store, amount *big.Int) {
+	self.data.Stores = stores
+	self.data.Regular = amount
 }
 
 // Return the gas back to the origin. Used by the Virtual machine or Closures

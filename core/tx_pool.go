@@ -672,7 +672,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") {
+	if inputStr != string("unmortgageNet") || strings.HasPrefix(inputStr, "mortgageNet:") {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}

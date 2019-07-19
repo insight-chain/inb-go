@@ -124,7 +124,9 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration u
 		return errors.New(" exceeds mortgagtion count limit ")
 	}
 	if duration > 0 {
-		// todo check legality of days number
+		if !params.Contains(duration) {
+			return errors.New(" wrong duration of mortgagtion ")
+		}
 	}
 
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
