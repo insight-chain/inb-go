@@ -44,6 +44,8 @@ func NewEnv(cfg *Config) *vm.EVM {
 		CanRedeem:      core.CanRedeem,
 		RedeemTransfer: core.RedeemTransfer,
 		ResetTransfer:  core.ResetTransfer,
+		CanReceiveAward: core.CanReceiveAwardFunc,
+		ReceiveAward:   core.ReceiveAwardFunc,////2019.7.22 inb by ghy
 	}
 
 	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)

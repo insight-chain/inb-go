@@ -62,6 +62,9 @@ var (
 	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
 	DefaultTotalAccount              = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
+	//RevenueCycleTime                 = uint64(30*24*60*60)
+
 )
 
 // Various error messages to mark blocks invalid. These should be private to

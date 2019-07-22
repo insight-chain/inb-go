@@ -23,6 +23,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,10 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
+	//inb by ghy begin
+	ResponseRate                	= float64(0.01)
+	CycleTimes                       = uint64(12)
+	//inb by ghy end
 )
 
 var (
@@ -685,6 +690,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
+	if err:=pool.validatereceivebonus(inputStr,from);err!=nil{
+		return err
+	}
 	//achilles replace gas with net
 	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
 	//if err != nil {
@@ -1455,3 +1463,82 @@ func (pool *TxPool) hanlecandidates(inputStr string) error {
 	}
 	return nil
 }
+//2019.7.22 inb by ghy begin
+func (pool *TxPool)validatereceivebonus(inputStr string,from common.Address)error{
+
+	if strings.Contains(inputStr, "ReceiveAward") {
+		//flag:=false
+		receivebonus := strings.Split(inputStr, ":")
+		if len(receivebonus)==2&&receivebonus[0]=="ReceiveAward"{
+			account:=pool.currentState.GetAccountInfo(from)
+
+			for _,v:=range account.Stores{
+				if strconv.Itoa(int(v.Nonce)) ==receivebonus[1]{
+					timeNow := pool.chain.CurrentBlock().Time().Uint64()
+					totalValue := v.Value.Uint64()
+					startTime := v.StartTime.Uint64()
+					receivedValue := v.Received.Uint64()
+
+					daySeconds := uint64(v.Days * 24 * 60 * 60)
+
+					//CycleTime:=daySeconds/vdpos.CycleTimes
+					CycleTime:=daySeconds/common.CycleTimes
+					if timeNow < startTime {
+						return errors.New("err")
+					}
+					sub := timeNow - startTime
+					number:=sub/CycleTime
+
+					if number>12{
+						number=12
+					}
+
+					//CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
+					CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
+
+					subValue := CanReceivedValue - float64(receivedValue)
+
+					if subValue > 0{
+						return nil
+					}
+
+
+
+					//if time.Now().After(v.StartTime.AddDate(0,0,v.Days)){
+					//	flag =true
+					//}else{
+					//	return errors.New("Not to unlock time")
+					//}
+//if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(big.NewInt(int64(time.Now().Unix()))) > 0
+//					 new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
+//					 new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
+//					persent := new(big.Int).Div(&v.Received, &v.Value)
+//					number:=new(big.Int).Mul(persent,vdpos.CycleTimes)
+//					AddNumber := new(big.Int).Add(number, big.NewInt(1))
+//					persents:=new(big.Int).Div(AddNumber,vdpos.CycleTimes)
+//					if persents.Cmp(big.NewInt(1))>0{
+//						return errors.New("The reward has been received")
+//					}
+//					cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
+//					mul := new(big.Int).Mul(cycleTime, persents)
+//					end := new(big.Int).Add(cycleTime, mul)
+//					endTime:=new(big.Int).Add(end,&v.StartTime)
+//					if pool.chain.CurrentBlock().Time().Cmp(endTime)!=1{
+//						return errors.New("It's not time to receive the prize")
+//					}else{
+//						return nil
+//					}
+				}
+			}
+			return errors.New("have no rewards to received")
+		}else{
+			return errors.New("Receivebonus parameter error")
+		}
+		//if !flag{
+		//	return errors.New("No such regular mortgage record")
+		//}
+	}
+
+	return nil
+}
+//2019.7.22 inb by ghy end

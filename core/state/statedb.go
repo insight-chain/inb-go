@@ -493,6 +493,25 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) {
 		stateObject.ResetNet(update)
 	}
 }
+//2019.7.22 inb by ghy begin
+
+
+func (self *StateDB)CanReceiveAward(addr common.Address,nonce int,time *big.Int)(err error ,value int ,is bool){
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.CanReceiveAward(nonce, time)
+	}
+	return errors.New("erros"),0,false
+}
+
+
+func (self *StateDB)ReceiveAward(addr common.Address,nonce int,value int,isAll bool){
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.ReceiveAward(nonce,value,isAll)
+	}
+}
+//2019.7.22 inb by ghy end
 
 func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)

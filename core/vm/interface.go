@@ -45,6 +45,10 @@ type StateDB interface {
 	//Resource by zc
 	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
+	//2019.7.22 inb by ghy begin
+	CanReceiveAward (common.Address,int,*big.Int) (error,int,bool)
+	ReceiveAward(common.Address,int,int,bool)
+	//2019.7.22 inb by ghy end
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 

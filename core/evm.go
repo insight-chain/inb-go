@@ -64,8 +64,10 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanMortgage:    CanMortgage,
 		CanRedeem:      CanRedeem,
 		CanReset:       CanReset,
+		CanReceiveAward: CanReceiveAwardFunc, //2019.7.22 inb by ghy
 		RedeemTransfer: RedeemTransfer,
 		ResetTransfer:  ResetTransfer,
+		ReceiveAward:   ReceiveAwardFunc, //2019.7.22 inb by ghy
 	}
 }
 
@@ -121,6 +123,17 @@ func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
 
 //Resource by zc
 
+//2019.7.22 inb by ghy begin
+func CanReceiveAwardFunc(db vm.StateDB,from common.Address,nonce int,time *big.Int)(error,int,bool){
+	return db.CanReceiveAward(from,nonce,time)
+
+}
+
+
+func ReceiveAwardFunc(db vm.StateDB,from common.Address,nonce int,values int,isAll bool){
+  db.ReceiveAward(from,nonce,values,isAll)
+}
+//2019.7.22 inb by ghy end
 //achilles
 func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
 	db.SubBalance(recipient, amount)

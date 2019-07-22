@@ -160,7 +160,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),
 		RegularLimit:     5,
-		Days:             [3]uint{30, 180, 360},
+		Days:             [4]uint{ 1,30, 180, 360},
 		ResetDuration:    big.NewInt(24 * 60 * 60),
 	}
 )
@@ -225,7 +225,7 @@ type CommonConfig struct {
 
 	ResetDuration *big.Int // duration of reseting nets
 	RegularLimit  int      // max value for regular mortgagtion
-	Days          [3]uint
+	Days          [4]uint
 }
 
 // String implements the stringer interface, returning the consensus engine details.

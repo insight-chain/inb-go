@@ -18,11 +18,14 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/common"
+	//"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/rlp"
 	"io"
+	"math"
 	"math/big"
 )
 
@@ -128,6 +131,7 @@ type Store struct {
 	StartTime big.Int // start time
 	Days      uint    // duration of mortgaging
 	Value     big.Int // amount of mortgaging
+	Received  big.Int // amount of already received value
 }
 
 type Redeem struct {
@@ -391,6 +395,83 @@ func (self *stateObject) ResetNet(update *big.Int) {
 	self.SetNet(netUsed, netUse, self.MortgageOfINB())
 	self.SetDate(update)
 }
+
+//2019.7.22 inb by ghy begin
+func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, value int ,isAll bool) {
+	if len(self.data.Stores) > 0 {
+		for _, v := range self.data.Stores {
+			if nonce == int(v.Nonce) {
+				timeNow := time.Uint64()
+				totalValue := v.Value.Uint64()
+				startTime := v.StartTime.Uint64()
+				receivedValue := v.Received.Uint64()
+
+				daySeconds := uint64(v.Days * 24 * 60 * 60)
+
+				//CycleTime:=daySeconds/vdpos.CycleTimes
+				CycleTime:=daySeconds/common.CycleTimes
+				if timeNow < startTime {
+					return
+				}
+				sub := timeNow - startTime
+   				number:=sub/CycleTime
+
+   				if number>12{
+   					number=12
+				}
+
+				//CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
+				CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
+
+				subValue := CanReceivedValue - float64(receivedValue)
+
+				if subValue > 0{
+					return nil ,int(math.Floor(subValue)),number==12
+				}
+
+				//sub := new(big.Int).Sub(time, &v.StartTime)
+				//number := new(big.Int).Div(big.NewInt(int64(v.Days*24*60*60)), sub)
+				//
+				////new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
+				////new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
+				//persent := new(big.Int).Div(&v.Received, &v.Value)
+				//number := new(big.Int).Mul(persent, vdpos.CycleTimes)
+				//AddNumber := new(big.Int).Add(number, big.NewInt(1))
+				//persents := new(big.Int).Div(AddNumber, vdpos.CycleTimes)
+				//if persents.Cmp(big.NewInt(1)) > 0 {
+				//	return errors.New("The reward has been received")
+				//}
+				//cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
+				//mul := new(big.Int).Mul(cycleTime, persents)
+				//end := new(big.Int).Add(cycleTime, mul)
+				//endTime := new(big.Int).Add(end, &v.StartTime)
+				//if time.Cmp(endTime) != 1 {
+				//	return errors.New("It's not time to receive the prize")
+				//} else {
+				//	return nil
+				//}
+
+			}
+		}
+	}
+	return errors.New("Have no INB to received"),0,false
+}
+
+func (self *stateObject) ReceiveAward(nonce int,value int ,isAll bool) {
+
+	if len(self.data.Stores) > 0 {
+		for k, v := range self.data.Stores {
+			if nonce == int(v.Nonce) {
+				self.AddBalance(big.NewInt(int64(value)))
+				if isAll{
+					self.AddBalance(&v.Value)
+					self.data.Stores=append(self.data.Stores[:k],self.data.Stores[:k+1]...)
+				}
+			}
+		}
+	}
+}
+//2019.7.22 inb by ghy end
 
 //achilles RedeemNet sub nets from c's balance
 func (self *stateObject) RedeemNet(amount *big.Int) {
