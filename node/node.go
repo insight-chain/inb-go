@@ -234,7 +234,7 @@ func (n *Node) Start() error {
 	CurrentNode = n
 
 	//inb by ghy begin
-	//go ConnectAllSuperNodes(n)
+	go ConnectAllSuperNodes(n)
 	//inb by ghy end
 
 	return nil
