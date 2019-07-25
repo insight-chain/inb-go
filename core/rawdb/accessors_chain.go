@@ -187,10 +187,34 @@ func DeleteHeader(db DatabaseDeleter, hash common.Hash, number uint64) {
 	}
 }
 
+//inb by ssh begin
+type midBody struct {
+	ITransactions []*types.ITransaction
+	Uncles        []*types.Header
+}
+
 // ReadBodyRLP retrieves the block body (transactions and uncles) in RLP encoding.
 func ReadBodyRLP(db DatabaseReader, hash common.Hash, number uint64) rlp.RawValue {
+	//data, _ := db.Get(blockBodyKey(number, hash))
+	//return data
 	data, _ := db.Get(blockBodyKey(number, hash))
-	return data
+	if len(data) == 0 {
+		return []byte{}
+	}
+	mid := new(midBody)
+	if err := rlp.Decode(bytes.NewReader(data), mid); err != nil {
+		log.Error("Invalid block body RLP", "hash", hash, "err", err)
+		return []byte{}
+	}
+	body := new(types.Body)
+	body.Transactions = types.DecodeTransactionStruct(mid.ITransactions)
+	body.Uncles = mid.Uncles
+	dataOutPut, err := rlp.EncodeToBytes(body)
+	if err != nil {
+		log.Error("Failed to RLP encode body", "err", err)
+		return []byte{}
+	}
+	return dataOutPut
 }
 
 // WriteBodyRLP stores an RLP encoded block body into the database.
@@ -208,32 +232,8 @@ func HasBody(db DatabaseReader, hash common.Hash, number uint64) bool {
 	return true
 }
 
-//inb by ssh begin
-//type midBody struct {
-//	ITransactions []*types.ITransaction
-//	Uncles        []*types.Header
-//}
-
 // ReadBody retrieves the block body corresponding to the hash.
 func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
-	//data := ReadBodyRLP(db, hash, number)
-	//if len(data) == 0 {
-	//	//	return nil
-	//	//}
-	//	//mid := new(midBody)
-	//	//if err := rlp.Decode(bytes.NewReader(data), mid); err != nil {
-	//	//	log.Error("Invalid block body RLP", "hash", hash, "err", err)
-	//	//	return nil
-	//	//}
-	//	//body := new(types.Body)
-	//	//body.Transactions = types.DecodeTransactionStruct(mid.ITransactions)
-	//	//body.Uncles = mid.Uncles
-	//	////if err := rlp.Decode(bytes.NewReader(data), body); err != nil {
-	//	////	log.Error("Invalid block body RLP", "hash", hash, "err", err)
-	//	////	return nil
-	//	////}
-	//	//return body
-
 	data := ReadBodyRLP(db, hash, number)
 	if len(data) == 0 {
 		return nil
@@ -248,23 +248,22 @@ func ReadBody(db DatabaseReader, hash common.Hash, number uint64) *types.Body {
 
 // WriteBody storea a block body into the database.
 func WriteBody(db DatabaseWriter, hash common.Hash, number uint64, body *types.Body) {
-	//rlpTxs := types.EncodeTransactionStruct(body.Transactions)
-	//mid := &midBody{
-	//	ITransactions: rlpTxs,
-	//	Uncles:        body.Uncles,
-	//}
-	////data, err := rlp.EncodeToBytes(body)
-	//data, err := rlp.EncodeToBytes(mid)
-	//if err != nil {
-	//	log.Crit("Failed to RLP encode body", "err", err)
-	//}
-	//WriteBodyRLP(db, hash, number, data)
-
-	data, err := rlp.EncodeToBytes(body)
+	rlpTxs := types.EncodeTransactionStruct(body.Transactions)
+	mid := &midBody{
+		ITransactions: rlpTxs,
+		Uncles:        body.Uncles,
+	}
+	data, err := rlp.EncodeToBytes(mid)
 	if err != nil {
 		log.Crit("Failed to RLP encode body", "err", err)
 	}
 	WriteBodyRLP(db, hash, number, data)
+
+	//data, err := rlp.EncodeToBytes(body)
+	//if err != nil {
+	//	log.Crit("Failed to RLP encode body", "err", err)
+	//}
+	//WriteBodyRLP(db, hash, number, data)
 }
 
 //inb by ssh end
