@@ -44,19 +44,18 @@ type (
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanResetFunc func(StateDB, common.Address) error
-	CanMortgageFunc func(StateDB, common.Address, *big.Int, uint) error
-	CanRedeemFunc func(StateDB, common.Address, *big.Int) error
-	CanReceiveFunc	   func(StateDB, common.Address) error
-	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
-	ResetTransferFunc  func(StateDB, common.Address, *big.Int)
-	ReceiveTransferFunc  func(StateDB, common.Address, *big.Int)
-	ResetTransferFunc func(StateDB, common.Address, *big.Int)
-	CanReceiveAwardFunc func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool) //2019.7.22 inb by ghy begin
-	ReceiveAwardFunc func(StateDB, common.Address, int, *big.Int, bool,*big.Int)                      //2019.7.22 inb by ghy begin
-	CanReceiveVoteAwardFunc func(StateDB,common.Address, *big.Int)(error,*big.Int)//2019.7.24 inb by ghy begin
-	ReceiveVoteAwardFunc func(StateDB,common.Address,*big.Int, *big.Int)//2019.7.24 inb by ghy begin
-	VoteFunc func(StateDB,common.Address)//2019.7.24 inb by ghy
+	CanResetFunc            func(StateDB, common.Address) error
+	CanMortgageFunc         func(StateDB, common.Address, *big.Int, uint) error
+	CanRedeemFunc           func(StateDB, common.Address, *big.Int) error
+	CanReceiveFunc          func(StateDB, common.Address) error
+	RedeemTransferFunc      func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc     func(StateDB, common.Address, *big.Int)
+	ResetTransferFunc       func(StateDB, common.Address, *big.Int)
+	CanReceiveAwardFunc     func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool) //2019.7.22 inb by ghy begin
+	ReceiveAwardFunc        func(StateDB, common.Address, int, *big.Int, bool, *big.Int)         //2019.7.22 inb by ghy begin
+	CanReceiveVoteAwardFunc func(StateDB, common.Address, *big.Int) (error, *big.Int)            //2019.7.24 inb by ghy begin
+	ReceiveVoteAwardFunc    func(StateDB, common.Address, *big.Int, *big.Int)                    //2019.7.24 inb by ghy begin
+	VoteFunc                func(StateDB, common.Address)                                        //2019.7.24 inb by ghy
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -114,14 +113,15 @@ type Context struct {
 	CanReset            CanResetFunc
 	CanMortgage         CanMortgageFunc
 	CanRedeem           CanRedeemFunc
-	CanReceive     CanReceiveFunc
-	RedeemTransfer RedeemTransferFunc
-	ResetTransfer  ResetTransferFunc
-	ReceiveTransfer  ReceiveTransferFunc
+	CanReceive          CanReceiveFunc
+	RedeemTransfer      RedeemTransferFunc
+	ResetTransfer       ResetTransferFunc
+	ReceiveTransfer     ReceiveTransferFunc
 	ReceiveAward        ReceiveAwardFunc //2019.7.22 inb by ghy
-	Vote                VoteFunc //2019.7.24 inb by ghy
+	Vote                VoteFunc         //2019.7.24 inb by ghy
+	CanReceiveAward     CanReceiveAwardFunc
 	CanReceiveVoteAward CanReceiveVoteAwardFunc //2019.7.24 inb by ghy
-	ReceiveVoteAward    ReceiveVoteAwardFunc //2019.7.24 inb by ghy
+	ReceiveVoteAward    ReceiveVoteAwardFunc    //2019.7.24 inb by ghy
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -228,7 +228,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 
 	//2019.7.22 inb by ghy begin
 	Award := big.NewInt(0)
-	VoteAward :=big.NewInt(0)
+	VoteAward := big.NewInt(0)
 	isAll := false
 	IntNonce := 0
 	if strings.HasPrefix(inputStr, "ReceiveAward") {
@@ -272,8 +272,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 		if err := evm.Context.CanReceive(evm.StateDB, caller.Address()); err != nil {
 			return nil, net, err
 		}
-	} else if inputStr == string("ReceiveVoteAward") {//2019.7.24 inb by ghy
-		if err,VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
+	} else if inputStr == string("ReceiveVoteAward") { //2019.7.24 inb by ghy
+		if err, VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
 			return nil, net, err
 		}
 	} else {
@@ -305,7 +305,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	//evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	//Resource by zc
 
-
 	if strings.HasPrefix(inputStr, "candidates") {
 		evm.Vote(evm.StateDB, caller.Address())
 	}
@@ -316,8 +315,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
 	} else if inputStr == string("reset") {
 		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
-	}  else if inputStr == string("ReceiveVoteAward") {
-		evm.ReceiveVoteAward(evm.StateDB, caller.Address(),VoteAward, evm.Time)//2019.7.24 inb by ghy
+	} else if inputStr == string("ReceiveVoteAward") {
+		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time) //2019.7.24 inb by ghy
 	} else if strings.HasPrefix(inputStr, "ReceiveAward") { //2019.7.22 inb by ghy begin
 		// regular mortgagtion
 		inputSlice := strings.Split(inputStr, ":")

@@ -160,7 +160,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),
 		RegularLimit:     5,
-		Days:             [4]uint{ 1,30, 180, 360},
+		Days:             [4]uint{1, 30, 180, 360},
 		ResetDuration:    big.NewInt(24 * 60 * 60),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60),
 	}
@@ -224,9 +224,9 @@ type CommonConfig struct {
 	MortgageInbLimit *big.Int
 	NetUse           *big.Int // for net use
 
-	ResetDuration *big.Int // duration of resetting nets
-	RegularLimit  int      // max value for regular mortgaging
-	Days          [3]uint
+	ResetDuration  *big.Int // duration of resetting nets
+	RegularLimit   int      // max value for regular mortgaging
+	Days           [4]uint
 	RedeemDuration *big.Int //duration of redeeming
 }
 

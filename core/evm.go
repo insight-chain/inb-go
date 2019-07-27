@@ -53,28 +53,26 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Resource by zc
 		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:        GetHashFn(header, chain),
-		Origin:         msg.From(),
-		Coinbase:       beneficiary,
-		BlockNumber:    new(big.Int).Set(header.Number),
-		Time:           new(big.Int).Set(header.Time),
-		Difficulty:     new(big.Int).Set(header.Difficulty),
-		GasLimit:       header.GasLimit,
-		GasPrice:       new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:    CanMortgage,
-		CanRedeem:      CanRedeem,
-		CanReset:       CanReset,
-		CanReceive:     CanReceive,
-		RedeemTransfer: RedeemTransfer,
-		ResetTransfer:  ResetTransfer,
-		ReceiveTransfer:  ReceiveTransfer,
-		CanReceiveAward: CanReceiveAwardFunc, //2019.7.22 inb by ghy
-		RedeemTransfer: RedeemTransfer,
-		ResetTransfer:  ResetTransfer,
-		ReceiveAward:   ReceiveAwardFunc, //2019.7.22 inb by ghy
-		CanReceiveVoteAward: CanReceiveVoteAwardFunc,//2019.7.24 inb by ghy
-		ReceiveVoteAward:   ReceiveVoteAwardFunc,//2019.7.24 inb by ghy
-		Vote :Vote,//2019.7.24 inb by ghy
+		GetHash:             GetHashFn(header, chain),
+		Origin:              msg.From(),
+		Coinbase:            beneficiary,
+		BlockNumber:         new(big.Int).Set(header.Number),
+		Time:                new(big.Int).Set(header.Time),
+		Difficulty:          new(big.Int).Set(header.Difficulty),
+		GasLimit:            header.GasLimit,
+		GasPrice:            new(big.Int).Set(msg.GasPrice()),
+		CanMortgage:         CanMortgage,
+		CanRedeem:           CanRedeem,
+		CanReset:            CanReset,
+		CanReceive:          CanReceive,
+		RedeemTransfer:      RedeemTransfer,
+		ResetTransfer:       ResetTransfer,
+		ReceiveTransfer:     ReceiveTransfer,
+		CanReceiveAward:     CanReceiveAwardFunc,     //2019.7.22 inb by ghy
+		ReceiveAward:        ReceiveAwardFunc,        //2019.7.22 inb by ghy
+		CanReceiveVoteAward: CanReceiveVoteAwardFunc, //2019.7.24 inb by ghy
+		ReceiveVoteAward:    ReceiveVoteAwardFunc,    //2019.7.24 inb by ghy
+		Vote:                Vote,                    //2019.7.24 inb by ghy
 	}
 }
 
@@ -131,27 +129,25 @@ func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
 //Resource by zc
 
 //2019.7.22 inb by ghy begin
-func CanReceiveAwardFunc(db vm.StateDB,from common.Address,nonce int,time *big.Int)(error,*big.Int,bool){
-	return db.CanReceiveAward(from,nonce,time)
+func CanReceiveAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int) (error, *big.Int, bool) {
+	return db.CanReceiveAward(from, nonce, time)
 
 }
 
-
-func ReceiveAwardFunc(db vm.StateDB,from common.Address,nonce int,values *big.Int,isAll bool,time *big.Int){
-  db.ReceiveAward(from,nonce,values,isAll,time)
+func ReceiveAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int) {
+	db.ReceiveAward(from, nonce, values, isAll, time)
 }
 
-func CanReceiveVoteAwardFunc(db vm.StateDB,from common.Address,time *big.Int)(error,*big.Int){
-	return db.CanReceiveVoteAward(from,time)
+func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int) (error, *big.Int) {
+	return db.CanReceiveVoteAward(from, time)
 
 }
 
-
-func ReceiveVoteAwardFunc(db vm.StateDB,from common.Address,values *big.Int,time *big.Int){
-	db.ReceiveVoteAward(from,values,time)
+func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int) {
+	db.ReceiveVoteAward(from, values, time)
 }
 
-func Vote(db vm.StateDB,from common.Address){
+func Vote(db vm.StateDB, from common.Address) {
 	db.Vote(from)
 }
 
@@ -166,7 +162,6 @@ func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
 	//db.AddBalance(sender, amount)
 	db.Receive(sender, sTime)
 }
-
 
 func CanReset(db vm.StateDB, addr common.Address) error {
 	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
@@ -212,8 +207,8 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	regular := db.GetRegular(addr)
 	value := db.GetRedeem(addr)
 
-	usable := new(big.Int).Sub(mortgaging,regular)
-	usable = new(big.Int).Add(usable,value)
+	usable := new(big.Int).Sub(mortgaging, regular)
+	usable = new(big.Int).Add(usable, value)
 	if usable.Cmp(amount) < 0 {
 		return errors.New(" insufficient available value of mortgage ")
 	}
@@ -221,7 +216,7 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 }
 
 func CanReceive(db vm.StateDB, addr common.Address) error {
-	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr),params.TxConfig.RedeemDuration)
+	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
 	now := big.NewInt(time.Now().Unix())
 	if timeLimit.Cmp(now) > 0 {
 		return errors.New(" before receive time ")
