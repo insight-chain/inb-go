@@ -128,6 +128,10 @@ type (
 		stores  []Store
 		regular *big.Int
 	}
+	redeemChange struct {
+		account *common.Address
+		redeems  []Redeem
+	}
 	dateChange struct {
 		account *common.Address
 		prev    *big.Int
@@ -158,6 +162,15 @@ type (
 		prevDirty bool
 	}
 )
+
+//achilles0722 redeem t+3
+func (ch redeemChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setRedeems(ch.redeems)
+}
+
+func (ch redeemChange) dirtied() *common.Address {
+	return ch.account
+}
 
 func (ch regularChange) revert(s *StateDB) {
 	s.getStateObject(*ch.account).setStores(ch.stores, ch.regular)

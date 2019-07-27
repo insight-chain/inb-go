@@ -47,7 +47,10 @@ type (
 	CanResetFunc func(StateDB, common.Address) error
 	CanMortgageFunc func(StateDB, common.Address, *big.Int, uint) error
 	CanRedeemFunc func(StateDB, common.Address, *big.Int) error
-	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	CanReceiveFunc	   func(StateDB, common.Address) error
+	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ResetTransferFunc  func(StateDB, common.Address, *big.Int)
+	ReceiveTransferFunc  func(StateDB, common.Address, *big.Int)
 	ResetTransferFunc func(StateDB, common.Address, *big.Int)
 	CanReceiveAwardFunc func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool) //2019.7.22 inb by ghy begin
 	ReceiveAwardFunc func(StateDB, common.Address, int, *big.Int, bool,*big.Int)                      //2019.7.22 inb by ghy begin
@@ -111,9 +114,10 @@ type Context struct {
 	CanReset            CanResetFunc
 	CanMortgage         CanMortgageFunc
 	CanRedeem           CanRedeemFunc
-	CanReceiveAward     CanReceiveAwardFunc //2019.7.22 inb by ghy
-	RedeemTransfer      RedeemTransferFunc
-	ResetTransfer       ResetTransferFunc
+	CanReceive     CanReceiveFunc
+	RedeemTransfer RedeemTransferFunc
+	ResetTransfer  ResetTransferFunc
+	ReceiveTransfer  ReceiveTransferFunc
 	ReceiveAward        ReceiveAwardFunc //2019.7.22 inb by ghy
 	Vote                VoteFunc //2019.7.24 inb by ghy
 	CanReceiveVoteAward CanReceiveVoteAwardFunc //2019.7.24 inb by ghy
@@ -264,6 +268,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 		if err := evm.Context.CanReset(evm.StateDB, caller.Address()); err != nil {
 			return nil, net, err
 		}
+	} else if inputStr == string("receive") {
+		if err := evm.Context.CanReceive(evm.StateDB, caller.Address()); err != nil {
+			return nil, net, err
+		}
 	} else if inputStr == string("ReceiveVoteAward") {//2019.7.24 inb by ghy
 		if err,VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
 			return nil, net, err
@@ -303,7 +311,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	}
 
 	if inputStr == string("unmortgageNet") {
-		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value)
+		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
 	} else if inputStr == string("mortgageNet") || strings.HasPrefix(inputStr, "mortgageNet:") {
 		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
 	} else if inputStr == string("reset") {
@@ -320,7 +328,8 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 			}
 			evm.ReceiveAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time)
 		} //2019.7.22 inb by ghy end
-
+	} else if inputStr == string("receive") {
+		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}

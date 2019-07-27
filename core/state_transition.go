@@ -249,7 +249,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//}
 
 	//mgval := new(big.Int).SetUint64(st.msg.Gas())
-	if string("mortgageNet") != string(st.data) && string("unmortgageNet") != string(st.data) {
+	if string("mortgageNet") != string(st.data)  && !strings.HasPrefix(string(st.data),"mortgageNet:" ) && string("reset") != string(st.data) && string("receive") != string(st.data){
 		if st.state.GetNet(netPayment).Cmp(big.NewInt(int64(net))) < 0 {
 			return nil, 0, false, errInsufficientBalanceForGas
 		}

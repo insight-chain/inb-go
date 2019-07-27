@@ -678,7 +678,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") || inputStr != string("reset") {
+	if inputStr != string("unmortgageNet") || inputStr != string("reset") || inputStr != string("receive"){
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -707,6 +707,23 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
+	if inputStr == string("receive") {
+		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from),params.TxConfig.RedeemDuration)
+		now := big.NewInt(time.Now().Unix())
+		if timeLimit.Cmp(now) > 0 {
+			return errors.New(" before receive time ")
+		}
+		if big.NewInt(0).Cmp(pool.currentState.GetRedeem(from)) == 0 {
+			return errors.New(" insufficient available value of redeeming ")
+		}
+	}
+
+	if tx.IsRegularMortgageNet() {
+		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
+			return ErrCountLimit
+		}
+	}
+
 	//achilles replace gas with net
 	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
 	//if err != nil {
@@ -717,7 +734,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() {
+	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() && inputStr != string("receive"){
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}

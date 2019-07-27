@@ -124,7 +124,6 @@ type Resource struct {
 	Used         *big.Int // used
 	Usableness   *big.Int // unuse
 	MortgagteINB *big.Int //
-	Frozen       *big.Int // redeeming value
 }
 
 type Store struct {
@@ -137,10 +136,8 @@ type Store struct {
 }
 
 type Redeem struct {
-	//Nonce     uint64  // transaction of regular mortgaging
-	StartTime big.Int // start time
-	//Days      uint    // duration of mortgaging
-	Value big.Int // amount of mortgaging
+	StartTime *big.Int // start time
+	Value *big.Int // amount of mortgaging
 }
 
 //Resource by zc
@@ -171,9 +168,12 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Resources.NET.MortgagteINB == nil {
 		data.Resources.NET.MortgagteINB = new(big.Int)
 	}
-	//if data.Stores == nil {
-	//	data.Stores =  make([]Store,5)
-	//}
+	if data.Stores == nil {
+		data.Stores =  make([]Store,0)
+	}
+	if data.Redeems == nil {
+		data.Redeems =  make([]Redeem,1)
+	}
 	if data.Regular == nil {
 		data.Regular = new(big.Int)
 	}
@@ -392,8 +392,9 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
 
 	mortgageStateObject := self.db.GetMortgageStateObject()
-	mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
-	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
+	//mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
+	//mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
+	mortgageStateObject.AddBalance(amount)
 
 	if duration > 0 {
 		store := Store{
@@ -413,6 +414,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 }
 
 func (self *stateObject) ResetNet(update *big.Int) {
+	//available := new(big.Int).Sub(self.MortgageOfNet(), self.GetRedeem())
 	netUse := self.db.ConvertToNets(self.MortgageOfNet())
 	netUsed := big.NewInt(0)
 
@@ -595,27 +597,45 @@ func (self *stateObject) Vote() {
 
 //2019.7.22 inb by ghy end
 
-//achilles RedeemNet sub nets from c's balance
-func (self *stateObject) RedeemNet(amount *big.Int) {
+//achilles Redeem freeze inb of mortgaging from c's balance
+func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	netUse := self.db.ConvertToNets(amount)
-	if self.Net().Cmp(netUse) < 0 {
-		netUse = self.Net()
-	} //usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
-	//mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
-	if self.MortgageOfNet().Cmp(amount) < 0 {
+	available := new(big.Int).Sub(self.MortgageOfNet(),self.Regular())
+	if available.Cmp(amount) < 0 {
 		return
 	}
+	// freeze inb of redeeming
+	mortgaging := new(big.Int).Sub(self.MortgageOfNet(), amount)
+	self.SetNet(self.UsedNet(),self.Net(),mortgaging)
 
-	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), amount))
+	redeem := Redeem{
+		StartTime: sTime,
+		Value:     amount,
+	}
+	self.data.Redeems[0] = redeem
+	self.SetRedeems(self.data.Redeems)
+}
+
+func (self *stateObject) Receive(sTime *big.Int) {
+
+	value := self.GetRedeem()
+
+	redeem := Redeem {
+		StartTime: sTime,
+		Value: big.NewInt(0),
+	}
+	self.data.Redeems[0] = redeem
+	self.SetRedeems(self.data.Redeems)
+
+	self.AddBalance(value)
 	mortgageStateObject := self.db.GetMortgageStateObject()
-	if mortgageStateObject.data.Resources.NET.MortgagteINB.Cmp(amount) < 0 {
+	if mortgageStateObject.Balance().Cmp(value) < 0 {
 		return
 	}
-	redeem := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), amount)
-	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), redeem)
+	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+	mortgageStateObject.SubBalance(value)
 }
 
 func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
@@ -633,6 +653,18 @@ func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.data.Resources.NET.Used = usedAmount
 	self.data.Resources.NET.Usableness = usableAmount
 	self.data.Resources.NET.MortgagteINB = mortgageInb
+}
+
+func (self *stateObject) SetRedeems(redeems []Redeem) {
+	self.db.journal.append(redeemChange{
+		account: &self.address,
+		redeems:  self.data.Redeems,
+	})
+	self.setRedeems(redeems)
+}
+
+func (self *stateObject) setRedeems(redeems []Redeem) {
+	self.data.Redeems = redeems
 }
 
 func (self *stateObject) SetDate(update *big.Int) {
@@ -764,6 +796,18 @@ func (self *stateObject) MortgageOfCpu() *big.Int {
 }
 func (self *stateObject) MortgageOfNet() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
+}
+
+func (self *stateObject) GetRedeem() *big.Int {
+	return self.data.Redeems[0].Value
+}
+
+func (self *stateObject) GetRedeemTime() *big.Int {
+	return self.data.Redeems[0].StartTime
+}
+
+func (self *stateObject) Regular() *big.Int {
+	return self.data.Regular
 }
 
 func (self *stateObject) Date() *big.Int {

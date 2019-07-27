@@ -273,6 +273,30 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+func (self *StateDB) GetRegular(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.Regular()
+	}
+	return common.Big0
+}
+
+func (self *StateDB) GetRedeem(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.GetRedeem()
+	}
+	return common.Big0
+}
+
+func (self *StateDB) GetRedeemTime(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.GetRedeemTime()
+	}
+	return common.Big0
+}
+
 //Resource by zc
 func (self *StateDB) GetCpu(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
@@ -549,10 +573,19 @@ func (self *StateDB)Vote(addr common.Address){
 
 //2019.7.22 inb by ghy end
 
-func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {
+//removed
+func (self *StateDB) Receive(addr common.Address, sTime *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.RedeemNet(amount)
+		stateObject.Receive(sTime)
+	}
+}
+
+//achilles0722 redeem t+3
+func (self *StateDB) Redeem(addr common.Address, amount *big.Int, sTime *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.Redeem(amount, sTime)
 	}
 }
 

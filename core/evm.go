@@ -64,6 +64,10 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanMortgage:    CanMortgage,
 		CanRedeem:      CanRedeem,
 		CanReset:       CanReset,
+		CanReceive:     CanReceive,
+		RedeemTransfer: RedeemTransfer,
+		ResetTransfer:  ResetTransfer,
+		ReceiveTransfer:  ReceiveTransfer,
 		CanReceiveAward: CanReceiveAwardFunc, //2019.7.22 inb by ghy
 		RedeemTransfer: RedeemTransfer,
 		ResetTransfer:  ResetTransfer,
@@ -114,7 +118,7 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 
 //Resource by zc
 func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) {
-	db.AddBalance(recipient, amount)
+	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
 	db.MortgageNet(sender, amount, duration, sTime)
 }
@@ -153,11 +157,16 @@ func Vote(db vm.StateDB,from common.Address){
 
 //2019.7.22 inb by ghy end
 //achilles
-func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	db.SubBalance(recipient, amount)
-	db.AddBalance(sender, amount)
-	db.RedeemNet(sender, amount)
+func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, sTime *big.Int) {
+	db.Redeem(sender, amount, sTime)
 }
+
+func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
+	//db.SubBalance(recipient, amount)
+	//db.AddBalance(sender, amount)
+	db.Receive(sender, sTime)
+}
+
 
 func CanReset(db vm.StateDB, addr common.Address) error {
 	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
@@ -169,10 +178,10 @@ func CanReset(db vm.StateDB, addr common.Address) error {
 }
 
 func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration uint) error {
-	if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
-		return errors.New(" exceeds mortgagtion count limit ")
-	}
 	if duration > 0 {
+		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
+			return errors.New(" exceeds mortgagtion count limit ")
+		}
 		if !params.Contains(duration) {
 			return errors.New(" wrong duration of mortgagtion ")
 		}
@@ -189,21 +198,36 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration u
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	unit := db.UnitConvertNet()
-	usableNet := db.GetNet(addr)
+	//unit := db.UnitConvertNet()
+	//usableNet := db.GetNet(addr)
+	//
+	//if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
+	//	return errors.New("  value for redeem is too low ")
+	//}
+	//
+	//if usableNet.Cmp(unit) < 0 {
+	//	return errors.New(" insufficient available mortgage ")
+	//}
+	mortgaging := db.GetMortgageInbOfNet(addr)
+	regular := db.GetRegular(addr)
+	value := db.GetRedeem(addr)
 
-	if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-		return errors.New(" the value for redeem is too low ")
+	usable := new(big.Int).Sub(mortgaging,regular)
+	usable = new(big.Int).Add(usable,value)
+	if usable.Cmp(amount) < 0 {
+		return errors.New(" insufficient available value of mortgage ")
 	}
+	return nil
+}
 
-	if usableNet.Cmp(unit) < 0 {
-		return errors.New(" insufficient available mortgage ")
+func CanReceive(db vm.StateDB, addr common.Address) error {
+	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr),params.TxConfig.RedeemDuration)
+	now := big.NewInt(time.Now().Unix())
+	if timeLimit.Cmp(now) > 0 {
+		return errors.New(" before receive time ")
 	}
-	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
-	netUse = netUse.Mul(netUse, unit)
-	usableInb := db.GetMortgageInbOfNet(addr)
-	if usableInb.Cmp(amount) < 0 {
-		return errors.New(" insufficient available mortgage ")
+	if big.NewInt(0).Cmp(db.GetRedeem(addr)) == 0 {
+		return errors.New(" insufficient available value of redeeming ")
 	}
 	return nil
 }

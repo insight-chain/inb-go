@@ -42,8 +42,10 @@ func NewEnv(cfg *Config) *vm.EVM {
 		CanReset:            core.CanReset,
 		CanMortgage:         core.CanMortgage,
 		CanRedeem:           core.CanRedeem,
+		CanReceive:      	 core.CanReceive,
 		RedeemTransfer:      core.RedeemTransfer,
 		ResetTransfer:       core.ResetTransfer,
+		ReceiveTransfer:  	 core.ReceiveTransfer,
 		CanReceiveAward:     core.CanReceiveAwardFunc,//2019.7.24 inb by ghy
 		ReceiveAward:        core.ReceiveAwardFunc, //2019.7.22 inb by ghy
 		CanReceiveVoteAward: core.CanReceiveVoteAwardFunc,//2019.7.24 inb by ghy
