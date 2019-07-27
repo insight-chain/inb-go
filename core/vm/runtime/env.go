@@ -39,13 +39,16 @@ func NewEnv(cfg *Config) *vm.EVM {
 		GasLimit:    cfg.GasLimit,
 		GasPrice:    cfg.GasPrice,
 
-		CanReset:       core.CanReset,
-		CanMortgage:    core.CanMortgage,
-		CanRedeem:      core.CanRedeem,
-		RedeemTransfer: core.RedeemTransfer,
-		ResetTransfer:  core.ResetTransfer,
-		CanReceiveAward: core.CanReceiveAwardFunc,
-		ReceiveAward:   core.ReceiveAwardFunc,////2019.7.22 inb by ghy
+		CanReset:            core.CanReset,
+		CanMortgage:         core.CanMortgage,
+		CanRedeem:           core.CanRedeem,
+		RedeemTransfer:      core.RedeemTransfer,
+		ResetTransfer:       core.ResetTransfer,
+		CanReceiveAward:     core.CanReceiveAwardFunc,//2019.7.24 inb by ghy
+		ReceiveAward:        core.ReceiveAwardFunc, //2019.7.22 inb by ghy
+		CanReceiveVoteAward: core.CanReceiveVoteAwardFunc,//2019.7.24 inb by ghy
+		ReceiveVoteAward:    core.ReceiveVoteAwardFunc,//2019.7.24 inb by ghy
+		Vote :core.Vote,//2019.7.24 inb by ghy
 	}
 
 	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)

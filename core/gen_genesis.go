@@ -11,6 +11,7 @@ import (
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
 	"github.com/insight-chain/inb-go/params"
+	"github.com/insight-chain/inb-go/core/types"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
@@ -29,6 +30,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Number     math.HexOrDecimal64                         `json:"number"`
 		GasUsed    math.HexOrDecimal64                         `json:"gasUsed"`
 		ParentHash common.Hash                                 `json:"parentHash"`
+		SpecialConsensusAddress []types.SpecialConsensusAddress `json:"specialConsensusAddress" gencodec:"required"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -48,6 +50,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
+	enc.SpecialConsensusAddress=g.SpecialConsensusAddress//2019.7.23 inb by ghy
 	return json.Marshal(&enc)
 }
 
@@ -65,6 +68,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Number     *math.HexOrDecimal64                        `json:"number"`
 		GasUsed    *math.HexOrDecimal64                        `json:"gasUsed"`
 		ParentHash *common.Hash                                `json:"parentHash"`
+		SpecialConsensusAddress []types.SpecialConsensusAddress `json:"specialConsensusAddress" gencodec:"required"`//2019.7.23 inb by ghy
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -111,6 +115,10 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	}
 	if dec.ParentHash != nil {
 		g.ParentHash = *dec.ParentHash
+	}
+	//2019.7.23 inb by ghy
+	if dec.SpecialConsensusAddress !=nil{
+		g.SpecialConsensusAddress = dec.SpecialConsensusAddress
 	}
 	return nil
 }

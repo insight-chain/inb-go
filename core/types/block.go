@@ -84,8 +84,15 @@ type Header struct {
 	MixDigest   common.Hash    `json:"mixHash"`
 	Nonce       BlockNonce     `json:"nonce"`
 	DataRoot    common.Hash    `json:"dataRoot"` //inb by ssh 190627
-	Reward      string       `json:"reward"           gencodec:"required"`//inb by ghy 19.6.28
+	Reward      string         `json:"reward"           gencodec:"required"`//2019.6.28 inb by ghy
+	SpecialConsensusAddress []SpecialConsensusAddress `json:"specialConsensusAddress"  gencodec:"required"` //2019.7.23 inb by ghy
 }
+
+type SpecialConsensusAddress struct {
+	Name string `json:"name"`
+	Address common.Address `json:"address"`
+}
+
 
 // field type overrides for gencodec
 type headerMarshaling struct {

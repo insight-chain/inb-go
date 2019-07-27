@@ -54,7 +54,7 @@ type Genesis struct {
 	Mixhash    common.Hash         `json:"mixHash"`
 	Coinbase   common.Address      `json:"coinbase"`
 	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
-
+	SpecialConsensusAddress []types.SpecialConsensusAddress `json:"specialConsensusAddress"  gencodec:"required"`//2019.7.23 inb by ghy
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
@@ -254,6 +254,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Root:       root,
 		DataRoot:   [32]byte{}, //inb by ssh 190627
 		Reward:		vdpos.DefaultMinerReward.String(),//inb by ghy 19.6.28
+		SpecialConsensusAddress:g.SpecialConsensusAddress, //2019.7.23 inb by ghy
 	}
 	//inb by ghy begin
 	//headE:=new(vdpos.HeaderExtra)

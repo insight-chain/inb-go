@@ -355,6 +355,7 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 		Stake:     stake,
 	})
 	//}
+	//state.AddVoteRecord(voter,stake)
 
 	return currentBlockVotes
 }

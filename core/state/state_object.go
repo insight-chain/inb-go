@@ -25,7 +25,6 @@ import (
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/rlp"
 	"io"
-	"math"
 	"math/big"
 )
 
@@ -108,9 +107,11 @@ type Account struct {
 
 	Stores []Store // slice of regular mortgaging
 	//Recommender common.Address
-	Redeems []Redeem // redeeming nets
-	Regular *big.Int //  total of regular mortgaging
-	Profit  *big.Int // incentive earnings
+	Redeems                  []Redeem // redeeming nets
+	Regular                  *big.Int //  total of regular mortgaging
+	Profit                   *big.Int // incentive earnings
+	Voted                    *big.Int //current vote to someone else number
+	LastReceiveVoteAwardTime *big.Int
 }
 
 //Resource by zc
@@ -127,11 +128,12 @@ type Resource struct {
 }
 
 type Store struct {
-	Nonce     uint64  // transaction of regular mortgaging
-	StartTime big.Int // start time
-	Days      uint    // duration of mortgaging
-	Value     big.Int // amount of mortgaging
-	Received  big.Int // amount of already received value
+	Nonce            uint64   // transaction of regular mortgaging
+	StartTime        big.Int  // start time
+	Days             uint     // duration of mortgaging
+	Value            big.Int  // amount of mortgaging
+	Received         big.Int  // amount of already received value
+	LastReceivedTime *big.Int // Last receive time
 }
 
 type Redeem struct {
@@ -338,6 +340,19 @@ func (c *stateObject) AddBalance(amount *big.Int) {
 	c.SetBalance(new(big.Int).Add(c.Balance(), amount))
 }
 
+func (c *stateObject) AddVoteRecord(amount *big.Int) {
+	// EIP158: We must check emptiness for the objects such that the account
+	// clearing (0,0,0 objects) can take effect.
+	//if amount.Sign() == 0 {
+	//	if c.empty() {
+	//		c.touch()
+	//	}
+	//
+	//	return
+	//}
+	c.SetVoteRecord(amount)
+}
+
 // SubBalance removes amount from c's balance.
 // It is used to remove funds from the origin account of a transfer.
 func (c *stateObject) SubBalance(amount *big.Int) {
@@ -355,8 +370,17 @@ func (self *stateObject) SetBalance(amount *big.Int) {
 	self.setBalance(amount)
 }
 
+func (self *stateObject) SetVoteRecord(amount *big.Int) {
+
+	self.setVoteRecord(amount)
+}
+
 func (self *stateObject) setBalance(amount *big.Int) {
 	self.data.Balance = amount
+}
+
+func (self *stateObject) setVoteRecord(amount *big.Int) {
+	self.data.Voted = amount
 }
 
 //achilles MortgageNet add nets from c's resource
@@ -397,80 +421,178 @@ func (self *stateObject) ResetNet(update *big.Int) {
 }
 
 //2019.7.22 inb by ghy begin
-func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, value int ,isAll bool) {
-	if len(self.data.Stores) > 0 {
-		for _, v := range self.data.Stores {
-			if nonce == int(v.Nonce) {
-				timeNow := time.Uint64()
-				totalValue := v.Value.Uint64()
-				startTime := v.StartTime.Uint64()
-				receivedValue := v.Received.Uint64()
+func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, value *big.Int, isAll bool) {
+	if self.data.Voted.Uint64() > 0 {
+		if len(self.data.Stores) > 0 {
+			for _, v := range self.data.Stores {
+				if nonce == int(v.Nonce) {
+					//timeNow := time.Uint64()
+					//totalValue := v.Value.Uint64()
+					//startTime := v.StartTime.Uint64()
+					//receivedValue := v.Received.Uint64()
+					//lastReceivedtime := v.LastReceivedTime.Uint64()
+					//daySeconds := uint64(v.Days * 24 * 60 * 60)
+					//
+					////CycleTime:=daySeconds/vdpos.CycleTimes
+					//CycleTime := daySeconds / common.CycleTimes
+					//if timeNow < startTime {
+					//	return
+					//}
+					//sub := timeNow - startTime
+					//number := sub / CycleTime
+					//
+					//if number > common.CycleTimes/200 {
+					//	number = common.CycleTimes / 200
+					//}
+					//
+					////CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
+					//CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
+					//
+					//subValue := CanReceivedValue - float64(receivedValue)
+					//
+					//if subValue > 0 {
+					//	return nil, int(math.Floor(subValue)), number == 12
+					//}
 
-				daySeconds := uint64(v.Days * 24 * 60 * 60)
+					timeNow := time.Int64()
+					startTime := v.StartTime.Int64()
+					//totalValue := v.Value.Uint64()
+					//receivedValue := v.Received.Uint64()
+					lastReceivedtime := v.LastReceivedTime.Int64()
 
-				//CycleTime:=daySeconds/vdpos.CycleTimes
-				CycleTime:=daySeconds/common.CycleTimes
-				if timeNow < startTime {
-					return
+					daySeconds := int64(v.Days * 24 * 60 * 60)
+					endTimeSecond := startTime + daySeconds
+
+					totalValue := &v.Value
+					receivedValue := &v.Received
+
+					if timeNow > endTimeSecond {
+						timeNow = endTimeSecond
+					}
+
+					if lastReceivedtime < startTime {
+						lastReceivedtime = startTime
+					}
+
+					FromLastReceivedPassTimeSecond := timeNow - lastReceivedtime
+					FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+
+					FromStartPassTimeSecond := timeNow - startTime
+					FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+
+					if lastReceivedtime < endTimeSecond && timeNow > lastReceivedtime {
+
+						if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
+
+							totalValue1 := new(big.Int).Mul(totalValue, common.A1)
+							totalValue2 := new(big.Int).Div(totalValue1, common.A3)
+							totalValue3 := new(big.Int).Div(totalValue2, common.A4)
+							MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
+							//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
+							//subValue := MaxReceivedValueNow - float64(receivedValue)
+							subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+							if subValue.Cmp(big.NewInt(0)) == 1 {
+								fmt.Println("更稳了", subValue)
+								return nil, subValue, timeNow == endTimeSecond
+							}
+						}
+					}
+					//sub := new(big.Int).Sub(time, &v.StartTime)
+					//number := new(big.Int).Div(big.NewInt(int64(v.Days*24*60*60)), sub)
+					//
+					////new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
+					////new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
+					//persent := new(big.Int).Div(&v.Received, &v.Value)
+					//number := new(big.Int).Mul(persent, vdpos.CycleTimes)
+					//AddNumber := new(big.Int).Add(number, big.NewInt(1))
+					//persents := new(big.Int).Div(AddNumber, vdpos.CycleTimes)
+					//if persents.Cmp(big.NewInt(1)) > 0 {
+					//	return errors.New("The reward has been received")
+					//}
+					//cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
+					//mul := new(big.Int).Mul(cycleTime, persents)
+					//end := new(big.Int).Add(cycleTime, mul)
+					//endTime := new(big.Int).Add(end, &v.StartTime)
+					//if time.Cmp(endTime) != 1 {
+					//	return errors.New("It's not time to receive the prize")
+					//} else {
+					//	return nil
+					//}
+
 				}
-				sub := timeNow - startTime
-   				number:=sub/CycleTime
-
-   				if number>12{
-   					number=12
-				}
-
-				//CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
-				CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
-
-				subValue := CanReceivedValue - float64(receivedValue)
-
-				if subValue > 0{
-					return nil ,int(math.Floor(subValue)),number==12
-				}
-
-				//sub := new(big.Int).Sub(time, &v.StartTime)
-				//number := new(big.Int).Div(big.NewInt(int64(v.Days*24*60*60)), sub)
-				//
-				////new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
-				////new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
-				//persent := new(big.Int).Div(&v.Received, &v.Value)
-				//number := new(big.Int).Mul(persent, vdpos.CycleTimes)
-				//AddNumber := new(big.Int).Add(number, big.NewInt(1))
-				//persents := new(big.Int).Div(AddNumber, vdpos.CycleTimes)
-				//if persents.Cmp(big.NewInt(1)) > 0 {
-				//	return errors.New("The reward has been received")
-				//}
-				//cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
-				//mul := new(big.Int).Mul(cycleTime, persents)
-				//end := new(big.Int).Add(cycleTime, mul)
-				//endTime := new(big.Int).Add(end, &v.StartTime)
-				//if time.Cmp(endTime) != 1 {
-				//	return errors.New("It's not time to receive the prize")
-				//} else {
-				//	return nil
-				//}
-
 			}
 		}
+		return errors.New("Have no Inb to received"), big.NewInt(0), false
+	} else {
+		return errors.New("Can only receive rewards after voting"), big.NewInt(0), false
 	}
-	return errors.New("Have no INB to received"),0,false
+
 }
 
-func (self *stateObject) ReceiveAward(nonce int,value int ,isAll bool) {
+func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, time *big.Int) {
 
 	if len(self.data.Stores) > 0 {
 		for k, v := range self.data.Stores {
 			if nonce == int(v.Nonce) {
-				self.AddBalance(big.NewInt(int64(value)))
-				if isAll{
+				self.AddBalance(value)
+				self.data.Stores[k].LastReceivedTime = time
+				if isAll {
 					self.AddBalance(&v.Value)
-					self.data.Stores=append(self.data.Stores[:k],self.data.Stores[:k+1]...)
+					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
+
+				} else {
+
+					//receiveAdd := v.Received.Int64() + int64(value)
+					receiveAdd:=new(big.Int).Add(&v.Received,value)
+					self.data.Stores[k].Received = *receiveAdd
 				}
 			}
 		}
 	}
 }
+
+func (self *stateObject) CanReceiveVoteAward(time *big.Int) (err error, value *big.Int) {
+	//account := pool.currentState.GetAccountInfo(from)
+	votes := self.data.Voted
+	if votes.Cmp(big.NewInt(0))==1{
+		timeNow := time.Int64()
+		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime.Int64()
+		if lastReceiveVoteAwardTime == 0 {
+			votes1:=new(big.Int).Mul(votes, common.A1)
+			votes2 := new(big.Int).Div(votes1, common.A3)
+			votes3 := new(big.Int).Div(votes2, common.A4)
+			value := new(big.Int).Mul(votes3, common.A2)
+			return nil, value
+		}
+		intervalTime := timeNow - lastReceiveVoteAwardTime
+		if intervalTime > common.VoteRewardCycleSeconds {
+			days := intervalTime / common.VoteRewardOneDaySecond
+			votes1:=new(big.Int).Mul(votes, common.A1)
+			votes2 := new(big.Int).Div(votes1, common.A3)
+			votes3 := new(big.Int).Div(votes2, common.A4)
+			value := new(big.Int).Mul(votes3, big.NewInt(days))
+
+			return nil, value
+		} else {
+			return errors.New("Not receiving voting time"), big.NewInt(0)
+		}
+
+	} else {
+		return errors.New("Can only receive rewards after voting"), big.NewInt(0)
+	}
+
+}
+
+func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
+	self.data.LastReceiveVoteAwardTime = time
+	self.AddBalance(value)
+
+}
+
+func (self *stateObject) Vote() {
+	self.data.Voted = self.data.Resources.NET.MortgagteINB
+}
+
 //2019.7.22 inb by ghy end
 
 //achilles RedeemNet sub nets from c's balance

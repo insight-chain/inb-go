@@ -392,7 +392,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	if parent == nil {
 		return nil, consensus.ErrUnknownAncestor
 	}
-
+header.SpecialConsensusAddress=parent.SpecialConsensusAddress//2019.7.23 inb by ghy
 	//config.Period != config.SignerPeriod
 	if (number-1)%v.config.SignerBlocks == 0 {
 		header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.SignerPeriod))
@@ -862,6 +862,9 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 		states.AddBalance(common.HexToAddress(state.TeamAccount), reward)
 		states.AddBalance(common.HexToAddress(state.MarketingAccount), reward)
 		states.AddBalance(common.HexToAddress(state.FundAccount), reward)
+		//for _,v:=range header.SpecialConsensusAddress{
+		//	//fmt.Println(v.Address.String())
+		//}
 
 		states.AddBalance(header.Coinbase, reward)
 		states.SubBalance(common.HexToAddress(state.MasterAccount), reward)

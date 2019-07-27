@@ -63,9 +63,9 @@ const (
 	MasterAccount    string = "0x1000000000000000000000000000000000000000" // account record value of circulation
 	MortgageAccount  string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
 	BonusAccount     string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
-	TeamAccount      string = "0x3000000000000000000000000000000000000000" // account record value of team
-	MarketingAccount string = "0x4000000000000000000000000000000000000000" // account record value of Marketing
-	FundAccount      string = "0x5000000000000000000000000000000000000000" // account record value of Fund
+	TeamAccount      string = "0x4000000000000000000000000000000000000000" // account record value of team
+	MarketingAccount string = "0x5000000000000000000000000000000000000000" // account record value of Marketing
+	FundAccount      string = "0x6000000000000000000000000000000000000000" // account record value of Fund
 
 )
 
@@ -464,6 +464,15 @@ func (self *StateDB) AddBalance(addr common.Address, amount *big.Int) {
 	}
 }
 
+func (self *StateDB) AddVoteRecord(addr common.Address, amount *big.Int) {
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.AddVoteRecord(amount)
+	}
+}
+
+
+
 // SubBalance subtracts amount from the account associated with addr.
 func (self *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
@@ -496,21 +505,48 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) {
 //2019.7.22 inb by ghy begin
 
 
-func (self *StateDB)CanReceiveAward(addr common.Address,nonce int,time *big.Int)(err error ,value int ,is bool){
+func (self *StateDB)CanReceiveAward(addr common.Address,nonce int,time *big.Int)(err error ,value *big.Int,is bool){
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.CanReceiveAward(nonce, time)
 	}
-	return errors.New("erros"),0,false
+	return errors.New("erros"),big.NewInt(0),false
 }
 
 
-func (self *StateDB)ReceiveAward(addr common.Address,nonce int,value int,isAll bool){
+func (self *StateDB)ReceiveAward(addr common.Address,nonce int,value *big.Int,isAll bool,time *big.Int){
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.ReceiveAward(nonce,value,isAll)
+		stateObject.ReceiveAward(nonce,value,isAll,time)
 	}
 }
+func (self *StateDB)CanReceiveVoteAward(addr common.Address,time *big.Int)(err error ,value *big.Int){
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		return stateObject.CanReceiveVoteAward(time)
+	}
+	return errors.New("erros"),big.NewInt(0)
+}
+
+
+func (self *StateDB)ReceiveVoteAward(addr common.Address,value *big.Int,time *big.Int){
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.ReceiveVoteAward(value,time)
+	}
+}
+
+func (self *StateDB)Vote(addr common.Address){
+	stateObject := self.GetOrNewStateObject(addr)
+	if stateObject != nil {
+		stateObject.Vote()
+	}
+}
+
+
+
+
+
 //2019.7.22 inb by ghy end
 
 func (self *StateDB) RedeemNet(addr common.Address, amount *big.Int) {

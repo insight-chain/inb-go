@@ -42,8 +42,8 @@ const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
 	//inb by ghy begin
-	ResponseRate                	= float64(0.01)
-	CycleTimes                       = uint64(12)
+	ResponseRate = float64(0.01)
+	CycleTimes   = uint64(12)
 	//inb by ghy end
 )
 
@@ -90,6 +90,7 @@ var (
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
 	ErrOverBalanceValue            = errors.New("Balance is not enough ")
 	ErrBeforeResetTime             = errors.New("before reset time")
+	ErrParameterError              = errors.New("Parameter error")
 
 	//achilles0718 regular mortgagtion
 	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
@@ -154,7 +155,6 @@ type TxPoolConfig struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
-
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -614,7 +614,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	//2019.7.18 inb mod by ghy begin
-	if err := pool.hanlecandidates(inputStr); err != nil {
+	if err := pool.validateVote(inputStr); err != nil {
 		return err
 	}
 	//2019.7.18 inb mod by ghy begin
@@ -690,9 +690,23 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if err:=pool.validatereceivebonus(inputStr,from);err!=nil{
-		return err
+	if strings.Contains(inputStr, "ReceiveAward") {
+		receivebonus := strings.Split(inputStr, ":")
+		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveAward" {
+			if err := pool.validateReceiveAward(receivebonus, from); err != nil {
+				return err
+			}
+		} else {
+			return ErrParameterError
+		}
 	}
+
+	if inputStr == string("ReceiveVoteAward") {
+		if err := pool.validateVoteAward(from); err != nil {
+			return err
+		}
+	}
+
 	//achilles replace gas with net
 	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
 	//if err != nil {
@@ -1436,10 +1450,10 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (pool *TxPool) hanlecandidates(inputStr string) error {
+func (pool *TxPool) validateVote(inputStr string) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
-		var UnqualifiedCandidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []string
 		candidates := strings.Split(inputStr, ":")
 		if candidates[0] == "candidates" {
 			candidatesStr := strings.Split(candidates[1], ",")
@@ -1449,11 +1463,11 @@ func (pool *TxPool) hanlecandidates(inputStr string) error {
 				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
 				} else {
-					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
+					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
 				}
 			}
 			if len(UnqualifiedCandidatesSlice) > 0 {
-				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v", UnqualifiedCandidatesSlice))
+				return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
 			}
 			//2019.7.15 inb mod by ghy end
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
@@ -1463,82 +1477,74 @@ func (pool *TxPool) hanlecandidates(inputStr string) error {
 	}
 	return nil
 }
+
 //2019.7.22 inb by ghy begin
-func (pool *TxPool)validatereceivebonus(inputStr string,from common.Address)error{
+func (pool *TxPool) validateReceiveAward(receivebonus []string, from common.Address) error {
+	account := pool.currentState.GetAccountInfo(from)
+	if account.Voted.Int64() > 0 {
+		for _, v := range account.Stores {
+			if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
+				timeNow := pool.chain.CurrentBlock().Time().Int64()
+				startTime := v.StartTime.Int64()
+				lastReceivedTime := v.LastReceivedTime.Int64()
 
-	if strings.Contains(inputStr, "ReceiveAward") {
-		//flag:=false
-		receivebonus := strings.Split(inputStr, ":")
-		if len(receivebonus)==2&&receivebonus[0]=="ReceiveAward"{
-			account:=pool.currentState.GetAccountInfo(from)
+				daySeconds := int64(v.Days * 24 * 60 * 60)
+				endTimeSecond := startTime + daySeconds
 
-			for _,v:=range account.Stores{
-				if strconv.Itoa(int(v.Nonce)) ==receivebonus[1]{
-					timeNow := pool.chain.CurrentBlock().Time().Uint64()
-					totalValue := v.Value.Uint64()
-					startTime := v.StartTime.Uint64()
-					receivedValue := v.Received.Uint64()
+				totalValue := &v.Value
+				receivedValue := &v.Received
 
-					daySeconds := uint64(v.Days * 24 * 60 * 60)
-
-					//CycleTime:=daySeconds/vdpos.CycleTimes
-					CycleTime:=daySeconds/common.CycleTimes
-					if timeNow < startTime {
-						return errors.New("err")
-					}
-					sub := timeNow - startTime
-					number:=sub/CycleTime
-
-					if number>12{
-						number=12
-					}
-
-					//CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
-					CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
-
-					subValue := CanReceivedValue - float64(receivedValue)
-
-					if subValue > 0{
-						return nil
-					}
-
-
-
-					//if time.Now().After(v.StartTime.AddDate(0,0,v.Days)){
-					//	flag =true
-					//}else{
-					//	return errors.New("Not to unlock time")
-					//}
-//if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(big.NewInt(int64(time.Now().Unix()))) > 0
-//					 new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
-//					 new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
-//					persent := new(big.Int).Div(&v.Received, &v.Value)
-//					number:=new(big.Int).Mul(persent,vdpos.CycleTimes)
-//					AddNumber := new(big.Int).Add(number, big.NewInt(1))
-//					persents:=new(big.Int).Div(AddNumber,vdpos.CycleTimes)
-//					if persents.Cmp(big.NewInt(1))>0{
-//						return errors.New("The reward has been received")
-//					}
-//					cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
-//					mul := new(big.Int).Mul(cycleTime, persents)
-//					end := new(big.Int).Add(cycleTime, mul)
-//					endTime:=new(big.Int).Add(end,&v.StartTime)
-//					if pool.chain.CurrentBlock().Time().Cmp(endTime)!=1{
-//						return errors.New("It's not time to receive the prize")
-//					}else{
-//						return nil
-//					}
+				if timeNow > endTimeSecond {
+					timeNow = endTimeSecond
 				}
-			}
-			return errors.New("have no rewards to received")
-		}else{
-			return errors.New("Receivebonus parameter error")
-		}
-		//if !flag{
-		//	return errors.New("No such regular mortgage record")
-		//}
-	}
 
+				if lastReceivedTime < startTime {
+					lastReceivedTime = startTime
+				}
+
+				FromLastReceivedPassTimeSecond := timeNow - lastReceivedTime
+				FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+
+				FromStartPassTimeSecond := timeNow - startTime
+				FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+
+				if lastReceivedTime < endTimeSecond && timeNow > lastReceivedTime {
+
+					if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
+						totalValue1 := new(big.Int).Mul(totalValue, common.A1)
+						totalValue2 := new(big.Int).Div(totalValue1, common.A3)
+						totalValue3 := new(big.Int).Div(totalValue2, common.A4)
+						MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
+						//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
+						//subValue := MaxReceivedValueNow - float64(receivedValue)
+						subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+						if subValue.Cmp(big.NewInt(0)) == 1 {
+							return nil
+						}
+					}
+				}
+
+			}
+		}
+		return errors.New("have no rewards to received")
+	} else {
+		return errors.New("Can only receive rewards after voting")
+	}
+}
+
+func (pool *TxPool) validateVoteAward(from common.Address) error {
+	account := pool.currentState.GetAccountInfo(from)
+	if account.Voted.Cmp(big.NewInt(0)) == 1 {
+		timeNow := pool.chain.CurrentBlock().Time().Int64()
+		lastVoteTime := account.LastReceiveVoteAwardTime.Int64()
+		if timeNow-lastVoteTime < common.VoteRewardCycleSeconds {
+			return errors.New("Not receiving voting time")
+		}
+
+	} else {
+		return errors.New("Can only receive rewards after voting")
+	}
 	return nil
 }
+
 //2019.7.22 inb by ghy end

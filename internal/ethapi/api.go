@@ -1194,6 +1194,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
 		"reward":           head.Reward, //2019.6.28 inb by ghy
+		"SpecialConsensusAddress": head.SpecialConsensusAddress,//2019.7.23 inb by ghy
 	}
 
 	if inclTx {
