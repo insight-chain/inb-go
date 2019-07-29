@@ -333,13 +333,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		return err
 	}
 	if msg.Size > ProtocolMaxMsgSize {
-
-		fmt.Println("1111111111111111")
-		fmt.Println("1111111111111111")
-		fmt.Println("1111111111111111")
-		fmt.Println("1111111111111111")
-		fmt.Println("1111111111111111")
-
 		return errResp(ErrMsgTooLarge, "%v > %v", msg.Size, ProtocolMaxMsgSize)
 	}
 	defer msg.Discard()
@@ -347,11 +340,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	// Handle the message depending on its contents
 	switch {
 	case msg.Code == StatusMsg:
-		fmt.Println("2222222222222222")
-		fmt.Println("2222222222222222")
-		fmt.Println("2222222222222222")
-		fmt.Println("2222222222222222")
-		fmt.Println("2222222222222222")
 		// Status messages should never arrive after the handshake
 		return errResp(ErrExtraStatusMsg, "uncontrolled status message")
 
@@ -360,12 +348,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Decode the complex header query
 		var query getBlockHeadersData
 		if err := msg.Decode(&query); err != nil {
-			fmt.Println("3333333333333333")
-			fmt.Println("3333333333333333")
-			fmt.Println("3333333333333333")
-			fmt.Println("3333333333333333")
-			fmt.Println("3333333333333333")
-
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		hashMode := query.Origin.Hash != (common.Hash{})
@@ -453,11 +435,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// A batch of headers arrived to one of our previous requests
 		var headers []*types.Header
 		if err := msg.Decode(&headers); err != nil {
-			fmt.Println("4444444444444444")
-			fmt.Println("4444444444444444")
-			fmt.Println("4444444444444444")
-			fmt.Println("4444444444444444")
-			fmt.Println("4444444444444444")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// If no headers were received, but we're expending a DAO fork check, maybe it's that
@@ -519,11 +496,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
-			fmt.Println("5555555555555555")
-			fmt.Println("5555555555555555")
-			fmt.Println("5555555555555555")
-			fmt.Println("5555555555555555")
-			fmt.Println("5555555555555555")
 			return err
 		}
 		// Gather blocks until the fetch or network limits is reached
@@ -537,11 +509,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if err := msgStream.Decode(&hash); err == rlp.EOL {
 				break
 			} else if err != nil {
-				fmt.Println("6666666666666666")
-				fmt.Println("6666666666666666")
-				fmt.Println("6666666666666666")
-				fmt.Println("6666666666666666")
-				fmt.Println("6666666666666666")
 				return errResp(ErrDecode, "msg %v: %v", msg, err)
 			}
 			// Retrieve the requested block body, stopping if enough was found
@@ -556,26 +523,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// A batch of block bodies arrived to one of our previous requests
 		var request blockBodiesData
 		if err := msg.Decode(&request); err != nil {
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
-			fmt.Println("7777777777777777")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver them all to the downloader for queuing
@@ -602,11 +549,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
-			fmt.Println("8888888888888888")
-			fmt.Println("8888888888888888")
-			fmt.Println("8888888888888888")
-			fmt.Println("8888888888888888")
-			fmt.Println("8888888888888888")
 			return err
 		}
 		// Gather state data until the fetch or network limits is reached
@@ -620,11 +562,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if err := msgStream.Decode(&hash); err == rlp.EOL {
 				break
 			} else if err != nil {
-				fmt.Println("9999999999999999")
-				fmt.Println("9999999999999999")
-				fmt.Println("9999999999999999")
-				fmt.Println("9999999999999999")
-				fmt.Println("9999999999999999")
 				return errResp(ErrDecode, "msg %v: %v", msg, err)
 			}
 			// Retrieve the requested state entry, stopping if enough was found
@@ -639,11 +576,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// A batch of node state data arrived to one of our previous requests
 		var data [][]byte
 		if err := msg.Decode(&data); err != nil {
-			fmt.Println("AAAAAAAAAAAAAAAA")
-			fmt.Println("AAAAAAAAAAAAAAAA")
-			fmt.Println("AAAAAAAAAAAAAAAA")
-			fmt.Println("AAAAAAAAAAAAAAAA")
-			fmt.Println("AAAAAAAAAAAAAAAA")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver all to the downloader
@@ -655,11 +587,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Decode the retrieval message
 		msgStream := rlp.NewStream(msg.Payload, uint64(msg.Size))
 		if _, err := msgStream.List(); err != nil {
-			fmt.Println("BBBBBBBBBBBBBBBB")
-			fmt.Println("BBBBBBBBBBBBBBBB")
-			fmt.Println("BBBBBBBBBBBBBBBB")
-			fmt.Println("BBBBBBBBBBBBBBBB")
-			fmt.Println("BBBBBBBBBBBBBBBB")
 			return err
 		}
 		// Gather state data until the fetch or network limits is reached
@@ -673,11 +600,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 			if err := msgStream.Decode(&hash); err == rlp.EOL {
 				break
 			} else if err != nil {
-				fmt.Println("CCCCCCCCCCCCCCCC")
-				fmt.Println("CCCCCCCCCCCCCCCC")
-				fmt.Println("CCCCCCCCCCCCCCCC")
-				fmt.Println("CCCCCCCCCCCCCCCC")
-				fmt.Println("CCCCCCCCCCCCCCCC")
 				return errResp(ErrDecode, "msg %v: %v", msg, err)
 			}
 			// Retrieve the requested block's receipts, skipping if unknown to us
@@ -701,11 +623,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// A batch of receipts arrived to one of our previous requests
 		var receipts [][]*types.Receipt
 		if err := msg.Decode(&receipts); err != nil {
-			fmt.Println("DDDDDDDDDDDDDDDD")
-			fmt.Println("DDDDDDDDDDDDDDDD")
-			fmt.Println("DDDDDDDDDDDDDDDD")
-			fmt.Println("DDDDDDDDDDDDDDDD")
-			fmt.Println("DDDDDDDDDDDDDDDD")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		// Deliver all to the downloader
@@ -716,11 +633,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 	case msg.Code == NewBlockHashesMsg:
 		var announces newBlockHashesData
 		if err := msg.Decode(&announces); err != nil {
-			fmt.Println("EEEEEEEEEEEEEEEE")
-			fmt.Println("EEEEEEEEEEEEEEEE")
-			fmt.Println("EEEEEEEEEEEEEEEE")
-			fmt.Println("EEEEEEEEEEEEEEEE")
-			fmt.Println("EEEEEEEEEEEEEEEE")
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		// Mark the hashes as present at the remote node
@@ -742,11 +654,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Retrieve and decode the propagated block
 		var request newBlockData
 		if err := msg.Decode(&request); err != nil {
-			fmt.Println("FFFFFFFFFFFFFFFF")
-			fmt.Println("FFFFFFFFFFFFFFFF")
-			fmt.Println("FFFFFFFFFFFFFFFF")
-			fmt.Println("FFFFFFFFFFFFFFFF")
-			fmt.Println("FFFFFFFFFFFFFFFF")
 			return errResp(ErrDecode, "%v: %v", msg, err)
 		}
 		request.Block.ReceivedAt = msg.ReceivedAt
@@ -783,22 +690,11 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		// Transactions can be processed, parse all of them and deliver to the pool
 		var txs []*types.Transaction
 		if err := msg.Decode(&txs); err != nil {
-			fmt.Println("GGGGGGGGGGGGGGGG")
-			fmt.Println("GGGGGGGGGGGGGGGG")
-			fmt.Println("GGGGGGGGGGGGGGGG")
-			fmt.Println("GGGGGGGGGGGGGGGG")
-			fmt.Println("GGGGGGGGGGGGGGGG")
 			return errResp(ErrDecode, "msg %v: %v", msg, err)
 		}
 		for i, tx := range txs {
 			// Validate and mark the remote transaction
 			if tx == nil {
-				fmt.Println("HHHHHHHHHHHHHHHH")
-				fmt.Println("HHHHHHHHHHHHHHHH")
-				fmt.Println("HHHHHHHHHHHHHHHH")
-				fmt.Println("HHHHHHHHHHHHHHHH")
-				fmt.Println("HHHHHHHHHHHHHHHH")
-
 				return errResp(ErrDecode, "transaction %d is nil", i)
 			}
 			p.MarkTransaction(tx.Hash())
@@ -806,11 +702,6 @@ func (pm *ProtocolManager) handleMsg(p *peer) error {
 		pm.txpool.AddRemotes(txs)
 
 	default:
-		fmt.Println("IIIIIIIIIIIIIIII")
-		fmt.Println("IIIIIIIIIIIIIIII")
-		fmt.Println("IIIIIIIIIIIIIIII")
-		fmt.Println("IIIIIIIIIIIIIIII")
-		fmt.Println("IIIIIIIIIIIIIIII")
 		return errResp(ErrInvalidMsgCode, "%v", msg.Code)
 	}
 	return nil
