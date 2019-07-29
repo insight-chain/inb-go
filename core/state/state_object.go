@@ -540,7 +540,20 @@ func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, tim
 				self.data.Stores[k].LastReceivedTime = time
 				if isAll {
 					self.AddBalance(&v.Value)
+
+					afterRegular:=new(big.Int).Sub(self.data.Regular,&v.Value)
+					self.data.Regular=afterRegular
+					afterMortgagteINB:=new(big.Int).Sub(self.data.Resources.NET.MortgagteINB,&v.Value)
+					self.data.Resources.NET.MortgagteINB=afterMortgagteINB
+
 					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
+
+					mortgageStateObject := self.db.GetMortgageStateObject()
+					if mortgageStateObject.Balance().Cmp(value) < 0 {
+						return
+					}
+					//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+					mortgageStateObject.SubBalance(value)
 
 				} else {
 
