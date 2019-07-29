@@ -383,8 +383,6 @@ func (s *PrivateAccountAPI) SendTransaction(ctx context.Context, args SendTxArgs
 	return submitTransaction(ctx, s.b, signed)
 }
 
-
-
 func (s *PrivateAccountAPI) Investment(ctx context.Context, args SendTxArgs, passwd string) (common.Hash, error) {
 	if args.Nonce == nil {
 		// Hold the addresse's mutex around signing to prevent concurrent assignment of
@@ -394,7 +392,6 @@ func (s *PrivateAccountAPI) Investment(ctx context.Context, args SendTxArgs, pas
 	}
 
 	args.To = &args.From
-
 
 	signed, err := s.signTransaction(ctx, &args, passwd)
 	if err != nil {
@@ -1176,25 +1173,25 @@ func FormatLogs(logs []vm.StructLog) []StructLogRes {
 func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]interface{}, error) {
 	head := b.Header() // copies the header once
 	fields := map[string]interface{}{
-		"number":           (*hexutil.Big)(head.Number),
-		"hash":             b.Hash(),
-		"parentHash":       head.ParentHash,
-		"nonce":            head.Nonce,
-		"mixHash":          head.MixDigest,
-		"sha3Uncles":       head.UncleHash,
-		"logsBloom":        head.Bloom,
-		"stateRoot":        head.Root,
-		"miner":            head.Coinbase,
-		"difficulty":       (*hexutil.Big)(head.Difficulty),
-		"extraData":        hexutil.Bytes(head.Extra),
-		"size":             hexutil.Uint64(b.Size()),
-		"gasLimit":         hexutil.Uint64(head.GasLimit),
-		"gasUsed":          hexutil.Uint64(head.GasUsed),
-		"timestamp":        (*hexutil.Big)(head.Time),
-		"transactionsRoot": head.TxHash,
-		"receiptsRoot":     head.ReceiptHash,
-		"reward":           head.Reward, //2019.6.28 inb by ghy
-		"SpecialConsensusAddress": head.SpecialConsensusAddress,//2019.7.23 inb by ghy
+		"number":                  (*hexutil.Big)(head.Number),
+		"hash":                    b.Hash(),
+		"parentHash":              head.ParentHash,
+		"nonce":                   head.Nonce,
+		"mixHash":                 head.MixDigest,
+		"sha3Uncles":              head.UncleHash,
+		"logsBloom":               head.Bloom,
+		"stateRoot":               head.Root,
+		"miner":                   head.Coinbase,
+		"difficulty":              (*hexutil.Big)(head.Difficulty),
+		"extraData":               hexutil.Bytes(head.Extra),
+		"size":                    hexutil.Uint64(b.Size()),
+		"gasLimit":                hexutil.Uint64(head.GasLimit),
+		"gasUsed":                 hexutil.Uint64(head.GasUsed),
+		"timestamp":               (*hexutil.Big)(head.Time),
+		"transactionsRoot":        head.TxHash,
+		"receiptsRoot":            head.ReceiptHash,
+		"reward":                  head.Reward,                  //2019.6.28 inb by ghy
+		"SpecialConsensusAddress": head.SpecialConsensusAddress, //2019.7.23 inb by ghy
 	}
 
 	if inclTx {
@@ -1392,7 +1389,6 @@ func (s *PublicTransactionPoolAPI) GetTransactionCount(ctx context.Context, addr
 	return (*hexutil.Uint64)(&nonce), state.Error()
 }
 
-
 // GetTransactionByHash returns the transaction for the given hash
 func (s *PublicTransactionPoolAPI) GetTransactionByHash(ctx context.Context, hash common.Hash) *RPCTransaction {
 	// Try to return an already finalized transaction
@@ -1452,6 +1448,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
 		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
+		"IncomeClaimed":     hexutil.Uint64(receipt.IncomeClaimed),
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,

@@ -55,6 +55,7 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
+	IncomeClaimed   uint64         `json:"incomeClaimed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
@@ -62,6 +63,7 @@ type receiptMarshaling struct {
 	Status            hexutil.Uint64
 	CumulativeGasUsed hexutil.Uint64
 	GasUsed           hexutil.Uint64
+	IncomeClaimed     hexutil.Uint64
 }
 
 // receiptRLP is the consensus encoding of a receipt.
@@ -70,6 +72,7 @@ type receiptRLP struct {
 	CumulativeGasUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
+	//IncomeClaimed     uint64
 }
 
 type receiptStorageRLP struct {
@@ -80,6 +83,7 @@ type receiptStorageRLP struct {
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
 	GasUsed           uint64
+	IncomeClaimed     uint64
 }
 
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
@@ -164,6 +168,7 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 		ContractAddress:   r.ContractAddress,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
 		GasUsed:           r.GasUsed,
+		IncomeClaimed:     r.IncomeClaimed,
 	}
 	for i, log := range r.Logs {
 		enc.Logs[i] = (*LogForStorage)(log)
