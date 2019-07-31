@@ -74,7 +74,6 @@ type Message interface {
 	Nonce() uint64
 	CheckNonce() bool
 	Data() []byte
-
 	//achilles repayment add apis
 	ResourcePayer() common.Address
 	IsRePayment() bool

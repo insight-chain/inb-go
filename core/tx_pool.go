@@ -678,7 +678,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") || inputStr != string("reset") || inputStr != string("receive"){
+	if inputStr != string("unmortgageNet") || inputStr != string("reset") || inputStr != string("receive") {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -690,10 +690,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if strings.Contains(inputStr, "ReceiveAward") {
+	if strings.Contains(inputStr, "ReceiveLockedAward") {
 		receivebonus := strings.Split(inputStr, ":")
-		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveAward" {
-			if err := pool.validateReceiveAward(receivebonus, from); err != nil {
+		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveLockedAward" {
+			if err := pool.validateReceiveLockedAward(receivebonus, from); err != nil {
 				return err
 			}
 		} else {
@@ -702,13 +702,13 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if inputStr == string("ReceiveVoteAward") {
-		if err := pool.validateVoteAward(from); err != nil {
+		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
 		}
 	}
 
 	if inputStr == string("receive") {
-		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from),params.TxConfig.RedeemDuration)
+		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from), params.TxConfig.RedeemDuration)
 		now := big.NewInt(time.Now().Unix())
 		if timeLimit.Cmp(now) > 0 {
 			return errors.New(" before receive time ")
@@ -734,7 +734,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() && inputStr != string("receive"){
+	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() && inputStr != string("receive") {
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}
@@ -1496,7 +1496,7 @@ func (pool *TxPool) validateVote(inputStr string) error {
 }
 
 //2019.7.22 inb by ghy begin
-func (pool *TxPool) validateReceiveAward(receivebonus []string, from common.Address) error {
+func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
 	if account.Voted.Int64() > 0 {
 		for _, v := range account.Stores {
@@ -1528,9 +1528,9 @@ func (pool *TxPool) validateReceiveAward(receivebonus []string, from common.Addr
 				if lastReceivedTime < endTimeSecond && timeNow > lastReceivedTime {
 
 					if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
-						totalValue1 := new(big.Int).Mul(totalValue, common.A1)
-						totalValue2 := new(big.Int).Div(totalValue1, common.A3)
-						totalValue3 := new(big.Int).Div(totalValue2, common.A4)
+						totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
+						totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
+						totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
 						MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
 						//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
 						//subValue := MaxReceivedValueNow - float64(receivedValue)
@@ -1549,7 +1549,7 @@ func (pool *TxPool) validateReceiveAward(receivebonus []string, from common.Addr
 	}
 }
 
-func (pool *TxPool) validateVoteAward(from common.Address) error {
+func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
 	if account.Voted.Cmp(big.NewInt(0)) == 1 {
 		timeNow := pool.chain.CurrentBlock().Time().Int64()

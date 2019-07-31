@@ -50,11 +50,11 @@ type StateDB interface {
 	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
 	//2019.7.22 inb by ghy begin
-	CanReceiveAward (common.Address,int,*big.Int) (error,*big.Int,bool)
-	ReceiveAward(common.Address,int,*big.Int,bool,*big.Int)
+	CanReceiveLockedAward(common.Address, int, *big.Int) (error, *big.Int, bool)
+	ReceiveLockedAward(common.Address, int, *big.Int, bool, *big.Int, types.SpecialConsensus)
 
-	CanReceiveVoteAward (common.Address,*big.Int) (error,*big.Int)
-	ReceiveVoteAward(common.Address,*big.Int,*big.Int)
+	CanReceiveVoteAward(common.Address, *big.Int) (error, *big.Int)
+	ReceiveVoteAward(common.Address, *big.Int, *big.Int, types.SpecialConsensus)
 
 	Vote(common.Address)
 	//2019.7.22 inb by ghy end

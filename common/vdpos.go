@@ -22,19 +22,19 @@ var (
 	//test
 	//vote
 
-	VoteRewardCycleSeconds = int64(5) //
+	VoteRewardCycleSeconds = int64(60) //
 	VoteRewardOneDayRate   = float64(1)
-	VoteRewardOneDaySecond = int64(1)
+	VoteRewardOneDaySecond = int64(10)
 	//else
 	ResponseRate        = float64(1)
-	VoteRewardCycleDays = int64(1)
-	RewardOneDaySecond  = int64(1)
+	VoteRewardCycleDays = int64(7)
+	RewardOneDaySecond  = int64(10)
 
-	A1                  = big.NewInt(12)
-	A2                  = big.NewInt(7)
-	A3                  = big.NewInt(100)
-	A4                  = big.NewInt(365)
-	A5                  = big.NewInt(24 * 60 * 60)
+	Denominator         = big.NewInt(12)
+	ReceivingCycleDays  = big.NewInt(7)
+	Hundred             = big.NewInt(100)
+	NumberOfDaysOneYear = big.NewInt(365)
+	OneCycleSeconds     = big.NewInt(24 * 60 * 60)
 	DefaultTotalAccount = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
 	BeVotedNeedINB      = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 

@@ -53,26 +53,27 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Resource by zc
 		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:             GetHashFn(header, chain),
-		Origin:              msg.From(),
-		Coinbase:            beneficiary,
-		BlockNumber:         new(big.Int).Set(header.Number),
-		Time:                new(big.Int).Set(header.Time),
-		Difficulty:          new(big.Int).Set(header.Difficulty),
-		GasLimit:            header.GasLimit,
-		GasPrice:            new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:         CanMortgage,
-		CanRedeem:           CanRedeem,
-		CanReset:            CanReset,
-		CanReceive:          CanReceive,
-		RedeemTransfer:      RedeemTransfer,
-		ResetTransfer:       ResetTransfer,
-		ReceiveTransfer:     ReceiveTransfer,
-		CanReceiveAward:     CanReceiveAwardFunc,     //2019.7.22 inb by ghy
-		ReceiveAward:        ReceiveAwardFunc,        //2019.7.22 inb by ghy
-		CanReceiveVoteAward: CanReceiveVoteAwardFunc, //2019.7.24 inb by ghy
-		ReceiveVoteAward:    ReceiveVoteAwardFunc,    //2019.7.24 inb by ghy
-		Vote:                Vote,                    //2019.7.24 inb by ghy
+		GetHash:               GetHashFn(header, chain),
+		Origin:                msg.From(),
+		Coinbase:              beneficiary,
+		BlockNumber:           new(big.Int).Set(header.Number),
+		Time:                  new(big.Int).Set(header.Time),
+		SpecialConsensus:      header.SpecialConsensus, //2019.7.31 inb by ghy
+		Difficulty:            new(big.Int).Set(header.Difficulty),
+		GasLimit:              header.GasLimit,
+		GasPrice:              new(big.Int).Set(msg.GasPrice()),
+		CanMortgage:           CanMortgage,
+		CanRedeem:             CanRedeem,
+		CanReset:              CanReset,
+		CanReceive:            CanReceive,
+		RedeemTransfer:        RedeemTransfer,
+		ResetTransfer:         ResetTransfer,
+		ReceiveTransfer:       ReceiveTransfer,
+		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                  Vote,                      //2019.7.24 inb by ghy
 	}
 }
 
@@ -129,13 +130,13 @@ func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
 //Resource by zc
 
 //2019.7.22 inb by ghy begin
-func CanReceiveAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int) (error, *big.Int, bool) {
-	return db.CanReceiveAward(from, nonce, time)
+func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int) (error, *big.Int, bool) {
+	return db.CanReceiveLockedAward(from, nonce, time)
 
 }
 
-func ReceiveAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int) {
-	db.ReceiveAward(from, nonce, values, isAll, time)
+func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int, consense types.SpecialConsensus) {
+	db.ReceiveLockedAward(from, nonce, values, isAll, time, consense)
 }
 
 func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int) (error, *big.Int) {
@@ -143,8 +144,8 @@ func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int) 
 
 }
 
-func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int) {
-	db.ReceiveVoteAward(from, values, time)
+func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int, specialConsensus types.SpecialConsensus) {
+	db.ReceiveVoteAward(from, values, time, specialConsensus)
 }
 
 func Vote(db vm.StateDB, from common.Address) {

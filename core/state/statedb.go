@@ -61,12 +61,24 @@ const (
 	unMortgageNet //3
 
 	MasterAccount    string = "0x1000000000000000000000000000000000000000" // account record value of circulation
-	MortgageAccount  string = "0x2000000000000000000000000000000000000000" // account record value of mortgaging
+	MortgageAccount  string = "0x3000000000000000000000000000000000000000" // account record value of mortgaging
 	BonusAccount     string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
-	TeamAccount      string = "0x4000000000000000000000000000000000000000" // account record value of team
 	MarketingAccount string = "0x5000000000000000000000000000000000000000" // account record value of Marketing
-	FundAccount      string = "0x6000000000000000000000000000000000000000" // account record value of Fund
+	Foundation       string = "Foundation"                                 // account record value of Foundation
+	MiningReward     string = "MiningReward"                               // account record value of Mining
+	VerifyReward     string = "VerifyReward"                               // account record value of Verify
+	VotingReward     string = "VotingReward"                               // account record value of Voting
+	Team             string = "Team"                                       // account record value of team
+	OnlineMarketing  string = "OnlineMarketing"                            // account record value of OnlineMarketing
+	OfflineMarketing string = "OfflineMarketing"                           // account record value of OfflineMarketing
 
+	FoundationAccount       string = "0x1100000000000000000000000000000000000000" // account record value of Foundation
+	MiningRewardAccount     string = "0x1310000000000000000000000000000000000000" // account record value of Mining
+	VerifyRewardAccount     string = "0x1330000000000000000000000000000000000000" // account record value of Verify
+	VotingRewardAccount     string = "0x1350000000000000000000000000000000000000" // account record value of Voting
+	TeamAccount             string = "0x1500000000000000000000000000000000000000" // account record value of team
+	OnlineMarketingAccount  string = "0x1710000000000000000000000000000000000000" // account record value of OnlineMarketing
+	OfflineMarketingAccount string = "0x1730000000000000000000000000000000000000" // account record value of OfflineMarketing
 )
 
 //Resource by zc
@@ -495,8 +507,6 @@ func (self *StateDB) AddVoteRecord(addr common.Address, amount *big.Int) {
 	}
 }
 
-
-
 // SubBalance subtracts amount from the account associated with addr.
 func (self *StateDB) SubBalance(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
@@ -526,50 +536,56 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) {
 		stateObject.ResetNet(update)
 	}
 }
+
 //2019.7.22 inb by ghy begin
 
-
-func (self *StateDB)CanReceiveAward(addr common.Address,nonce int,time *big.Int)(err error ,value *big.Int,is bool){
+func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce int, time *big.Int) (err error, value *big.Int, is bool) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.CanReceiveAward(nonce, time)
 	}
-	return errors.New("erros"),big.NewInt(0),false
+	return errors.New("errors of address"), big.NewInt(0), false
 }
 
-
-func (self *StateDB)ReceiveAward(addr common.Address,nonce int,value *big.Int,isAll bool,time *big.Int){
+func (self *StateDB) ReceiveLockedAward(addr common.Address, nonce int, value *big.Int, isAll bool, time *big.Int, consensus types.SpecialConsensus) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.ReceiveAward(nonce,value,isAll,time)
+		for _, v := range consensus.SpecialConsensusAddress {
+			if v.Name == OnlineMarketing {
+				self.SubBalance(v.ToAddress, value)
+				stateObject.ReceiveAward(nonce, value, isAll, time)
+			}
+		}
 	}
 }
-func (self *StateDB)CanReceiveVoteAward(addr common.Address,time *big.Int)(err error ,value *big.Int){
+func (self *StateDB) CanReceiveVoteAward(addr common.Address, time *big.Int) (err error, value *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.CanReceiveVoteAward(time)
 	}
-	return errors.New("erros"),big.NewInt(0)
+	return errors.New("errors of address"), big.NewInt(0)
 }
 
-
-func (self *StateDB)ReceiveVoteAward(addr common.Address,value *big.Int,time *big.Int){
+func (self *StateDB) ReceiveVoteAward(addr common.Address, value *big.Int, time *big.Int, consensus types.SpecialConsensus) {
 	stateObject := self.GetOrNewStateObject(addr)
+
 	if stateObject != nil {
-		stateObject.ReceiveVoteAward(value,time)
+		for _, v := range consensus.SpecialConsensusAddress {
+			if v.Name == VotingReward {
+				self.SubBalance(v.ToAddress, value)
+				stateObject.ReceiveVoteAward(value, time)
+			}
+		}
+
 	}
 }
 
-func (self *StateDB)Vote(addr common.Address){
+func (self *StateDB) Vote(addr common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		stateObject.Vote()
 	}
 }
-
-
-
-
 
 //2019.7.22 inb by ghy end
 

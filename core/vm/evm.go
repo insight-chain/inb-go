@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
 	"strings"
@@ -44,18 +45,18 @@ type (
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanResetFunc            func(StateDB, common.Address) error
-	CanMortgageFunc         func(StateDB, common.Address, *big.Int, uint) error
-	CanRedeemFunc           func(StateDB, common.Address, *big.Int) error
-	CanReceiveFunc          func(StateDB, common.Address) error
-	RedeemTransferFunc      func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
-	ReceiveTransferFunc     func(StateDB, common.Address, *big.Int)
-	ResetTransferFunc       func(StateDB, common.Address, *big.Int)
-	CanReceiveAwardFunc     func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool) //2019.7.22 inb by ghy begin
-	ReceiveAwardFunc        func(StateDB, common.Address, int, *big.Int, bool, *big.Int)         //2019.7.22 inb by ghy begin
-	CanReceiveVoteAwardFunc func(StateDB, common.Address, *big.Int) (error, *big.Int)            //2019.7.24 inb by ghy begin
-	ReceiveVoteAwardFunc    func(StateDB, common.Address, *big.Int, *big.Int)                    //2019.7.24 inb by ghy begin
-	VoteFunc                func(StateDB, common.Address)                                        //2019.7.24 inb by ghy
+	CanResetFunc              func(StateDB, common.Address) error
+	CanMortgageFunc           func(StateDB, common.Address, *big.Int, uint) error
+	CanRedeemFunc             func(StateDB, common.Address, *big.Int) error
+	CanReceiveFunc            func(StateDB, common.Address) error
+	RedeemTransferFunc        func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc       func(StateDB, common.Address, *big.Int)
+	ResetTransferFunc         func(StateDB, common.Address, *big.Int)
+	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool)                 //2019.7.22 inb by ghy begin
+	ReceiveLockedAwardFunc    func(StateDB, common.Address, int, *big.Int, bool, *big.Int, types.SpecialConsensus) //2019.7.22 inb by ghy begin
+	CanReceiveVoteAwardFunc   func(StateDB, common.Address, *big.Int) (error, *big.Int)                            //2019.7.24 inb by ghy begin
+	ReceiveVoteAwardFunc      func(StateDB, common.Address, *big.Int, *big.Int, types.SpecialConsensus)            //2019.7.24 inb by ghy begin
+	VoteFunc                  func(StateDB, common.Address)                                                        //2019.7.24 inb by ghy
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -104,24 +105,24 @@ type Context struct {
 	GasPrice *big.Int       // Provides information for GASPRICE
 
 	// Block information
-	Coinbase    common.Address // Provides information for COINBASE
-	GasLimit    uint64         // Provides information for GASLIMIT
-	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
-
-	CanReset            CanResetFunc
-	CanMortgage         CanMortgageFunc
-	CanRedeem           CanRedeemFunc
-	CanReceive          CanReceiveFunc
-	RedeemTransfer      RedeemTransferFunc
-	ResetTransfer       ResetTransferFunc
-	ReceiveTransfer     ReceiveTransferFunc
-	ReceiveAward        ReceiveAwardFunc //2019.7.22 inb by ghy
-	Vote                VoteFunc         //2019.7.24 inb by ghy
-	CanReceiveAward     CanReceiveAwardFunc
-	CanReceiveVoteAward CanReceiveVoteAwardFunc //2019.7.24 inb by ghy
-	ReceiveVoteAward    ReceiveVoteAwardFunc    //2019.7.24 inb by ghy
+	Coinbase              common.Address         // Provides information for COINBASE
+	GasLimit              uint64                 // Provides information for GASLIMIT
+	BlockNumber           *big.Int               // Provides information for NUMBER
+	Time                  *big.Int               // Provides information for TIME
+	Difficulty            *big.Int               // Provides information for DIFFICULTY
+	SpecialConsensus      types.SpecialConsensus //2019.7.31 inb by ghy
+	CanReset              CanResetFunc
+	CanMortgage           CanMortgageFunc
+	CanRedeem             CanRedeemFunc
+	CanReceive            CanReceiveFunc
+	RedeemTransfer        RedeemTransferFunc
+	ResetTransfer         ResetTransferFunc
+	ReceiveTransfer       ReceiveTransferFunc
+	ReceiveLockedAward    ReceiveLockedAwardFunc //2019.7.22 inb by ghy
+	Vote                  VoteFunc               //2019.7.24 inb by ghy
+	CanReceiveLockedAward CanReceiveLockedAwardFunc
+	CanReceiveVoteAward   CanReceiveVoteAwardFunc //2019.7.24 inb by ghy
+	ReceiveVoteAward      ReceiveVoteAwardFunc    //2019.7.24 inb by ghy
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -216,7 +217,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, net, nil
 	}
-
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, net, ErrDepth
@@ -231,16 +231,16 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	VoteAward := big.NewInt(0)
 	isAll := false
 	IntNonce := 0
-	if strings.HasPrefix(inputStr, "ReceiveAward") {
+	if strings.HasPrefix(inputStr, "ReceiveLockedAward") {
 		// regular mortgagtion
 
 		inputSlice := strings.Split(inputStr, ":")
-		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveAward" {
+		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
 			IntNonce, err = strconv.Atoi(inputSlice[1])
 			if err != nil {
 				return nil, net, err
 			}
-			err, Award, isAll = evm.CanReceiveAward(evm.StateDB, caller.Address(), IntNonce, evm.Time)
+			err, Award, isAll = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.Time)
 			if err != nil {
 				return nil, net, err
 			}
@@ -248,7 +248,6 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 
 	}
 	//2019.7.22 inb by ghy end
-
 	if strings.HasPrefix(inputStr, "mortgageNet") {
 		// regular mortgagtion
 		if strings.Contains(inputStr, "mortgageNet:") {
@@ -316,16 +315,16 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	} else if inputStr == string("reset") {
 		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else if inputStr == string("ReceiveVoteAward") {
-		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time) //2019.7.24 inb by ghy
-	} else if strings.HasPrefix(inputStr, "ReceiveAward") { //2019.7.22 inb by ghy begin
+		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, evm.SpecialConsensus) //2019.7.24 inb by ghy
+	} else if strings.HasPrefix(inputStr, "ReceiveLockedAward") { //2019.7.22 inb by ghy begin
 		// regular mortgagtion
 		inputSlice := strings.Split(inputStr, ":")
-		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveAward" {
+		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
 			IntNonce, err = strconv.Atoi(inputSlice[1])
 			if err != nil {
 				return nil, net, err
 			}
-			evm.ReceiveAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time)
+			evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time, evm.SpecialConsensus)
 		} //2019.7.22 inb by ghy end
 	} else if inputStr == string("receive") {
 		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)

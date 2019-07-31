@@ -392,7 +392,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	if parent == nil {
 		return nil, consensus.ErrUnknownAncestor
 	}
-header.SpecialConsensusAddress=parent.SpecialConsensusAddress//2019.7.23 inb by ghy
+	header.SpecialConsensus = parent.SpecialConsensus //2019.7.23 inb by ghy
 	//config.Period != config.SignerPeriod
 	if (number-1)%v.config.SignerBlocks == 0 {
 		header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.SignerPeriod))
@@ -850,7 +850,7 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
 
 	//reward := new(big.Int).Set(DefaultMinerReward)
-	//reward := new(big.Int).Div(defaultInbIncreaseOneYear, new)Y
+	//reward := new(big.Int).Div(defaultInbIncreaseOneYear, new)
 
 	//inb by ssh 190627
 	blockNumberOneYear := oneYearBySec / int64(v.config.Period)
@@ -858,16 +858,40 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	DefaultMinerReward = reward
 	if reward.Cmp(big.NewInt(0)) > 0 {
 
-		states.AddBalance(common.HexToAddress(state.BonusAccount), reward)
-		states.AddBalance(common.HexToAddress(state.TeamAccount), reward)
-		states.AddBalance(common.HexToAddress(state.MarketingAccount), reward)
-		states.AddBalance(common.HexToAddress(state.FundAccount), reward)
-		//for _,v:=range header.SpecialConsensusAddress{
-		//	//fmt.Println(v.Address.String())
-		//}
+		for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
+			if header.Number.Int64() < SpecialNumber.Number.Int64() {
+				mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
+				reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
+				break
+			}
+		}
+		for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
+			switch SpecialConsensusAddress.Name {
+			case state.Foundation:
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+			case state.MiningReward:
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+				states.AddBalance(header.Coinbase, reward)
+			case state.VerifyReward:
 
-		states.AddBalance(header.Coinbase, reward)
-		states.SubBalance(common.HexToAddress(state.MasterAccount), reward)
+			case state.VotingReward:
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+			case state.Team:
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+			case state.OnlineMarketing:
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+			case state.OfflineMarketing:
+				halfReward := new(big.Int).Div(reward, big.NewInt(2))
+				states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
+				states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
+			default:
+
+			}
+		}
 
 	}
 }

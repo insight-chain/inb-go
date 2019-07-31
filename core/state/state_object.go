@@ -137,7 +137,7 @@ type Store struct {
 
 type Redeem struct {
 	StartTime *big.Int // start time
-	Value *big.Int // amount of mortgaging
+	Value     *big.Int // amount of mortgaging
 }
 
 //Resource by zc
@@ -169,10 +169,10 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.Resources.NET.MortgagteINB = new(big.Int)
 	}
 	if data.Stores == nil {
-		data.Stores =  make([]Store,0)
+		data.Stores = make([]Store, 0)
 	}
 	if data.Redeems == nil {
-		data.Redeems =  make([]Redeem,1)
+		data.Redeems = make([]Redeem, 1)
 	}
 	if data.Regular == nil {
 		data.Regular = new(big.Int)
@@ -486,15 +486,14 @@ func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, v
 
 						if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
 
-							totalValue1 := new(big.Int).Mul(totalValue, common.A1)
-							totalValue2 := new(big.Int).Div(totalValue1, common.A3)
-							totalValue3 := new(big.Int).Div(totalValue2, common.A4)
+							totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
+							totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
+							totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
 							MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
 							//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
 							//subValue := MaxReceivedValueNow - float64(receivedValue)
 							subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
 							if subValue.Cmp(big.NewInt(0)) == 1 {
-								fmt.Println("更稳了", subValue)
 								return nil, subValue, timeNow == endTimeSecond
 							}
 						}
@@ -541,10 +540,10 @@ func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, tim
 				if isAll {
 					self.AddBalance(&v.Value)
 
-					afterRegular:=new(big.Int).Sub(self.data.Regular,&v.Value)
-					self.data.Regular=afterRegular
-					afterMortgagteINB:=new(big.Int).Sub(self.data.Resources.NET.MortgagteINB,&v.Value)
-					self.data.Resources.NET.MortgagteINB=afterMortgagteINB
+					afterRegular := new(big.Int).Sub(self.data.Regular, &v.Value)
+					self.data.Regular = afterRegular
+					afterMortgagteINB := new(big.Int).Sub(self.data.Resources.NET.MortgagteINB, &v.Value)
+					self.data.Resources.NET.MortgagteINB = afterMortgagteINB
 
 					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
 
@@ -558,7 +557,7 @@ func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, tim
 				} else {
 
 					//receiveAdd := v.Received.Int64() + int64(value)
-					receiveAdd:=new(big.Int).Add(&v.Received,value)
+					receiveAdd := new(big.Int).Add(&v.Received, value)
 					self.data.Stores[k].Received = *receiveAdd
 				}
 			}
@@ -569,22 +568,22 @@ func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, tim
 func (self *stateObject) CanReceiveVoteAward(time *big.Int) (err error, value *big.Int) {
 	//account := pool.currentState.GetAccountInfo(from)
 	votes := self.data.Voted
-	if votes.Cmp(big.NewInt(0))==1{
+	if votes.Cmp(big.NewInt(0)) == 1 {
 		timeNow := time.Int64()
 		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime.Int64()
 		if lastReceiveVoteAwardTime == 0 {
-			votes1:=new(big.Int).Mul(votes, common.A1)
-			votes2 := new(big.Int).Div(votes1, common.A3)
-			votes3 := new(big.Int).Div(votes2, common.A4)
-			value := new(big.Int).Mul(votes3, common.A2)
+			votes1 := new(big.Int).Mul(votes, common.Denominator)
+			votes2 := new(big.Int).Div(votes1, common.Hundred)
+			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
+			value := new(big.Int).Mul(votes3, common.ReceivingCycleDays)
 			return nil, value
 		}
 		intervalTime := timeNow - lastReceiveVoteAwardTime
 		if intervalTime > common.VoteRewardCycleSeconds {
 			days := intervalTime / common.VoteRewardOneDaySecond
-			votes1:=new(big.Int).Mul(votes, common.A1)
-			votes2 := new(big.Int).Div(votes1, common.A3)
-			votes3 := new(big.Int).Div(votes2, common.A4)
+			votes1 := new(big.Int).Mul(votes, common.Denominator)
+			votes2 := new(big.Int).Div(votes1, common.Hundred)
+			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
 			value := new(big.Int).Mul(votes3, big.NewInt(days))
 
 			return nil, value
@@ -615,13 +614,13 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	available := new(big.Int).Sub(self.MortgageOfNet(),self.Regular())
+	available := new(big.Int).Sub(self.MortgageOfNet(), self.Regular())
 	if available.Cmp(amount) < 0 {
 		return
 	}
 	// freeze inb of redeeming
 	mortgaging := new(big.Int).Sub(self.MortgageOfNet(), amount)
-	self.SetNet(self.UsedNet(),self.Net(),mortgaging)
+	self.SetNet(self.UsedNet(), self.Net(), mortgaging)
 
 	redeem := Redeem{
 		StartTime: sTime,
@@ -635,9 +634,9 @@ func (self *stateObject) Receive(sTime *big.Int) {
 
 	value := self.GetRedeem()
 
-	redeem := Redeem {
+	redeem := Redeem{
 		StartTime: sTime,
-		Value: big.NewInt(0),
+		Value:     big.NewInt(0),
 	}
 	self.data.Redeems[0] = redeem
 	self.SetRedeems(self.data.Redeems)
@@ -671,7 +670,7 @@ func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mort
 func (self *stateObject) SetRedeems(redeems []Redeem) {
 	self.db.journal.append(redeemChange{
 		account: &self.address,
-		redeems:  self.data.Redeems,
+		redeems: self.data.Redeems,
 	})
 	self.setRedeems(redeems)
 }

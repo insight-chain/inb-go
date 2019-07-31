@@ -10,27 +10,27 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
-	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/params"
 )
 
 var _ = (*genesisSpecMarshaling)(nil)
 
 func (g Genesis) MarshalJSON() ([]byte, error) {
 	type Genesis struct {
-		Config     *params.ChainConfig                         `json:"config"`
-		Nonce      math.HexOrDecimal64                         `json:"nonce"`
-		Timestamp  math.HexOrDecimal64                         `json:"timestamp"`
-		ExtraData  hexutil.Bytes                               `json:"extraData"`
-		GasLimit   math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
-		Difficulty *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
-		Mixhash    common.Hash                                 `json:"mixHash"`
-		Coinbase   common.Address                              `json:"coinbase"`
-		Alloc      map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		Number     math.HexOrDecimal64                         `json:"number"`
-		GasUsed    math.HexOrDecimal64                         `json:"gasUsed"`
-		ParentHash common.Hash                                 `json:"parentHash"`
-		SpecialConsensusAddress []types.SpecialConsensusAddress `json:"specialConsensusAddress" gencodec:"required"`
+		Config           *params.ChainConfig                         `json:"config"`
+		Nonce            math.HexOrDecimal64                         `json:"nonce"`
+		Timestamp        math.HexOrDecimal64                         `json:"timestamp"`
+		ExtraData        hexutil.Bytes                               `json:"extraData"`
+		GasLimit         math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
+		Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
+		Mixhash          common.Hash                                 `json:"mixHash"`
+		Coinbase         common.Address                              `json:"coinbase"`
+		Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Number           math.HexOrDecimal64                         `json:"number"`
+		GasUsed          math.HexOrDecimal64                         `json:"gasUsed"`
+		ParentHash       common.Hash                                 `json:"parentHash"`
+		SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"`
 	}
 	var enc Genesis
 	enc.Config = g.Config
@@ -50,25 +50,25 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Number = math.HexOrDecimal64(g.Number)
 	enc.GasUsed = math.HexOrDecimal64(g.GasUsed)
 	enc.ParentHash = g.ParentHash
-	enc.SpecialConsensusAddress=g.SpecialConsensusAddress//2019.7.23 inb by ghy
+	enc.SpecialConsensus = g.SpecialConsensus //2019.7.23 inb by ghy
 	return json.Marshal(&enc)
 }
 
 func (g *Genesis) UnmarshalJSON(input []byte) error {
 	type Genesis struct {
-		Config     *params.ChainConfig                         `json:"config"`
-		Nonce      *math.HexOrDecimal64                        `json:"nonce"`
-		Timestamp  *math.HexOrDecimal64                        `json:"timestamp"`
-		ExtraData  *hexutil.Bytes                              `json:"extraData"`
-		GasLimit   *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
-		Difficulty *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
-		Mixhash    *common.Hash                                `json:"mixHash"`
-		Coinbase   *common.Address                             `json:"coinbase"`
-		Alloc      map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
-		Number     *math.HexOrDecimal64                        `json:"number"`
-		GasUsed    *math.HexOrDecimal64                        `json:"gasUsed"`
-		ParentHash *common.Hash                                `json:"parentHash"`
-		SpecialConsensusAddress []types.SpecialConsensusAddress `json:"specialConsensusAddress" gencodec:"required"`//2019.7.23 inb by ghy
+		Config           *params.ChainConfig                         `json:"config"`
+		Nonce            *math.HexOrDecimal64                        `json:"nonce"`
+		Timestamp        *math.HexOrDecimal64                        `json:"timestamp"`
+		ExtraData        *hexutil.Bytes                              `json:"extraData"`
+		GasLimit         *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
+		Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
+		Mixhash          *common.Hash                                `json:"mixHash"`
+		Coinbase         *common.Address                             `json:"coinbase"`
+		Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
+		Number           *math.HexOrDecimal64                        `json:"number"`
+		GasUsed          *math.HexOrDecimal64                        `json:"gasUsed"`
+		ParentHash       *common.Hash                                `json:"parentHash"`
+		SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
 	}
 	var dec Genesis
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -117,8 +117,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.ParentHash = *dec.ParentHash
 	}
 	//2019.7.23 inb by ghy
-	if dec.SpecialConsensusAddress !=nil{
-		g.SpecialConsensusAddress = dec.SpecialConsensusAddress
+	if dec.SpecialConsensus.SpecialConsensusAddress != nil || dec.SpecialConsensus.SpecialNumer != nil {
+		g.SpecialConsensus = dec.SpecialConsensus
 	}
 	return nil
 }
