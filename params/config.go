@@ -18,9 +18,8 @@ package params
 
 import (
 	"fmt"
-	"math/big"
-
 	"github.com/insight-chain/inb-go/common"
+	"math/big"
 )
 
 // Genesis hashes to enforce below configs on.
@@ -160,6 +159,10 @@ var (
 		WeiOfUseNet:      big.NewInt(1e+14),
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetUse:           big.NewInt(100),
+		RegularLimit:     5,
+		Days:             [4]uint{1, 30, 180, 360},
+		ResetDuration:    big.NewInt(24 * 60 * 60),
+		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60),
 	}
 )
 
@@ -221,6 +224,10 @@ type CommonConfig struct {
 	MortgageInbLimit *big.Int
 	NetUse           *big.Int // for net use
 
+	ResetDuration  *big.Int // duration of resetting nets
+	RegularLimit   int      // max value for regular mortgaging
+	Days           [4]uint
+	RedeemDuration *big.Int //duration of redeeming
 }
 
 // String implements the stringer interface, returning the consensus engine details.
@@ -488,4 +495,15 @@ func (c *ChainConfig) Rules(num *big.Int) Rules {
 		IsByzantium:      c.IsByzantium(num),
 		IsConstantinople: c.IsConstantinople(num),
 	}
+}
+
+func Contains(day uint) bool {
+	isContain := false
+	for _, value := range TxConfig.Days {
+		if value == day {
+			isContain = true
+			break
+		}
+	}
+	return isContain
 }

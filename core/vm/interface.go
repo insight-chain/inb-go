@@ -36,12 +36,28 @@ type StateDB interface {
 	UseNet(addr common.Address, amount *big.Int)
 	GetNet(addr common.Address) *big.Int
 	GetMortgageInbOfNet(addr common.Address) *big.Int
-	MortgageNet(addr common.Address, amount *big.Int)
-	RedeemNet(addr common.Address, amount *big.Int)
+	GetDate(addr common.Address) *big.Int
+	GetRedeemTime(addr common.Address) *big.Int
+	GetRegular(addr common.Address) *big.Int
+	GetRedeem(addr common.Address) *big.Int
+	MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int)
+	ResetNet(addr common.Address, update *big.Int)
+	Receive(addr common.Address, sTime *big.Int)
+	Redeem(addr common.Address, amount *big.Int, sTime *big.Int)
 	UnitConvertNet() *big.Int
+	StoreLength(addr common.Address) int
 	//Resource by zc
-	GetStateObject(address common.Address, num *big.Int, variety int)
+	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
+	//2019.7.22 inb by ghy begin
+	CanReceiveLockedAward(common.Address, int, *big.Int) (error, *big.Int, bool)
+	ReceiveLockedAward(common.Address, int, *big.Int, bool, *big.Int, types.SpecialConsensus)
+
+	CanReceiveVoteAward(common.Address, *big.Int) (error, *big.Int)
+	ReceiveVoteAward(common.Address, *big.Int, *big.Int, types.SpecialConsensus)
+
+	Vote(common.Address)
+	//2019.7.22 inb by ghy end
 	GetNonce(common.Address) uint64
 	SetNonce(common.Address, uint64)
 

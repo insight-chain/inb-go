@@ -17,7 +17,10 @@
 package vm
 
 import (
+	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
+	"strconv"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -36,15 +39,24 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int)
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanMortgageFunc    func(StateDB, common.Address, *big.Int) error
-	CanRedeemFunc      func(StateDB, common.Address, *big.Int) error
-	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int)
+	CanResetFunc func(StateDB, common.Address, *big.Int) error
+	CanMortgageFunc func(StateDB, common.Address, *big.Int, uint) error
+	CanRedeemFunc func(StateDB, common.Address, *big.Int) error
+	CanReceiveFunc func(StateDB, common.Address, *big.Int) error
+	RedeemTransferFunc func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc func(StateDB, common.Address, *big.Int)
+	ResetTransferFunc func(StateDB, common.Address, *big.Int)
+	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool)              //2019.7.22 inb by ghy begin
+	ReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int, bool, *big.Int, types.SpecialConsensus) //2019.7.22 inb by ghy begin
+	CanReceiveVoteAwardFunc func(StateDB, common.Address, *big.Int) (error, *big.Int)                           //2019.7.24 inb by ghy begin
+	ReceiveVoteAwardFunc func(StateDB, common.Address, *big.Int, *big.Int, types.SpecialConsensus)              //2019.7.24 inb by ghy begin
+	VoteFunc func(StateDB, common.Address)
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -83,7 +95,7 @@ type Context struct {
 	// Transfer transfers ether from one account to the other
 	Transfer TransferFunc
 	//Resource by zc
-	MortgageTrasfer MortgageTrasferFunc
+	MortgageTransfer MortgageTrasferFunc
 	//Resource by zc
 	// GetHash returns the hash corresponding to n
 	GetHash GetHashFunc
@@ -93,15 +105,24 @@ type Context struct {
 	GasPrice *big.Int       // Provides information for GASPRICE
 
 	// Block information
-	Coinbase    common.Address // Provides information for COINBASE
-	GasLimit    uint64         // Provides information for GASLIMIT
-	BlockNumber *big.Int       // Provides information for NUMBER
-	Time        *big.Int       // Provides information for TIME
-	Difficulty  *big.Int       // Provides information for DIFFICULTY
-
-	CanMortgage   CanMortgageFunc
-	CanRedeem     CanRedeemFunc
-	RedeemTrasfer RedeemTransferFunc
+	Coinbase              common.Address         // Provides information for COINBASE
+	GasLimit              uint64                 // Provides information for GASLIMIT
+	BlockNumber           *big.Int               // Provides information for NUMBER
+	Time                  *big.Int               // Provides information for TIME
+	Difficulty            *big.Int               // Provides information for DIFFICULTY
+	SpecialConsensus      types.SpecialConsensus //2019.7.31 inb by ghy
+	CanReset              CanResetFunc
+	CanMortgage           CanMortgageFunc
+	CanRedeem             CanRedeemFunc
+	CanReceive            CanReceiveFunc
+	RedeemTransfer        RedeemTransferFunc
+	ResetTransfer         ResetTransferFunc
+	ReceiveTransfer       ReceiveTransferFunc
+	ReceiveLockedAward    ReceiveLockedAwardFunc //2019.7.22 inb by ghy
+	Vote                  VoteFunc               //2019.7.24 inb by ghy
+	CanReceiveLockedAward CanReceiveLockedAwardFunc
+	CanReceiveVoteAward   CanReceiveVoteAwardFunc //2019.7.24 inb by ghy
+	ReceiveVoteAward      ReceiveVoteAwardFunc    //2019.7.24 inb by ghy
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -188,33 +209,86 @@ func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	return evm.NewCall(caller, addr, input, net, value, 0)
+}
+
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int, txType types.TxType) (ret []byte, leftOverGas uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, gas, nil
+		return nil, net, nil
 	}
-
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, gas, ErrDepth
+		return nil, net, ErrDepth
 	}
-	// Fail if we're trying to transfer more than the available balance
-	if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-		return nil, gas, ErrInsufficientBalance
-	}
+
 	// achilles improve mortgage
 	inputStr := string(input)
+	days := 0 // duration of mortgagtion,
 
-	if inputStr == string("mortgageNet") {
-		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, gas, err
+	//2019.7.22 inb by ghy begin
+	Award := big.NewInt(0)
+	VoteAward := big.NewInt(0)
+	isAll := false
+	IntNonce := 0
+
+	if txType == types.ReceiveLockedAward {
+
+		inputSlice := strings.Split(inputStr, ":")
+		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
+			IntNonce, err = strconv.Atoi(inputSlice[1])
+			if err != nil {
+				return nil, net, err
+			}
+			err, Award, isAll = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.Time)
+			if err != nil {
+				return nil, net, err
+			}
 		}
-	} else if inputStr == string("unmortgageNet") {
+
+	}
+	//2019.7.22 inb by ghy end
+
+	if txType == types.Regular {
+		regulars := strings.Split(inputStr, ":")
+		convert, err := strconv.Atoi(regulars[1])
+
+		if err != nil {
+			return nil, net, err
+		}
+		days = convert
+		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
+			return nil, net, err
+
+		}
+	} else if txType == types.Mortgage {
+		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
+			return nil, net, err
+		}
+	} else if txType == types.Redeem {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, gas, err
+			return nil, net, err
+		}
+	} else if txType == types.Reset {
+		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.Time); err != nil {
+			return nil, net, err
+		}
+	} else if txType == types.Receive {
+		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.Time); err != nil {
+			return nil, net, err
+		}
+	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
+		if err, VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
+			return nil, net, err
+		}
+	} else {
+		// Fail if we're trying to transfer more than the available balance
+		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
+			return nil, net, ErrInsufficientBalance
 		}
 	}
 
@@ -230,41 +304,48 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, gas, nil
+			return nil, net, nil
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
 	//evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	//Resource by zc
 
-	if inputStr == string("unmortgageNet") {
-		evm.RedeemTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
-	} else if inputStr == string("mortgageNet") {
-		evm.MortgageTrasfer(evm.StateDB, caller.Address(), to.Address(), value)
+	if txType == types.Vote {
+		evm.Vote(evm.StateDB, caller.Address())
+	}
+	if txType == types.Redeem {
+		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
+	} else if txType == types.Regular || txType == types.Mortgage {
+		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
+	} else if txType == types.Reset {
+		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
+
+	} else if txType == types.ReceiveVoteAward {
+		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, evm.SpecialConsensus) //2019.7.24 inb by ghy
+	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
+
+		// regular mortgagtion
+		inputSlice := strings.Split(inputStr, ":")
+		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
+			IntNonce, err = strconv.Atoi(inputSlice[1])
+			if err != nil {
+				return nil, net, err
+			}
+			evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time, evm.SpecialConsensus)
+		} //2019.7.22 inb by ghy end
+	} else if txType == types.Receive {
+		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
-	//inputStr := string(input)
-	//if inputStr == string("mortgageCpu") {
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 0)
-	//} else if inputStr == string("mortgageNet") {
-	//
-	//	evm.StateDB.MortgageNet(caller.Address(), value)
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 1)
-	//} else if inputStr == string("unmortgageCpu") {
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 2)
-	//} else if inputStr == string("unmortgageNet") {
-	//	evm.StateDB.RedeemNet(caller.Address(), value)
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 3)
-	//}
-	//Resource by zc
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
-	contract := NewContract(caller, to, value, gas)
+	contract := NewContract(caller, to, value, net)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
@@ -272,10 +353,10 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, gas 
 
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, gas, value)
+		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
 
 		defer func() { // Lazy evaluation of the parameters
-			evm.vmConfig.Tracer.CaptureEnd(ret, gas-contract.Gas, time.Since(start), err)
+			evm.vmConfig.Tracer.CaptureEnd(ret, net-contract.Gas, time.Since(start), err)
 		}()
 	}
 	ret, err = run(evm, contract, input, false)

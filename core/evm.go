@@ -18,13 +18,12 @@ package core
 
 import (
 	"errors"
-	"github.com/insight-chain/inb-go/params"
-	"math/big"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
+	"github.com/insight-chain/inb-go/params"
+	"math/big"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -50,19 +49,29 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanTransfer: CanTransfer,
 		Transfer:    Transfer,
 		//Resource by zc
-		MortgageTrasfer: MortgageTrasfer,
+		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:       GetHashFn(header, chain),
-		Origin:        msg.From(),
-		Coinbase:      beneficiary,
-		BlockNumber:   new(big.Int).Set(header.Number),
-		Time:          new(big.Int).Set(header.Time),
-		Difficulty:    new(big.Int).Set(header.Difficulty),
-		GasLimit:      header.GasLimit,
-		GasPrice:      new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:   CanMortgage,
-		CanRedeem:     CanRedeem,
-		RedeemTrasfer: RedeemTrasfer,
+		GetHash:               GetHashFn(header, chain),
+		Origin:                msg.From(),
+		Coinbase:              beneficiary,
+		BlockNumber:           new(big.Int).Set(header.Number),
+		Time:                  new(big.Int).Set(header.Time),
+		SpecialConsensus:      header.SpecialConsensus, //2019.7.31 inb by ghy
+		Difficulty:            new(big.Int).Set(header.Difficulty),
+		GasLimit:              header.GasLimit,
+		GasPrice:              new(big.Int).Set(msg.GasPrice()),
+		CanMortgage:           CanMortgage,
+		CanRedeem:             CanRedeem,
+		CanReset:              CanReset,
+		CanReceive:            CanReceive,
+		RedeemTransfer:        RedeemTransfer,
+		ResetTransfer:         ResetTransfer,
+		ReceiveTransfer:       ReceiveTransfer,
+		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                  Vote,                      //2019.7.24 inb by ghy
 	}
 }
 
@@ -105,21 +114,73 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	db.AddBalance(recipient, amount)
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) {
+	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	db.MortgageNet(sender, amount)
+	db.MortgageNet(sender, amount, duration, sTime)
+}
+
+//achilles0719 regular mortgagtion
+func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
+	db.ResetNet(sender, update)
 }
 
 //Resource by zc
 
-//achilles
-func RedeemTrasfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	db.SubBalance(recipient, amount)
-	db.AddBalance(sender, amount)
-	db.RedeemNet(sender, amount)
+//2019.7.22 inb by ghy begin
+func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int) (error, *big.Int, bool) {
+	return db.CanReceiveLockedAward(from, nonce, time)
+
 }
-func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int) error {
+
+func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int, consense types.SpecialConsensus) {
+	db.ReceiveLockedAward(from, nonce, values, isAll, time, consense)
+}
+
+func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int) (error, *big.Int) {
+	return db.CanReceiveVoteAward(from, time)
+
+}
+
+func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int, specialConsensus types.SpecialConsensus) {
+	db.ReceiveVoteAward(from, values, time, specialConsensus)
+}
+
+func Vote(db vm.StateDB, from common.Address) {
+	db.Vote(from)
+}
+
+//2019.7.22 inb by ghy end
+//achilles
+func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, sTime *big.Int) {
+	db.Redeem(sender, amount, sTime)
+}
+
+func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
+	//db.SubBalance(recipient, amount)
+	//db.AddBalance(sender, amount)
+	db.Receive(sender, sTime)
+}
+
+func CanReset(db vm.StateDB, addr common.Address,now *big.Int) error {
+	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
+	//now := big.NewInt(time.Now().Unix())
+	if expire.Cmp(now) > 0 {
+		return errors.New(" before reset time ")
+	}
+	return nil
+}
+
+func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration uint) error {
+	if duration > 0 {
+		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
+			return errors.New(" exceeds mortgagtion count limit ")
+		}
+		if !params.Contains(duration) {
+			return errors.New(" wrong duration of mortgagtion ")
+		}
+	}
+
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
 		return errors.New(" the value for mortgaging is too low ")
@@ -131,21 +192,26 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int) error {
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	unit := db.UnitConvertNet()
-	usableNet := db.GetNet(addr)
+	mortgaging := db.GetMortgageInbOfNet(addr)
+	regular := db.GetRegular(addr)
+	value := db.GetRedeem(addr)
 
-	if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-		return errors.New(" the value for redeem is too low ")
+	usable := new(big.Int).Sub(mortgaging, regular)
+	usable = new(big.Int).Add(usable, value)
+	if usable.Cmp(amount) < 0 {
+		return errors.New(" insufficient available value of mortgage ")
 	}
+	return nil
+}
 
-	if usableNet.Cmp(unit) < 0 {
-		return errors.New(" insufficient available mortgage ")
+func CanReceive(db vm.StateDB, addr common.Address,now *big.Int) error {
+	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
+	//now := big.NewInt(time.Now().Unix())
+	if timeLimit.Cmp(now) > 0 {
+		return errors.New(" before receive time ")
 	}
-	netUse := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
-	netUse = netUse.Mul(netUse, unit)
-	usableInb := db.GetMortgageInbOfNet(addr)
-	if usableInb.Cmp(amount) < 0 {
-		return errors.New(" insufficient available mortgage ")
+	if big.NewInt(0).Cmp(db.GetRedeem(addr)) == 0 {
+		return errors.New(" insufficient available value of redeeming ")
 	}
 	return nil
 }

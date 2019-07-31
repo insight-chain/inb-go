@@ -21,6 +21,7 @@ import (
 	"errors"
 	"io"
 	"math/big"
+	"strings"
 	"sync/atomic"
 
 	"github.com/insight-chain/inb-go/common"
@@ -33,6 +34,22 @@ import (
 
 var (
 	ErrInvalidSig = errors.New("invalid transaction v, r, s values")
+)
+
+type TxType uint8
+
+const (
+	_ TxType = iota
+	Repayment
+	Mortgage
+	Regular
+	Redeem
+	Vote
+	Reset
+	Receive
+	ReceiveLockedAward
+	ReceiveVoteAward
+
 )
 
 type Transaction struct {
@@ -58,7 +75,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash *common.Hash `json:"hash" rlp:"-"`
-
+	Types         TxType `json:"txType" gencodec:"required"`
 	//achilles
 	//payment the real account that pay resources for transactions
 	//PaymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
@@ -90,19 +107,19 @@ type txdataMarshaling struct {
 	S            *hexutil.Big
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, nil,txType)
 }
 
-//func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address) *Transaction {
-//	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment)
-//}
-
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data)
+func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address, txType TxType) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment,txType)
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, nil,txType)
+}
+
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, resourcePayer *common.Address, txType TxType) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -120,6 +137,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		V:            new(big.Int),
 		R:            new(big.Int),
 		S:            new(big.Int),
+		Types:    	  txType,
 		//Repayment:    rePayment,
 	}
 	if amount != nil {
@@ -206,14 +224,15 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
-func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
-func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) CheckNonce() bool   { return true }
-
-//func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
+func (tx *Transaction) Data() []byte                  { return common.CopyBytes(tx.data.Payload) }
+func (tx *Transaction) Gas() uint64                   { return tx.data.GasLimit }
+func (tx *Transaction) GasPrice() *big.Int            { return new(big.Int).Set(tx.data.Price) }
+func (tx *Transaction) Value() *big.Int               { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64                 { return tx.data.AccountNonce }
+func (tx *Transaction) CheckNonce() bool              { return true }
+func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
+func (tx *Transaction) Types() TxType { return tx.data.Types }
+func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -262,6 +281,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		amount:     tx.data.Amount,
 		data:       tx.data.Payload,
 		checkNonce: true,
+		types:		tx.data.Types,
 	}
 
 	var err error
@@ -343,6 +363,14 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 func (tx *Transaction) IsMortgageNet() bool {
 	inputStr := string(tx.Data())
 	if inputStr == string("mortgageNet") {
+		return true
+	}
+	return false
+}
+
+func (tx *Transaction) IsRegularMortgageNet() bool {
+	inputStr := string(tx.Data())
+	if strings.HasPrefix(inputStr, "mortgageNet:") {
 		return true
 	}
 	return false
@@ -493,12 +521,12 @@ type Message struct {
 	gasPrice   *big.Int
 	data       []byte
 	checkNonce bool
-
+	types     TxType
 	//achilles repayment
 	//resourcePayer common.Address
 }
 
-func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, checkNonce bool) Message {
+func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, checkNonce bool, txType TxType) Message {
 	return Message{
 		from:       from,
 		to:         to,
@@ -508,6 +536,7 @@ func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *b
 		gasPrice:   gasPrice,
 		data:       data,
 		checkNonce: checkNonce,
+		types:		txType,
 	}
 }
 
@@ -519,6 +548,9 @@ func (m Message) Gas() uint64          { return m.gasLimit }
 func (m Message) Nonce() uint64        { return m.nonce }
 func (m Message) Data() []byte         { return m.data }
 func (m Message) CheckNonce() bool     { return m.checkNonce }
+func (m Message) Types() TxType     { return m.types }
+
+func (m Message) WhichTypes(txType TxType) bool     { return m.types ==  txType}
 
 //achilles repayment add apis
 //func (m Message) ResourcePayer() common.Address { return m.resourcePayer }

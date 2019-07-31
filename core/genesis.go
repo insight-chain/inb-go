@@ -45,16 +45,16 @@ var errGenesisNoConfig = errors.New("genesis has no chain configuration")
 // Genesis specifies the header fields, state of a genesis block. It also defines hard
 // fork switch-over blocks through the chain configuration.
 type Genesis struct {
-	Config     *params.ChainConfig `json:"config"`
-	Nonce      uint64              `json:"nonce"`
-	Timestamp  uint64              `json:"timestamp"`
-	ExtraData  []byte              `json:"extraData"`
-	GasLimit   uint64              `json:"gasLimit"   gencodec:"required"`
-	Difficulty *big.Int            `json:"difficulty" gencodec:"required"`
-	Mixhash    common.Hash         `json:"mixHash"`
-	Coinbase   common.Address      `json:"coinbase"`
-	Alloc      GenesisAlloc        `json:"alloc"      gencodec:"required"`
-
+	Config           *params.ChainConfig    `json:"config"`
+	Nonce            uint64                 `json:"nonce"`
+	Timestamp        uint64                 `json:"timestamp"`
+	ExtraData        []byte                 `json:"extraData"`
+	GasLimit         uint64                 `json:"gasLimit"   gencodec:"required"`
+	Difficulty       *big.Int               `json:"difficulty" gencodec:"required"`
+	Mixhash          common.Hash            `json:"mixHash"`
+	Coinbase         common.Address         `json:"coinbase"`
+	Alloc            GenesisAlloc           `json:"alloc"      gencodec:"required"`
+	SpecialConsensus types.SpecialConsensus `json:"specialConsensus"  gencodec:"required"` //2019.7.23 inb by ghy
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
@@ -241,19 +241,20 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	}
 	root := statedb.IntermediateRoot(false)
 	head := &types.Header{
-		Number:     new(big.Int).SetUint64(g.Number),
-		Nonce:      types.EncodeNonce(g.Nonce),
-		Time:       new(big.Int).SetUint64(g.Timestamp),
-		ParentHash: g.ParentHash,
-		Extra:      g.ExtraData,
-		GasLimit:   g.GasLimit,
-		GasUsed:    g.GasUsed,
-		Difficulty: g.Difficulty,
-		MixDigest:  g.Mixhash,
-		Coinbase:   g.Coinbase,
-		Root:       root,
-		DataRoot:   [32]byte{},                        //inb by ssh 190627
-		Reward:     vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
+		Number:           new(big.Int).SetUint64(g.Number),
+		Nonce:            types.EncodeNonce(g.Nonce),
+		Time:             new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:       g.ParentHash,
+		Extra:            g.ExtraData,
+		GasLimit:         g.GasLimit,
+		GasUsed:          g.GasUsed,
+		Difficulty:       g.Difficulty,
+		MixDigest:        g.Mixhash,
+		Coinbase:         g.Coinbase,
+		Root:             root,
+		DataRoot:         [32]byte{},                        //inb by ssh 190627
+		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
+		SpecialConsensus: g.SpecialConsensus,                //2019.7.23 inb by ghy
 	}
 
 	// inb by ssh 190724

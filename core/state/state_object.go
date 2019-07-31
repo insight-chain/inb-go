@@ -18,14 +18,14 @@ package state
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
-	"io"
-	"math/big"
-	"time"
-
 	"github.com/insight-chain/inb-go/common"
+	//"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/rlp"
+	"io"
+	"math/big"
 )
 
 var emptyCodeHash = crypto.Keccak256(nil)
@@ -105,18 +105,20 @@ type Account struct {
 	Resources Resources
 	//Resource by zc
 
-	//Store   []Store
+	Stores []Store // slice of regular mortgaging
 	//Recommender common.Address
-
-	regular *big.Int // regular mortgagtion
-	profit  *big.Int // incentive earnings
+	Redeems                  []Redeem // redeeming nets
+	Regular                  *big.Int //  total of regular mortgaging
+	Profit                   *big.Int // incentive earnings
+	Voted                    *big.Int //current vote to someone else number
+	LastReceiveVoteAwardTime *big.Int
 }
 
 //Resource by zc
 type Resources struct {
 	CPU  Resource
 	NET  Resource
-	Date string
+	Date *big.Int
 }
 type Resource struct {
 	Used         *big.Int // used
@@ -125,9 +127,17 @@ type Resource struct {
 }
 
 type Store struct {
-	StartTime time.Time
-	days      uint32
-	value     *big.Int
+	Nonce            uint64   // transaction of regular mortgaging
+	StartTime        big.Int  // start time
+	Days             uint     // duration of mortgaging
+	Value            big.Int  // amount of mortgaging
+	Received         big.Int  // amount of already received value
+	LastReceivedTime *big.Int // Last receive time
+}
+
+type Redeem struct {
+	StartTime *big.Int // start time
+	Value     *big.Int // amount of mortgaging
 }
 
 //Resource by zc
@@ -157,6 +167,15 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	}
 	if data.Resources.NET.MortgagteINB == nil {
 		data.Resources.NET.MortgagteINB = new(big.Int)
+	}
+	if data.Stores == nil {
+		data.Stores = make([]Store, 0)
+	}
+	if data.Redeems == nil {
+		data.Redeems = make([]Redeem, 1)
+	}
+	if data.Regular == nil {
+		data.Regular = new(big.Int)
 	}
 	//Resource by zc
 	return &stateObject{
@@ -321,6 +340,19 @@ func (c *stateObject) AddBalance(amount *big.Int) {
 	c.SetBalance(new(big.Int).Add(c.Balance(), amount))
 }
 
+func (c *stateObject) AddVoteRecord(amount *big.Int) {
+	// EIP158: We must check emptiness for the objects such that the account
+	// clearing (0,0,0 objects) can take effect.
+	//if amount.Sign() == 0 {
+	//	if c.empty() {
+	//		c.touch()
+	//	}
+	//
+	//	return
+	//}
+	c.SetVoteRecord(amount)
+}
+
 // SubBalance removes amount from c's balance.
 // It is used to remove funds from the origin account of a transfer.
 func (c *stateObject) SubBalance(amount *big.Int) {
@@ -338,12 +370,21 @@ func (self *stateObject) SetBalance(amount *big.Int) {
 	self.setBalance(amount)
 }
 
+func (self *stateObject) SetVoteRecord(amount *big.Int) {
+
+	self.setVoteRecord(amount)
+}
+
 func (self *stateObject) setBalance(amount *big.Int) {
 	self.data.Balance = amount
 }
 
+func (self *stateObject) setVoteRecord(amount *big.Int) {
+	self.data.Voted = amount
+}
+
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int) {
+func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
@@ -351,32 +392,262 @@ func (self *stateObject) MortgageNet(amount *big.Int) {
 	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
 
 	mortgageStateObject := self.db.GetMortgageStateObject()
-	mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
-	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
+	//mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
+	//mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
+	mortgageStateObject.AddBalance(amount)
+
+	if duration > 0 {
+		store := Store{
+			Nonce:     self.data.Nonce,
+			StartTime: sTime,
+			Days:      duration,
+			Value:     *amount,
+		}
+		stores := append(self.data.Stores, store)
+		regular := new(big.Int).Add(self.data.Regular, amount)
+		self.SetStores(stores, regular)
+	}
+
+	if !(big.NewInt(0).Cmp(self.Date()) < 0) {
+		self.SetDate(&sTime)
+	}
+}
+
+func (self *stateObject) ResetNet(update *big.Int) {
+	//available := new(big.Int).Sub(self.MortgageOfNet(), self.GetRedeem())
+	netUse := self.db.ConvertToNets(self.MortgageOfNet())
+	netUsed := big.NewInt(0)
+
+	self.SetNet(netUsed, netUse, self.MortgageOfINB())
+	self.SetDate(update)
+}
+
+//2019.7.22 inb by ghy begin
+func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, value *big.Int, isAll bool) {
+	if self.data.Voted.Uint64() > 0 {
+		if len(self.data.Stores) > 0 {
+			for _, v := range self.data.Stores {
+				if nonce == int(v.Nonce) {
+					//timeNow := time.Uint64()
+					//totalValue := v.Value.Uint64()
+					//startTime := v.StartTime.Uint64()
+					//receivedValue := v.Received.Uint64()
+					//lastReceivedtime := v.LastReceivedTime.Uint64()
+					//daySeconds := uint64(v.Days * 24 * 60 * 60)
+					//
+					////CycleTime:=daySeconds/vdpos.CycleTimes
+					//CycleTime := daySeconds / common.CycleTimes
+					//if timeNow < startTime {
+					//	return
+					//}
+					//sub := timeNow - startTime
+					//number := sub / CycleTime
+					//
+					//if number > common.CycleTimes/200 {
+					//	number = common.CycleTimes / 200
+					//}
+					//
+					////CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
+					//CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
+					//
+					//subValue := CanReceivedValue - float64(receivedValue)
+					//
+					//if subValue > 0 {
+					//	return nil, int(math.Floor(subValue)), number == 12
+					//}
+
+					timeNow := time.Int64()
+					startTime := v.StartTime.Int64()
+					//totalValue := v.Value.Uint64()
+					//receivedValue := v.Received.Uint64()
+					lastReceivedtime := v.LastReceivedTime.Int64()
+
+					daySeconds := int64(v.Days * 24 * 60 * 60)
+					endTimeSecond := startTime + daySeconds
+
+					totalValue := &v.Value
+					receivedValue := &v.Received
+
+					if timeNow > endTimeSecond {
+						timeNow = endTimeSecond
+					}
+
+					if lastReceivedtime < startTime {
+						lastReceivedtime = startTime
+					}
+
+					FromLastReceivedPassTimeSecond := timeNow - lastReceivedtime
+					FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+
+					FromStartPassTimeSecond := timeNow - startTime
+					FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+
+					if lastReceivedtime < endTimeSecond && timeNow > lastReceivedtime {
+
+						if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
+
+							totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
+							totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
+							totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
+							MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
+							//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
+							//subValue := MaxReceivedValueNow - float64(receivedValue)
+							subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+							if subValue.Cmp(big.NewInt(0)) == 1 {
+								return nil, subValue, timeNow == endTimeSecond
+							}
+						}
+					}
+					//sub := new(big.Int).Sub(time, &v.StartTime)
+					//number := new(big.Int).Div(big.NewInt(int64(v.Days*24*60*60)), sub)
+					//
+					////new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
+					////new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
+					//persent := new(big.Int).Div(&v.Received, &v.Value)
+					//number := new(big.Int).Mul(persent, vdpos.CycleTimes)
+					//AddNumber := new(big.Int).Add(number, big.NewInt(1))
+					//persents := new(big.Int).Div(AddNumber, vdpos.CycleTimes)
+					//if persents.Cmp(big.NewInt(1)) > 0 {
+					//	return errors.New("The reward has been received")
+					//}
+					//cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
+					//mul := new(big.Int).Mul(cycleTime, persents)
+					//end := new(big.Int).Add(cycleTime, mul)
+					//endTime := new(big.Int).Add(end, &v.StartTime)
+					//if time.Cmp(endTime) != 1 {
+					//	return errors.New("It's not time to receive the prize")
+					//} else {
+					//	return nil
+					//}
+
+				}
+			}
+		}
+		return errors.New("Have no Inb to received"), big.NewInt(0), false
+	} else {
+		return errors.New("Can only receive rewards after voting"), big.NewInt(0), false
+	}
 
 }
 
-//achilles RedeemNet sub nets from c's balance
-func (self *stateObject) RedeemNet(amount *big.Int) {
+func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, time *big.Int) {
+
+	if len(self.data.Stores) > 0 {
+		for k, v := range self.data.Stores {
+			if nonce == int(v.Nonce) {
+				self.AddBalance(value)
+				self.data.Stores[k].LastReceivedTime = time
+				if isAll {
+					self.AddBalance(&v.Value)
+
+					afterRegular := new(big.Int).Sub(self.data.Regular, &v.Value)
+					self.data.Regular = afterRegular
+					afterMortgagteINB := new(big.Int).Sub(self.data.Resources.NET.MortgagteINB, &v.Value)
+					self.data.Resources.NET.MortgagteINB = afterMortgagteINB
+
+					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
+
+					mortgageStateObject := self.db.GetMortgageStateObject()
+					if mortgageStateObject.Balance().Cmp(value) < 0 {
+						return
+					}
+					//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+					mortgageStateObject.SubBalance(value)
+
+				} else {
+
+					//receiveAdd := v.Received.Int64() + int64(value)
+					receiveAdd := new(big.Int).Add(&v.Received, value)
+					self.data.Stores[k].Received = *receiveAdd
+				}
+			}
+		}
+	}
+}
+
+func (self *stateObject) CanReceiveVoteAward(time *big.Int) (err error, value *big.Int) {
+	//account := pool.currentState.GetAccountInfo(from)
+	votes := self.data.Voted
+	if votes.Cmp(big.NewInt(0)) == 1 {
+		timeNow := time.Int64()
+		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime.Int64()
+		if lastReceiveVoteAwardTime == 0 {
+			votes1 := new(big.Int).Mul(votes, common.Denominator)
+			votes2 := new(big.Int).Div(votes1, common.Hundred)
+			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
+			value := new(big.Int).Mul(votes3, common.ReceivingCycleDays)
+			return nil, value
+		}
+		intervalTime := timeNow - lastReceiveVoteAwardTime
+		if intervalTime > common.VoteRewardCycleSeconds {
+			days := intervalTime / common.VoteRewardOneDaySecond
+			votes1 := new(big.Int).Mul(votes, common.Denominator)
+			votes2 := new(big.Int).Div(votes1, common.Hundred)
+			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
+			value := new(big.Int).Mul(votes3, big.NewInt(days))
+
+			return nil, value
+		} else {
+			return errors.New("Not receiving voting time"), big.NewInt(0)
+		}
+
+	} else {
+		return errors.New("Can only receive rewards after voting"), big.NewInt(0)
+	}
+
+}
+
+func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
+	self.data.LastReceiveVoteAwardTime = time
+	self.AddBalance(value)
+
+}
+
+func (self *stateObject) Vote() {
+	self.data.Voted = self.data.Resources.NET.MortgagteINB
+}
+
+//2019.7.22 inb by ghy end
+
+//achilles Redeem freeze inb of mortgaging from c's balance
+func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	netUse := self.db.ConvertToNets(amount)
-	if self.Net().Cmp(netUse) < 0 {
-		netUse = self.Net()
-	} //usableUnit := new(big.Int).Div(self.data.Resources.NET.Usableness, self.db.UnitConvertNet())
-	//mortgageUsable := new(big.Int).Mul(usableUnit, params.TxConfig.WeiOfUseNet)
-	if self.MortgageOfNet().Cmp(amount) < 0 {
+	available := new(big.Int).Sub(self.MortgageOfNet(), self.Regular())
+	if available.Cmp(amount) < 0 {
 		return
 	}
+	// freeze inb of redeeming
+	mortgaging := new(big.Int).Sub(self.MortgageOfNet(), amount)
+	self.SetNet(self.UsedNet(), self.Net(), mortgaging)
 
-	self.SetNet(self.UsedNet(), new(big.Int).Sub(self.Net(), netUse), new(big.Int).Sub(self.MortgageOfNet(), amount))
+	redeem := Redeem{
+		StartTime: sTime,
+		Value:     amount,
+	}
+	self.data.Redeems[0] = redeem
+	self.SetRedeems(self.data.Redeems)
+}
+
+func (self *stateObject) Receive(sTime *big.Int) {
+
+	value := self.GetRedeem()
+
+	redeem := Redeem{
+		StartTime: sTime,
+		Value:     big.NewInt(0),
+	}
+	self.data.Redeems[0] = redeem
+	self.SetRedeems(self.data.Redeems)
+
+	self.AddBalance(value)
 	mortgageStateObject := self.db.GetMortgageStateObject()
-	if mortgageStateObject.data.Resources.NET.MortgagteINB.Cmp(amount) < 0 {
+	if mortgageStateObject.Balance().Cmp(value) < 0 {
 		return
 	}
-	redeem := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), amount)
-	mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), redeem)
+	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+	mortgageStateObject.SubBalance(value)
 }
 
 func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
@@ -394,6 +665,46 @@ func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.data.Resources.NET.Used = usedAmount
 	self.data.Resources.NET.Usableness = usableAmount
 	self.data.Resources.NET.MortgagteINB = mortgageInb
+}
+
+func (self *stateObject) SetRedeems(redeems []Redeem) {
+	self.db.journal.append(redeemChange{
+		account: &self.address,
+		redeems: self.data.Redeems,
+	})
+	self.setRedeems(redeems)
+}
+
+func (self *stateObject) setRedeems(redeems []Redeem) {
+	self.data.Redeems = redeems
+}
+
+func (self *stateObject) SetDate(update *big.Int) {
+
+	self.db.journal.append(dateChange{
+		account: &self.address,
+		prev:    new(big.Int).Set(self.data.Resources.Date),
+	})
+	self.setDate(update)
+}
+
+func (self *stateObject) setDate(update *big.Int) {
+	self.data.Resources.Date = update
+}
+
+//achilles0718 regular mortgagtion
+func (self *stateObject) SetStores(stores []Store, amount *big.Int) {
+	self.db.journal.append(regularChange{
+		account: &self.address,
+		stores:  self.data.Stores,
+		regular: new(big.Int).Set(self.data.Regular),
+	})
+	self.setStores(stores, amount)
+}
+
+func (self *stateObject) setStores(stores []Store, amount *big.Int) {
+	self.data.Stores = stores
+	self.data.Regular = amount
 }
 
 // Return the gas back to the origin. Used by the Virtual machine or Closures
@@ -474,6 +785,12 @@ func (self *stateObject) Balance() *big.Int {
 	return self.data.Balance
 }
 
+//achilles0718 regular mortgagtion
+func (self *stateObject) StoreLength() int {
+	regulars := self.data.Stores
+	return len(regulars)
+}
+
 //Resource by zc
 func (self *stateObject) Cpu() *big.Int {
 
@@ -491,6 +808,22 @@ func (self *stateObject) MortgageOfCpu() *big.Int {
 }
 func (self *stateObject) MortgageOfNet() *big.Int {
 	return self.data.Resources.NET.MortgagteINB
+}
+
+func (self *stateObject) GetRedeem() *big.Int {
+	return self.data.Redeems[0].Value
+}
+
+func (self *stateObject) GetRedeemTime() *big.Int {
+	return self.data.Redeems[0].StartTime
+}
+
+func (self *stateObject) Regular() *big.Int {
+	return self.data.Regular
+}
+
+func (self *stateObject) Date() *big.Int {
+	return self.data.Resources.Date
 }
 
 //Resource by zc

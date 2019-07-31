@@ -19,6 +19,7 @@ package main
 import (
 	"encoding/binary"
 	"errors"
+	"github.com/insight-chain/inb-go/core/types"
 	"math"
 	"math/big"
 	"strings"
@@ -58,14 +59,15 @@ type alethGenesisSpec struct {
 	} `json:"params"`
 
 	Genesis struct {
-		Nonce      hexutil.Bytes  `json:"nonce"`
-		Difficulty *hexutil.Big   `json:"difficulty"`
-		MixHash    common.Hash    `json:"mixHash"`
-		Author     common.Address `json:"author"`
-		Timestamp  hexutil.Uint64 `json:"timestamp"`
-		ParentHash common.Hash    `json:"parentHash"`
-		ExtraData  hexutil.Bytes  `json:"extraData"`
-		GasLimit   hexutil.Uint64 `json:"gasLimit"`
+		Nonce            hexutil.Bytes          `json:"nonce"`
+		Difficulty       *hexutil.Big           `json:"difficulty"`
+		MixHash          common.Hash            `json:"mixHash"`
+		Author           common.Address         `json:"author"`
+		Timestamp        hexutil.Uint64         `json:"timestamp"`
+		ParentHash       common.Hash            `json:"parentHash"`
+		ExtraData        hexutil.Bytes          `json:"extraData"`
+		GasLimit         hexutil.Uint64         `json:"gasLimit"`
+		SpecialConsensus types.SpecialConsensus `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
 	} `json:"genesis"`
 
 	Accounts map[common.UnprefixedAddress]*alethGenesisSpecAccount `json:"accounts"`
@@ -142,6 +144,7 @@ func newAlethGenesisSpec(network string, genesis *core.Genesis) (*alethGenesisSp
 	spec.Genesis.ParentHash = genesis.ParentHash
 	spec.Genesis.ExtraData = (hexutil.Bytes)(genesis.ExtraData)
 	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.GasLimit)
+	spec.Genesis.SpecialConsensus = genesis.SpecialConsensus //2019.7.23 inb by ghy
 
 	for address, account := range genesis.Alloc {
 		spec.setAccount(address, account)
@@ -251,12 +254,13 @@ type parityChainSpec struct {
 			} `json:"ethereum"`
 		} `json:"seal"`
 
-		Difficulty *hexutil.Big   `json:"difficulty"`
-		Author     common.Address `json:"author"`
-		Timestamp  hexutil.Uint64 `json:"timestamp"`
-		ParentHash common.Hash    `json:"parentHash"`
-		ExtraData  hexutil.Bytes  `json:"extraData"`
-		GasLimit   hexutil.Uint64 `json:"gasLimit"`
+		Difficulty       *hexutil.Big           `json:"difficulty"`
+		Author           common.Address         `json:"author"`
+		Timestamp        hexutil.Uint64         `json:"timestamp"`
+		ParentHash       common.Hash            `json:"parentHash"`
+		ExtraData        hexutil.Bytes          `json:"extraData"`
+		GasLimit         hexutil.Uint64         `json:"gasLimit"`
+		SpecialConsensus types.SpecialConsensus `json:"specialConsensus" gencodec:"required"`
 	} `json:"genesis"`
 
 	Nodes    []string                                             `json:"nodes"`
@@ -365,6 +369,7 @@ func newParityChainSpec(network string, genesis *core.Genesis, bootnodes []strin
 	spec.Genesis.ParentHash = genesis.ParentHash
 	spec.Genesis.ExtraData = (hexutil.Bytes)(genesis.ExtraData)
 	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.GasLimit)
+	spec.Genesis.SpecialConsensus = genesis.SpecialConsensus //2019.7.23 inb by ghy
 
 	spec.Accounts = make(map[common.UnprefixedAddress]*parityChainSpecAccount)
 	for address, account := range genesis.Alloc {

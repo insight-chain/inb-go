@@ -582,6 +582,34 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetBalance(address)), state.Error()
 }
 
+// 2019.7.31 inb by ghy begin
+func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) *hexutil.Big {
+
+	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
+	if state == nil || err != nil {
+		return nil
+	}
+	total := (new(big.Int).Mul(big.NewInt(9e+9), big.NewInt(1e+18)))
+	Foundation := (state.GetBalance(common.HexToAddress(st.FoundationAccount)))
+	MiningReward := (state.GetBalance(common.HexToAddress(st.MiningRewardAccount)))
+	VerifyReward := (state.GetBalance(common.HexToAddress(st.VerifyRewardAccount)))
+	VotingReward := (state.GetBalance(common.HexToAddress(st.VotingRewardAccount)))
+	Team := (state.GetBalance(common.HexToAddress(st.TeamAccount)))
+	OnlineMarketing := (state.GetBalance(common.HexToAddress(st.OnlineMarketingAccount)))
+	OfflineMarketing := (state.GetBalance(common.HexToAddress(st.OfflineMarketingAccount)))
+	total1 := new(big.Int).Sub(total, Foundation)
+	total2 := new(big.Int).Sub(total1, MiningReward)
+	total3 := new(big.Int).Sub(total2, VerifyReward)
+	total4 := new(big.Int).Sub(total3, VotingReward)
+	total5 := new(big.Int).Sub(total4, Team)
+	total6 := new(big.Int).Sub(total5, OnlineMarketing)
+	total7 := new(big.Int).Sub(total6, OfflineMarketing)
+	return (*hexutil.Big)(total7)
+
+}
+
+// 2019.7.31 inb by ghy begin
+
 //Resource by zc
 func (s *PublicBlockChainAPI) GetCpu(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
@@ -875,7 +903,6 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 		Cpu: (*hexutil.Big)(state.GetCpu(address)),
 		Net: (*hexutil.Big)(state.GetNet(address)),
 		//Resource by zc
-
 	}, state.Error()
 }
 
@@ -986,6 +1013,7 @@ type CallArgs struct {
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
+	Types	 types.TxType	 `json:"txType"`
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -1014,7 +1042,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	}
 
 	// Create new call message
-	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false)
+	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false,args.Types)
 
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1190,7 +1218,8 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
-		"reward":           head.Reward, //2019.6.28 inb by ghy
+		"reward":           head.Reward,           //2019.6.28 inb by ghy
+		"SpecialConsensus": head.SpecialConsensus, //2019.7.23 inb by ghy
 	}
 
 	if inclTx {
@@ -1447,6 +1476,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
 		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
+		"IncomeClaimed":     hexutil.Uint64(receipt.IncomeClaimed),
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
@@ -1498,6 +1528,7 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data          *hexutil.Bytes  `json:"data"`
 	Input         *hexutil.Bytes  `json:"input"`
+	Types          types.TxType    `json:"txType"`
 	ResourcePayer *common.Address `json:"resourcePayer"`
 	//Candidates []common.Address `json:"candidates"`
 }
@@ -1551,12 +1582,12 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
 	}
-	//if args.ResourcePayer != nil {
-	//	return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer)
-	//}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+// 	if args.ResourcePayer != nil {
+// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
+// 	}
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,args.Types)
 }
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.

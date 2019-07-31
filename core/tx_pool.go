@@ -23,6 +23,7 @@ import (
 	"math"
 	"math/big"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -40,6 +41,10 @@ import (
 const (
 	// chainHeadChanSize is the size of channel listening to ChainHeadEvent.
 	chainHeadChanSize = 10
+	//inb by ghy begin
+	ResponseRate = float64(0.01)
+	CycleTimes   = uint64(12)
+	//inb by ghy end
 )
 
 var (
@@ -84,6 +89,11 @@ var (
 	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
 	ErrOverAuableNetValue          = errors.New("over AuableNet number")
 	ErrOverBalanceValue            = errors.New("Balance is not enough ")
+	ErrBeforeResetTime             = errors.New("before reset time")
+	ErrParameterError              = errors.New("Parameter error")
+
+	//achilles0718 regular mortgagtion
+	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
 )
 
 var (
@@ -145,7 +155,6 @@ type TxPoolConfig struct {
 	GlobalQueue  uint64 // Maximum number of non-executable transaction slots for all accounts
 
 	Lifetime time.Duration // Maximum amount of time non-executable transaction are queued
-
 }
 
 // DefaultTxPoolConfig contains the default configurations for the transaction
@@ -605,68 +614,45 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	//2019.7.18 inb mod by ghy begin
-	if err := pool.hanlecandidates(inputStr); err != nil {
-		return err
+	if tx.WhichTypes(types.Vote) {
+		var candidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []string
+		candidatesStr := strings.Split(inputStr, ",")
+		for _, value := range candidatesStr {
+			address := common.HexToAddress(value)
+			//2019.7.15 inb mod by ghy begin
+			if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+				candidatesSlice = append(candidatesSlice, address)
+			} else {
+				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
+			}
+		}
+		if len(UnqualifiedCandidatesSlice) > 0 {
+			return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
+		}
+		//2019.7.15 inb mod by ghy end
+		if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+			return errors.New("candidates over size")
+		}
 	}
-	//2019.7.18 inb mod by ghy begin
-
-	//	if strings.Contains(inputStr, "candidates") {
-	//		var candidatesSlice []common.Address
-	//		var UnqualifiedCandidatesSlice []common.Address
-	//		candidates := strings.Split(inputStr, ":")
-	//		if candidates[0] == "candidates" {
-	//			candidatesStr := strings.Split(candidates[1], ",")
-	//			for _, value := range candidatesStr {
-	//				address := common.HexToAddress(value)
-	////2019.7.15 inb mod by ghy begin
-	//				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
-	//					candidatesSlice = append(candidatesSlice, address)
-	//				}else {
-	//					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
-	//				}
-	//				}
-	//			if len(UnqualifiedCandidatesSlice)>0{
-	//				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
-	//			}
-	//			//2019.7.15 inb mod by ghy end
-	//			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
-	//				return errors.New("candidates over size")
-	//			}
-	//		}
-	//	}
 
 	var netPayment common.Address
-	//if tx.IsRepayment() {
-	//	payment, err := types.Sender(pool.signer, tx)
-	//	if err != nil {
-	//		return ErrInvalidSender
-	//	}
-	//	netPayment = payment
-	//	tx.RemovePaymentSignatureValues()
-	//}
+	if tx.WhichTypes(types.Repayment) {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return ErrInvalidSender
+		}
+		netPayment = payment
+		tx.RemovePaymentSignatureValues()
+	}
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
 	}
-	netPayment = from
-	//if !tx.IsRepayment() {
-	//	netPayment = from
-	//}
-
-	//2019.7.16 inb add by ghy begin
-	if strings.Contains(inputStr, "investment") {
-		investment := strings.Split(inputStr, ":")
-		if len(investment) == 2 {
-			if investment[0] == "investment" {
-				if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
-					return ErrOverBalanceValue
-				}
-			}
-		}
+	if !tx.WhichTypes(types.Repayment) {
+		netPayment = from
 	}
-	//2019.7.16 inb add by ghy end
-
 	// Drop non-local transactions under our own minimal accepted gas price
 	//achilles replace gas with net
 	//local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
@@ -683,63 +669,81 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") {
+
+	if !(tx.WhichTypes(types.Repayment) && tx.WhichTypes(types.Reset) && tx.WhichTypes(types.Receive)) {
+
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
 	}
 
-	//achilles replace gas with net
-	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	//if err != nil {
-	//	return err
-	//}
-	//if tx.Gas() < intrGas {
-	//	return ErrIntrinsicGas
-	//}
-	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
-	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
+	if tx.WhichTypes(types.Reset) {
+		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(pool.chain.CurrentBlock().Time()) > 0 {
+			return ErrBeforeResetTime
+		}
+	}
+
+	if strings.Contains(inputStr, "ReceiveLockedAward") {
+		receivebonus := strings.Split(inputStr, ":")
+		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveLockedAward" {
+			if err := pool.validateReceiveLockedAward(receivebonus, from); err != nil {
+				return err
+			}
+		} else {
+			return ErrParameterError
+		}
+	}
+
+
+	if strings.Contains(inputStr, "ReceiveLockedAward") {
+		if err := pool.validateReceiveVoteAward(from); err != nil {
+			return err
+		}
+	}
+
+
+	if tx.WhichTypes(types.Receive) {
+		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from),params.TxConfig.RedeemDuration)
+		if timeLimit.Cmp(pool.chain.CurrentBlock().Time()) > 0 {
+
+			return errors.New(" before receive time ")
+		}
+		if big.NewInt(0).Cmp(pool.currentState.GetRedeem(from)) == 0 {
+			return errors.New(" insufficient available value of redeeming ")
+		}
+	}
+
+	if tx.WhichTypes(types.Regular) {
+		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
+			return ErrCountLimit
+		}
+	}
+
+
+
+
+	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive)) {
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
+
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}
 	}
 
-	//Resource by zc
-	//inputStr := string(tx.Data())
-	addressString := tx.To().String()
-	addressN := common.HexToAddress(addressString)
-	//addressN := from
-	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
-	//expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
-	expendNetFromUnMortgageNet := big.NewInt(int64(instrNet))
-	usableCpu := pool.currentState.GetCpu(addressN)
-	usableNet := pool.currentState.GetNet(addressN)
-	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
-	//usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
+	if tx.WhichTypes(types.Regular) {
+		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
+			return ErrCountLimit
+		}
+	}
 
-	if inputStr == string("unmortgageCpu") {
-		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu
-		if pool.currentState.GetMortgageInbOfCpu(addressN).Cmp(tx.Value()) < 0 {
-			return ErrOverUnMortgageInbOfCpuValue
-		}
-		//Make sure unmarshalling CPU consumes enough NET
-		if expendNetFromUnMortgageNet.Cmp(usableNet) == 1 {
-			return ErrOverAuableNetValue
-		}
-		//Make sure unmarshalling CPU consumes enough CPU
-		residueMorgageCpuOfInb := usableMorgageCpuOfInb.Sub(usableMorgageCpuOfInb, tx.Value())
-		residueCpu := usableCpu.Mul(usableCpu, residueMorgageCpuOfInb).Div(usableCpu.Mul(usableCpu, residueMorgageCpuOfInb), usableMorgageCpuOfInb)
-		if expendCpuFromUnMortgageCpu.Cmp(residueCpu) == 1 {
-			return ErrOverAuableCpuValue
-		}
-	} else if inputStr == string("unmortgageNet") {
+	if tx.WhichTypes(types.Redeem) {
 		//Make sure the unmarshaled Net is less than the mortgaged Net
 		unit := pool.currentState.UnitConvertNet()
-		usableNet := pool.currentState.GetNet(from)
+		usableNet := pool.currentState.GetNet(netPayment)
 
 		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-			return errors.New(" the value for redeem is too low ")
+			return errors.New(" value for redeem is too low ")
 		}
 
 		if usableNet.Cmp(unit) < 0 {
@@ -747,23 +751,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
 		netUse = netUse.Mul(netUse, unit)
-		usableInb := pool.currentState.GetMortgageInbOfNet(from)
+		usableInb := pool.currentState.GetMortgageInbOfNet(netPayment)
 		if usableInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		//if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
-		//	return ErrOverUnMortgageInbOfNetValue
-		//}
-		//Make sure unmarshalling Net consumes enough Cpu
-		//if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
-		//	return ErrOverAuableCpuValue
-		//}
-		//Make sure unmarshalling NET consumes enough NET
-		//residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
-		//residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
-		//if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
-		//	return ErrOverAuableNetValue
-		//}
 	}
 	//Resource by zc
 	return nil
@@ -1426,10 +1417,10 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (pool *TxPool) hanlecandidates(inputStr string) error {
+func (pool *TxPool) validateVote(inputStr string,txType types.TxType) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
-		var UnqualifiedCandidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []string
 		candidates := strings.Split(inputStr, ":")
 		if candidates[0] == "candidates" {
 			candidatesStr := strings.Split(candidates[1], ",")
@@ -1439,11 +1430,11 @@ func (pool *TxPool) hanlecandidates(inputStr string) error {
 				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
 				} else {
-					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
+					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
 				}
 			}
 			if len(UnqualifiedCandidatesSlice) > 0 {
-				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v", UnqualifiedCandidatesSlice))
+				return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
 			}
 			//2019.7.15 inb mod by ghy end
 			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
@@ -1453,3 +1444,74 @@ func (pool *TxPool) hanlecandidates(inputStr string) error {
 	}
 	return nil
 }
+
+//2019.7.22 inb by ghy begin
+func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from common.Address) error {
+	account := pool.currentState.GetAccountInfo(from)
+	if account.Voted.Int64() > 0 {
+		for _, v := range account.Stores {
+			if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
+				timeNow := pool.chain.CurrentBlock().Time().Int64()
+				startTime := v.StartTime.Int64()
+				lastReceivedTime := v.LastReceivedTime.Int64()
+
+				daySeconds := int64(v.Days * 24 * 60 * 60)
+				endTimeSecond := startTime + daySeconds
+
+				totalValue := &v.Value
+				receivedValue := &v.Received
+
+				if timeNow > endTimeSecond {
+					timeNow = endTimeSecond
+				}
+
+				if lastReceivedTime < startTime {
+					lastReceivedTime = startTime
+				}
+
+				FromLastReceivedPassTimeSecond := timeNow - lastReceivedTime
+				FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+
+				FromStartPassTimeSecond := timeNow - startTime
+				FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+
+				if lastReceivedTime < endTimeSecond && timeNow > lastReceivedTime {
+
+					if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
+						totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
+						totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
+						totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
+						MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
+						//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
+						//subValue := MaxReceivedValueNow - float64(receivedValue)
+						subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+						if subValue.Cmp(big.NewInt(0)) == 1 {
+							return nil
+						}
+					}
+				}
+
+			}
+		}
+		return errors.New("have no rewards to received")
+	} else {
+		return errors.New("Can only receive rewards after voting")
+	}
+}
+
+func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
+	account := pool.currentState.GetAccountInfo(from)
+	if account.Voted.Cmp(big.NewInt(0)) == 1 {
+		timeNow := pool.chain.CurrentBlock().Time().Int64()
+		lastVoteTime := account.LastReceiveVoteAwardTime.Int64()
+		if timeNow-lastVoteTime < common.VoteRewardCycleSeconds {
+			return errors.New("Not receiving voting time")
+		}
+
+	} else {
+		return errors.New("Can only receive rewards after voting")
+	}
+	return nil
+}
+
+//2019.7.22 inb by ghy end

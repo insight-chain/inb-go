@@ -121,6 +121,22 @@ type (
 		account *common.Address
 		prev    uint64
 	}
+
+	//achilles0718 regular mortgagtion
+	regularChange struct {
+		account *common.Address
+		stores  []Store
+		regular *big.Int
+	}
+	redeemChange struct {
+		account *common.Address
+		redeems  []Redeem
+	}
+	dateChange struct {
+		account *common.Address
+		prev    *big.Int
+	}
+
 	storageChange struct {
 		account       *common.Address
 		key, prevalue common.Hash
@@ -146,6 +162,31 @@ type (
 		prevDirty bool
 	}
 )
+
+//achilles0722 redeem t+3
+func (ch redeemChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setRedeems(ch.redeems)
+}
+
+func (ch redeemChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch regularChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setStores(ch.stores, ch.regular)
+}
+
+func (ch regularChange) dirtied() *common.Address {
+	return ch.account
+}
+
+func (ch dateChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).SetDate(ch.prev)
+}
+
+func (ch dateChange) dirtied() *common.Address {
+	return ch.account
+}
 
 func (ch createObjectChange) revert(s *StateDB) {
 	delete(s.stateObjects, *ch.account)
