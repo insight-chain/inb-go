@@ -3768,7 +3768,7 @@ var inputTransactionFormatter = function (options){
         options.resourcePayer = inputAddressFormatter(options.resourcePayer);
     }
 
-    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+    ['gasPrice', 'gas', 'value', 'nonce','txType'].filter(function (key) {
         return options[key] !== undefined;
     }).forEach(function(key){
         options[key] = utils.fromDecimal(options[key]);
