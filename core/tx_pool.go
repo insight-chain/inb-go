@@ -637,14 +637,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	var netPayment common.Address
-	if tx.WhichTypes(types.Repayment) {
-		payment, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			return ErrInvalidSender
-		}
-		netPayment = payment
-		tx.RemovePaymentSignatureValues()
-	}
+	//if tx.WhichTypes(types.Repayment) {
+	//	payment, err := types.Sender(pool.signer, tx)
+	//	if err != nil {
+	//		return ErrInvalidSender
+	//	}
+	//	netPayment = payment
+	//	tx.RemovePaymentSignatureValues()
+	//}
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
@@ -694,16 +694,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-
 	if strings.Contains(inputStr, "ReceiveLockedAward") {
 		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
 		}
 	}
 
-
 	if tx.WhichTypes(types.Receive) {
-		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from),params.TxConfig.RedeemDuration)
+		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from), params.TxConfig.RedeemDuration)
 		if timeLimit.Cmp(pool.chain.CurrentBlock().Time()) > 0 {
 
 			return errors.New(" before receive time ")
@@ -718,9 +716,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return ErrCountLimit
 		}
 	}
-
-
-
 
 	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive)) {
 		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
@@ -1417,7 +1412,7 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (pool *TxPool) validateVote(inputStr string,txType types.TxType) error {
+func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
 		var UnqualifiedCandidatesSlice []string
