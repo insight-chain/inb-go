@@ -18,14 +18,13 @@ package core
 
 import (
 	"errors"
-	"math"
-	"math/big"
-	"strings"
-
 	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
+	"math"
+	"math/big"
 )
 
 var (
@@ -77,6 +76,7 @@ type Message interface {
 	//achilles repayment add apis
 	ResourcePayer() common.Address
 	IsRePayment() bool
+	Types() types.TxType
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -249,7 +249,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//}
 
 	//mgval := new(big.Int).SetUint64(st.msg.Gas())
-	if string("mortgageNet") != string(st.data) && !strings.HasPrefix(string(st.data), "mortgageNet:") && string("reset") != string(st.data) && string("receive") != string(st.data) {
+	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.Receive) {
 		if st.state.GetNet(netPayment).Cmp(big.NewInt(int64(net))) < 0 {
 			return nil, 0, false, errInsufficientBalanceForGas
 		}
@@ -268,7 +268,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, vmerr = evm.Call(sender, st.to(), st.data, st.gas, st.value)
+		ret, st.gas, vmerr = evm.NewCall(sender, st.to(), st.data, st.gas, st.value, st.msg.Types())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)

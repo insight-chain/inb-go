@@ -18,14 +18,12 @@ package core
 
 import (
 	"errors"
-	"github.com/insight-chain/inb-go/params"
-	"math/big"
-	"time"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
+	"github.com/insight-chain/inb-go/params"
+	"math/big"
 )
 
 // ChainContext supports retrieving headers and consensus parameters from the
@@ -164,9 +162,9 @@ func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
 	db.Receive(sender, sTime)
 }
 
-func CanReset(db vm.StateDB, addr common.Address) error {
+func CanReset(db vm.StateDB, addr common.Address,now *big.Int) error {
 	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
-	now := big.NewInt(time.Now().Unix())
+	//now := big.NewInt(time.Now().Unix())
 	if expire.Cmp(now) > 0 {
 		return errors.New(" before reset time ")
 	}
@@ -194,16 +192,6 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration u
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	//unit := db.UnitConvertNet()
-	//usableNet := db.GetNet(addr)
-	//
-	//if amount.Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-	//	return errors.New("  value for redeem is too low ")
-	//}
-	//
-	//if usableNet.Cmp(unit) < 0 {
-	//	return errors.New(" insufficient available mortgage ")
-	//}
 	mortgaging := db.GetMortgageInbOfNet(addr)
 	regular := db.GetRegular(addr)
 	value := db.GetRedeem(addr)
@@ -216,9 +204,9 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	return nil
 }
 
-func CanReceive(db vm.StateDB, addr common.Address) error {
+func CanReceive(db vm.StateDB, addr common.Address,now *big.Int) error {
 	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
-	now := big.NewInt(time.Now().Unix())
+	//now := big.NewInt(time.Now().Unix())
 	if timeLimit.Cmp(now) > 0 {
 		return errors.New(" before receive time ")
 	}
