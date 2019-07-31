@@ -236,7 +236,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	isAll := false
 	IntNonce := 0
 
-	if txType == types.ReceiveAward {
+	if txType == types.ReceiveLockedAward {
 
 		inputSlice := strings.Split(inputStr, ":")
 		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
@@ -326,7 +326,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 	} else if txType == types.ReceiveVoteAward {
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, evm.SpecialConsensus) //2019.7.24 inb by ghy
-	} else if txType == types.ReceiveAward { //2019.7.22 inb by ghy begin
+	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
 
 		// regular mortgagtion
 		inputSlice := strings.Split(inputStr, ":")

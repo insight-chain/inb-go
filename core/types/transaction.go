@@ -47,7 +47,7 @@ const (
 	Vote
 	Reset
 	Receive
-	ReceiveAward
+	ReceiveLockedAward
 	ReceiveVoteAward
 
 )

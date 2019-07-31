@@ -696,7 +696,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 
-	if strings.Contains(inputStr, "ReceiveAward") {
+	if strings.Contains(inputStr, "ReceiveLockedAward") {
 		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
 		}
