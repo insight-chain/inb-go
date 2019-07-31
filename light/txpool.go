@@ -18,7 +18,11 @@ package light
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"math/big"
+	"strings"
 	"sync"
 	"time"
 
@@ -346,11 +350,26 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		err  error
 	)
 
+	var netPayment common.Address
+	//if tx.IsRepayment() {
+	//	payment, err := types.Sender(pool.signer, tx)
+	//	if err != nil {
+	//		return core.ErrInvalidSender
+	//	}
+	//	netPayment = payment
+	//	tx.RemovePaymentSignatureValues()
+	//}
+
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
 	if from, err = types.Sender(pool.signer, tx); err != nil {
 		return core.ErrInvalidSender
 	}
+
+	//if !tx.IsRepayment() {
+	netPayment = from
+	//}
+
 	// Last but not least check for nonce errors
 	currentState := pool.currentState(ctx)
 	if n := currentState.GetNonce(from); n > tx.Nonce() {
@@ -359,10 +378,10 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 
 	// Check the transaction doesn't exceed the current
 	// block limit gas.
-	header := pool.chain.GetHeaderByHash(pool.head)
-	if header.GasLimit < tx.Gas() {
-		return core.ErrGasLimit
-	}
+	//header := pool.chain.GetHeaderByHash(pool.head)
+	//if header.GasLimit < tx.Gas() {
+	//	return core.ErrGasLimit
+	//}
 
 	// Transactions can't be negative. This may never happen
 	// using RLP decoded transactions but may occur if you create
@@ -371,20 +390,98 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		return core.ErrNegativeValue
 	}
 
-	// Transactor should have enough funds to cover the costs
-	// cost == V + GP * GL
-	if b := currentState.GetBalance(from); b.Cmp(tx.Cost()) < 0 {
-		return core.ErrInsufficientFunds
-	}
-
-	// Should supply enough intrinsic gas
-	gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	if err != nil {
+	inputStr := string(tx.Data())
+	if err := hanlecandidates(currentState, inputStr); err != nil {
 		return err
 	}
-	if tx.Gas() < gas {
-		return core.ErrIntrinsicGas
+
+	// Transactor should have enough funds to cover the costs
+	// cost == V + GP * GL
+	//if b := currentState.GetBalance(from); b.Cmp(tx.Cost()) < 0 {
+	//	return core.ErrInsufficientFunds
+	//}
+	if inputStr != string("unmortgageNet") {
+		if currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
+			return core.ErrInsufficientFunds
+		}
 	}
+
+	instrNet, err := core.IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+	usableMorgageNetOfInb := currentState.GetNet(netPayment)
+	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
+		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
+			return core.ErrOverAuableNetValue
+		}
+	}
+
+	//Resource by zc
+	//inputStr := string(tx.Data())
+	addressString := tx.To().String()
+	addressN := common.HexToAddress(addressString)
+	//addressN := from
+	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
+	//expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
+	expendNetFromUnMortgageNet := big.NewInt(int64(instrNet))
+	usableCpu := currentState.GetCpu(addressN)
+	usableNet := currentState.GetNet(addressN)
+	usableMorgageCpuOfInb := currentState.GetMortgageInbOfCpu(addressN)
+	//usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
+
+	if inputStr == string("unmortgageCpu") {
+		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu
+		if currentState.GetMortgageInbOfCpu(addressN).Cmp(tx.Value()) < 0 {
+			return core.ErrOverUnMortgageInbOfCpuValue
+		}
+		//Make sure unmarshalling CPU consumes enough NET
+		if expendNetFromUnMortgageNet.Cmp(usableNet) == 1 {
+			return core.ErrOverAuableNetValue
+		}
+		//Make sure unmarshalling CPU consumes enough CPU
+		residueMorgageCpuOfInb := usableMorgageCpuOfInb.Sub(usableMorgageCpuOfInb, tx.Value())
+		residueCpu := usableCpu.Mul(usableCpu, residueMorgageCpuOfInb).Div(usableCpu.Mul(usableCpu, residueMorgageCpuOfInb), usableMorgageCpuOfInb)
+		if expendCpuFromUnMortgageCpu.Cmp(residueCpu) == 1 {
+			return core.ErrOverAuableCpuValue
+		}
+	} else if inputStr == string("unmortgageNet") {
+		//Make sure the unmarshaled Net is less than the mortgaged Net
+		unit := currentState.UnitConvertNet()
+		usableNet := currentState.GetNet(from)
+
+		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
+			return errors.New(" the value for redeem is too low ")
+		}
+
+		if usableNet.Cmp(unit) < 0 {
+			return errors.New(" insufficient available mortgage ")
+		}
+		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
+		netUse = netUse.Mul(netUse, unit)
+		usableInb := currentState.GetMortgageInbOfNet(from)
+		if usableInb.Cmp(tx.Value()) < 0 {
+			return errors.New(" insufficient available mortgage ")
+		}
+		//if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
+		//	return ErrOverUnMortgageInbOfNetValue
+		//}
+		//Make sure unmarshalling Net consumes enough Cpu
+		//if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
+		//	return ErrOverAuableCpuValue
+		//}
+		//Make sure unmarshalling NET consumes enough NET
+		//residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
+		//residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
+		//if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
+		//	return ErrOverAuableNetValue
+		//}
+	}
+	// Should supply enough intrinsic gas
+	//gas, err := core.IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
+	//if err != nil {
+	//	return err
+	//}
+	//if tx.Gas() < gas {
+	//	return core.ErrIntrinsicGas
+	//}
 	return currentState.Error()
 }
 
@@ -527,4 +624,32 @@ func (pool *TxPool) RemoveTx(hash common.Hash) {
 	delete(pool.pending, hash)
 	pool.chainDb.Delete(hash[:])
 	pool.relay.Discard([]common.Hash{hash})
+}
+
+func hanlecandidates(currentState *state.StateDB, inputStr string) error {
+	if strings.Contains(inputStr, "candidates") {
+		var candidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []common.Address
+		candidates := strings.Split(inputStr, ":")
+		if candidates[0] == "candidates" {
+			candidatesStr := strings.Split(candidates[1], ",")
+			for _, value := range candidatesStr {
+				address := common.HexToAddress(value)
+				//2019.7.15 inb mod by ghy begin
+				if currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+					candidatesSlice = append(candidatesSlice, address)
+				} else {
+					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
+				}
+			}
+			if len(UnqualifiedCandidatesSlice) > 0 {
+				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v", UnqualifiedCandidatesSlice))
+			}
+			//2019.7.15 inb mod by ghy end
+			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+				return errors.New("candidates over size")
+			}
+		}
+	}
+	return nil
 }

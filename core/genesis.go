@@ -256,26 +256,29 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
 		SpecialConsensus: g.SpecialConsensus,                //2019.7.23 inb by ghy
 	}
-	//inb by ghy begin
-	//headE:=new(vdpos.HeaderExtra)
-	//headE.Enode=g.Config.Vdpos.Enode
 
-	headE := new(vdpos.HeaderExtra)
-	//for i,v:=range g.Config.Vdpos.Enodes{
-	//	marshal, _:= json.Marshal(v.Data)
-	//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
-	//}
-	headE.Enodes = g.Config.Vdpos.Enodes
+	// inb by ssh 190724
+	if g.Config.Vdpos != nil {
+		//inb by ghy begin
+		//headE:=new(vdpos.HeaderExtra)
+		//headE.Enode=g.Config.Vdpos.Enode
+		headE := new(vdpos.HeaderExtra)
+		//for i,v:=range g.Config.Vdpos.Enodes{
+		//	marshal, _:= json.Marshal(v.Data)
+		//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
+		//}
+		headE.Enodes = g.Config.Vdpos.Enodes
 
-	if len(head.Extra) < 32 {
-		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
+		if len(head.Extra) < 32 {
+			head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
+		}
+		head.Extra = head.Extra[:32]
+		toBytes, _ := rlp.EncodeToBytes(headE)
+		head.Extra = append(head.Extra, toBytes...)
+		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
+
+		//inb by ghy end
 	}
-	head.Extra = head.Extra[:32]
-	toBytes, _ := rlp.EncodeToBytes(headE)
-	head.Extra = append(head.Extra, toBytes...)
-	head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
-
-	//inb by ghy end
 
 	if g.GasLimit == 0 {
 		head.GasLimit = params.GenesisGasLimit

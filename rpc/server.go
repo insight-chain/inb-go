@@ -381,6 +381,11 @@ func (s *Server) readRequest(codec ServerCodec) ([]*serverRequest, bool, Error) 
 
 	// verify requests
 	for i, r := range reqs {
+		//inb by ssh 190729 begin
+		if r.service == "inb" {
+			r.service = "eth"
+		}
+		//inb by ssh 190729 end
 		var ok bool
 		var svc *service
 

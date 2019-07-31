@@ -270,11 +270,11 @@ func ConnectAllSuperNodes(n *Node) {
 		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Data)
 		//}
 		//fmt.Println("come to the latest block!",LatesSuperNodeEcodes.SignersPool)
-		if len(LatesSuperNodeEcodes.SignersPool)>0{
-			for _,v:=range LatesSuperNodeEcodes.SignersPool{
-				if len(LatesSuperNodeEcodes.Enodes)>0{
-					for _,vv:=range LatesSuperNodeEcodes.Enodes{
-						if v==vv.Address &&!n.server.Self().Equals(ParsePeerUrl(vv)){
+		if len(LatesSuperNodeEcodes.SignersPool) > 0 {
+			for _, v := range LatesSuperNodeEcodes.SignersPool {
+				if len(LatesSuperNodeEcodes.Enodes) > 0 {
+					for _, vv := range LatesSuperNodeEcodes.Enodes {
+						if v == vv.Address && !n.server.Self().Equals(ParsePeerUrl(vv)) {
 							//fmt.Println("dont",ParsePeerUrl(vv))
 							latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
 							n.server.AddPeer(latessuperNode)
@@ -284,10 +284,9 @@ func ConnectAllSuperNodes(n *Node) {
 				}
 			}
 		}
-		time.Sleep(50*60*3*time.Second)
+		time.Sleep(50 * 60 * 3 * time.Second)
 	}
 }
-
 
 func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
 	var urlBuffer bytes.Buffer

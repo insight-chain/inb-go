@@ -734,9 +734,9 @@ func (s *PublicTransactionPoolAPI) MortgageRawNet(ctx context.Context, encodedTx
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if !tx.IsRepayment() {
-		tx.SetPayment()
-	}
+	//if !tx.IsRepayment() {
+	//	tx.SetPayment()
+	//}
 	return submitTransaction(ctx, s.b, tx)
 }
 
@@ -1584,9 +1584,9 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
 	}
-	if args.ResourcePayer != nil {
-		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
-	}
+// 	if args.ResourcePayer != nil {
+// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
+// 	}
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,args.Types)
 }
 
@@ -1653,9 +1653,9 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if !tx.IsRepayment() {
-		tx.SetPayment()
-	}
+	//if !tx.IsRepayment() {
+	//	tx.SetPayment()
+	//}
 
 	return submitTransaction(ctx, s.b, tx)
 }
@@ -1769,50 +1769,50 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 // need to valid the sender sign
 // The node needs to have the private key of the account corresponding with
 // the given from address and it needs to be unlocked.
-func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, data hexutil.Bytes) (*SignTransactionResult, error) {
-
-	tx := &types.Transaction{}
-	if err := rlp.DecodeBytes(data, tx); err != nil {
-		return nil, err
-	}
-	var resourcePayer common.Address
-	if resourcePayer == tx.ResourcePayer() {
-		return nil, fmt.Errorf("resourcePayer not specified")
-	}
-	resourcePayer = tx.ResourcePayer()
-	//recover signature from v,r,s
-	v, r, ss := tx.RawSignatureValues()
-	vb := byte(v.Uint64() - 27)
-	sig := make([]byte, 65)
-	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
-	sig[64] = vb
-	//vrify sender signature
-	if len(sig) != 65 {
-		return nil, fmt.Errorf("signature must be 65 bytes long")
-	}
-	/*if sig[64] != 27 && sig[64] != 28 {
-		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
-	}*/
-	//rpk, err := crypto.SigToPub(signHash(data), sig)
-	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
-	//	return nil, fmt.Errorf("verify error")
-	//}
-	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
-	from, err := types.Sender(signer, tx)
-	if err != nil {
-		return nil, fmt.Errorf("the signature of sender verify error, sender ", from[:])
-	}
-	payTx, err := s.sign(resourcePayer, tx)
-	if err != nil {
-		return nil, err
-	}
-	returnData, err := rlp.EncodeToBytes(payTx)
-	if err != nil {
-		return nil, err
-	}
-	return &SignTransactionResult{returnData, payTx}, nil
-}
+//func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, data hexutil.Bytes) (*SignTransactionResult, error) {
+//
+//	tx := &types.Transaction{}
+//	if err := rlp.DecodeBytes(data, tx); err != nil {
+//		return nil, err
+//	}
+//	var resourcePayer common.Address
+//	if resourcePayer == tx.ResourcePayer() {
+//		return nil, fmt.Errorf("resourcePayer not specified")
+//	}
+//	resourcePayer = tx.ResourcePayer()
+//	//recover signature from v,r,s
+//	v, r, ss := tx.RawSignatureValues()
+//	vb := byte(v.Uint64() - 27)
+//	sig := make([]byte, 65)
+//	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+//	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
+//	sig[64] = vb
+//	//vrify sender signature
+//	if len(sig) != 65 {
+//		return nil, fmt.Errorf("signature must be 65 bytes long")
+//	}
+//	/*if sig[64] != 27 && sig[64] != 28 {
+//		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+//	}*/
+//	//rpk, err := crypto.SigToPub(signHash(data), sig)
+//	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
+//	//	return nil, fmt.Errorf("verify error")
+//	//}
+//	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
+//	from, err := types.Sender(signer, tx)
+//	if err != nil {
+//		return nil, fmt.Errorf("the signature of sender verify error, sender ", from[:])
+//	}
+//	payTx, err := s.sign(resourcePayer, tx)
+//	if err != nil {
+//		return nil, err
+//	}
+//	returnData, err := rlp.EncodeToBytes(payTx)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return &SignTransactionResult{returnData, payTx}, nil
+//}
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
