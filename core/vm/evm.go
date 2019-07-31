@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
 	"strings"
@@ -44,10 +45,10 @@ type (
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanResetFunc            func(StateDB, common.Address) error
+	CanResetFunc            func(StateDB, common.Address, *big.Int) error
 	CanMortgageFunc         func(StateDB, common.Address, *big.Int, uint) error
 	CanRedeemFunc           func(StateDB, common.Address, *big.Int) error
-	CanReceiveFunc          func(StateDB, common.Address) error
+	CanReceiveFunc          func(StateDB, common.Address, *big.Int) error
 	RedeemTransferFunc      func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
 	ReceiveTransferFunc     func(StateDB, common.Address, *big.Int)
 	ResetTransferFunc       func(StateDB, common.Address, *big.Int)
@@ -208,11 +209,15 @@ func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+	return evm.NewCall(caller, addr, input, net, value, 0)
+}
+
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int, txType types.TxType) (ret []byte, leftOverGas uint64, err error) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, net, nil
 	}
@@ -231,9 +236,7 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	VoteAward := big.NewInt(0)
 	isAll := false
 	IntNonce := 0
-	if strings.HasPrefix(inputStr, "ReceiveAward") {
-		// regular mortgagtion
-
+	if txType == types.ReceiveAward {
 		inputSlice := strings.Split(inputStr, ":")
 		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveAward" {
 			IntNonce, err = strconv.Atoi(inputSlice[1])
@@ -248,31 +251,32 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 
 	}
 	//2019.7.22 inb by ghy end
-
-	if strings.HasPrefix(inputStr, "mortgageNet") {
-		// regular mortgagtion
-		if strings.Contains(inputStr, "mortgageNet:") {
-			regulars := strings.Split(inputStr, ":")
-			if convert, err := strconv.Atoi(regulars[1]); err == nil {
-				days = convert
-			}
+	if txType == types.Regular {
+		convert, err := strconv.Atoi(inputStr)
+		if err != nil {
+			return nil, net, err
 		}
+		days = convert
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
 			return nil, net, err
 		}
-	} else if inputStr == string("unmortgageNet") {
+	}else if txType == types.Mortgage {
+		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
+			return nil, net, err
+		}
+	} else if txType == types.Redeem {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
 			return nil, net, err
 		}
-	} else if inputStr == string("reset") {
-		if err := evm.Context.CanReset(evm.StateDB, caller.Address()); err != nil {
+	} else if txType == types.Reset {
+		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.Time); err != nil {
 			return nil, net, err
 		}
-	} else if inputStr == string("receive") {
-		if err := evm.Context.CanReceive(evm.StateDB, caller.Address()); err != nil {
+	} else if txType == types.Receive {
+		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.Time); err != nil {
 			return nil, net, err
 		}
-	} else if inputStr == string("ReceiveVoteAward") { //2019.7.24 inb by ghy
+	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
 		if err, VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
 			return nil, net, err
 		}
@@ -305,19 +309,18 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 	//evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	//Resource by zc
 
-	if strings.HasPrefix(inputStr, "candidates") {
+	if txType == types.Vote {
 		evm.Vote(evm.StateDB, caller.Address())
 	}
-
-	if inputStr == string("unmortgageNet") {
+	if txType == types.Redeem  {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
-	} else if inputStr == string("mortgageNet") || strings.HasPrefix(inputStr, "mortgageNet:") {
+	} else if txType == types.Regular || txType == types.Mortgage {
 		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
-	} else if inputStr == string("reset") {
+	} else if txType == types.Reset {
 		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
-	} else if inputStr == string("ReceiveVoteAward") {
+	} else if txType == types.ReceiveVoteAward {
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time) //2019.7.24 inb by ghy
-	} else if strings.HasPrefix(inputStr, "ReceiveAward") { //2019.7.22 inb by ghy begin
+	} else if txType == types.ReceiveAward  { //2019.7.22 inb by ghy begin
 		// regular mortgagtion
 		inputSlice := strings.Split(inputStr, ":")
 		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveAward" {
@@ -327,26 +330,11 @@ func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net 
 			}
 			evm.ReceiveAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time)
 		} //2019.7.22 inb by ghy end
-	} else if inputStr == string("receive") {
+	} else if txType == types.Receive {
 		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
-
-	//inputStr := string(input)
-	//if inputStr == string("mortgageCpu") {
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 0)
-	//} else if inputStr == string("mortgageNet") {
-	//
-	//	evm.StateDB.MortgageNet(caller.Address(), value)
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 1)
-	//} else if inputStr == string("unmortgageCpu") {
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 2)
-	//} else if inputStr == string("unmortgageNet") {
-	//	evm.StateDB.RedeemNet(caller.Address(), value)
-	//	//evm.StateDB.GetStateObject(caller.Address(), value, 3)
-	//}
-	//Resource by zc
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.

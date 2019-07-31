@@ -445,7 +445,7 @@ func (m callmsg) Data() []byte         { return m.CallMsg.Data }
 //achilles repayment add apis
 func (m callmsg) ResourcePayer() common.Address { return [20]byte{} }
 func (m callmsg) IsRePayment() bool             { return false }
-
+func (m callmsg) Types() types.TxType	{ return 0 }
 // filterBackend implements filters.Backend to support filtering for logs without
 // taking bloom-bits acceleration structures into account.
 type filterBackend struct {

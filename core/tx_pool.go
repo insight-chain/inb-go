@@ -614,38 +614,30 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	//2019.7.18 inb mod by ghy begin
-	if err := pool.validateVote(inputStr); err != nil {
-		return err
+	if tx.WhichTypes(types.Vote) {
+		var candidatesSlice []common.Address
+		var UnqualifiedCandidatesSlice []string
+		candidatesStr := strings.Split(inputStr, ",")
+		for _, value := range candidatesStr {
+			address := common.HexToAddress(value)
+			//2019.7.15 inb mod by ghy begin
+			if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+				candidatesSlice = append(candidatesSlice, address)
+			} else {
+				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
+			}
+		}
+		if len(UnqualifiedCandidatesSlice) > 0 {
+			return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
+		}
+		//2019.7.15 inb mod by ghy end
+		if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+			return errors.New("candidates over size")
+		}
 	}
-	//2019.7.18 inb mod by ghy begin
-
-	//	if strings.Contains(inputStr, "candidates") {
-	//		var candidatesSlice []common.Address
-	//		var UnqualifiedCandidatesSlice []common.Address
-	//		candidates := strings.Split(inputStr, ":")
-	//		if candidates[0] == "candidates" {
-	//			candidatesStr := strings.Split(candidates[1], ",")
-	//			for _, value := range candidatesStr {
-	//				address := common.HexToAddress(value)
-	////2019.7.15 inb mod by ghy begin
-	//				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB)==1 {
-	//					candidatesSlice = append(candidatesSlice, address)
-	//				}else {
-	//					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address)
-	//				}
-	//				}
-	//			if len(UnqualifiedCandidatesSlice)>0{
-	//				return errors.New(fmt.Sprintf("Voting Node Account Mortgage Less than 100 000 inb, %v",UnqualifiedCandidatesSlice))
-	//			}
-	//			//2019.7.15 inb mod by ghy end
-	//			if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
-	//				return errors.New("candidates over size")
-	//			}
-	//		}
-	//	}
 
 	var netPayment common.Address
-	if tx.IsRepayment() {
+	if tx.WhichTypes(types.Repayment) {
 		payment, err := types.Sender(pool.signer, tx)
 		if err != nil {
 			return ErrInvalidSender
@@ -658,7 +650,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
-	if !tx.IsRepayment() {
+	if !tx.WhichTypes(types.Repayment) {
 		netPayment = from
 	}
 
@@ -678,14 +670,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentState.GetBalance(from).Cmp(tx.Cost()) < 0 {
 	//	return ErrInsufficientFunds
 	//}
-	if inputStr != string("unmortgageNet") || inputStr != string("reset") || inputStr != string("receive"){
+	if !(tx.WhichTypes(types.Repayment) && tx.WhichTypes(types.Reset) && tx.WhichTypes(types.Receive)) {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
 	}
 
-	if inputStr == string("reset") {
-		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(big.NewInt(int64(time.Now().Unix()))) > 0 {
+	if tx.WhichTypes(types.Reset) {
+		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(pool.chain.CurrentBlock().Time()) > 0 {
 			return ErrBeforeResetTime
 		}
 	}
@@ -701,16 +693,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if inputStr == string("ReceiveVoteAward") {
+	if strings.Contains(inputStr, "ReceiveAward") {
 		if err := pool.validateVoteAward(from); err != nil {
 			return err
 		}
 	}
 
-	if inputStr == string("receive") {
+	if tx.WhichTypes(types.Receive) {
 		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from),params.TxConfig.RedeemDuration)
-		now := big.NewInt(time.Now().Unix())
-		if timeLimit.Cmp(now) > 0 {
+		if timeLimit.Cmp(pool.chain.CurrentBlock().Time()) > 0 {
 			return errors.New(" before receive time ")
 		}
 		if big.NewInt(0).Cmp(pool.currentState.GetRedeem(from)) == 0 {
@@ -718,63 +709,27 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if tx.IsRegularMortgageNet() {
+	if tx.WhichTypes(types.Regular) {
 		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
 			return ErrCountLimit
 		}
 	}
 
-	//achilles replace gas with net
-	//intrGas, err := IntrinsicGas(tx.Data(), tx.To() == nil, pool.homestead)
-	//if err != nil {
-	//	return err
-	//}
-	//if tx.Gas() < intrGas {
-	//	return ErrIntrinsicGas
-	//}
-	instrNet, err := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
-	usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-	if !tx.IsMortgageNet() && inputStr != string("reset") && !tx.IsRegularMortgageNet() && inputStr != string("receive"){
+	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive)) {
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return ErrOverAuableNetValue
 		}
 	}
 
-	if tx.IsRegularMortgageNet() {
+	if tx.WhichTypes(types.Regular) {
 		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
 			return ErrCountLimit
 		}
 	}
 
-	//Resource by zc
-	//inputStr := string(tx.Data())
-	addressString := tx.To().String()
-	addressN := common.HexToAddress(addressString)
-	//addressN := from
-	expendCpuFromUnMortgageCpu := big.NewInt(params.TxConfig.UseCpu)
-	//expendNetFromUnMortgageNet := big.NewInt(params.TxConfig.UseNet)
-	expendNetFromUnMortgageNet := big.NewInt(int64(instrNet))
-	usableCpu := pool.currentState.GetCpu(addressN)
-	usableNet := pool.currentState.GetNet(addressN)
-	usableMorgageCpuOfInb := pool.currentState.GetMortgageInbOfCpu(addressN)
-	//usableMorgageNetOfInb := pool.currentState.GetMortgageInbOfNet(addressN)
-
-	if inputStr == string("unmortgageCpu") {
-		//Make sure the unmarshaled Cpu is less than the mortgaged Cpu
-		if pool.currentState.GetMortgageInbOfCpu(addressN).Cmp(tx.Value()) < 0 {
-			return ErrOverUnMortgageInbOfCpuValue
-		}
-		//Make sure unmarshalling CPU consumes enough NET
-		if expendNetFromUnMortgageNet.Cmp(usableNet) == 1 {
-			return ErrOverAuableNetValue
-		}
-		//Make sure unmarshalling CPU consumes enough CPU
-		residueMorgageCpuOfInb := usableMorgageCpuOfInb.Sub(usableMorgageCpuOfInb, tx.Value())
-		residueCpu := usableCpu.Mul(usableCpu, residueMorgageCpuOfInb).Div(usableCpu.Mul(usableCpu, residueMorgageCpuOfInb), usableMorgageCpuOfInb)
-		if expendCpuFromUnMortgageCpu.Cmp(residueCpu) == 1 {
-			return ErrOverAuableCpuValue
-		}
-	} else if inputStr == string("unmortgageNet") {
+	if tx.WhichTypes(types.Redeem) {
 		//Make sure the unmarshaled Net is less than the mortgaged Net
 		unit := pool.currentState.UnitConvertNet()
 		usableNet := pool.currentState.GetNet(netPayment)
@@ -792,19 +747,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		//if pool.currentState.GetMortgageInbOfNet(addressN).Cmp(tx.Value()) < 0 {
-		//	return ErrOverUnMortgageInbOfNetValue
-		//}
-		//Make sure unmarshalling Net consumes enough Cpu
-		//if expendCpuFromUnMortgageCpu.Cmp(usableCpu) == 1 {
-		//	return ErrOverAuableCpuValue
-		//}
-		//Make sure unmarshalling NET consumes enough NET
-		//residueMorgageNetOfInb := usableMorgageNetOfInb.Sub(usableMorgageNetOfInb, tx.Value())
-		//residueNet := usableCpu.Mul(usableCpu, residueMorgageNetOfInb).Div(usableNet.Mul(usableNet, residueMorgageNetOfInb), residueMorgageNetOfInb)
-		//if expendNetFromUnMortgageNet.Cmp(residueNet) == 1 {
-		//	return ErrOverAuableNetValue
-		//}
 	}
 	//Resource by zc
 	return nil
@@ -1467,7 +1409,7 @@ func (t *txLookup) Remove(hash common.Hash) {
 	delete(t.all, hash)
 }
 
-func (pool *TxPool) validateVote(inputStr string) error {
+func (pool *TxPool) validateVote(inputStr string,txType types.TxType) error {
 	if strings.Contains(inputStr, "candidates") {
 		var candidatesSlice []common.Address
 		var UnqualifiedCandidatesSlice []string
