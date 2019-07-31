@@ -712,6 +712,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.Regular) {
+		durations := strings.Split(inputStr, ":")
+		convert, err := strconv.Atoi(durations[1])
+		if err != nil {
+			return err
+		}
+		if !params.Contains(uint(convert)) {
+			return errors.New(" wrong duration of mortgagtion ")
+		}
 		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
 			return ErrCountLimit
 		}
