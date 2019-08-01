@@ -39,7 +39,7 @@ var (
 type TxType uint8
 
 const (
-	_ TxType = iota
+	Default TxType = iota
 	Repayment
 	Mortgage
 	Regular
@@ -104,21 +104,22 @@ type txdataMarshaling struct {
 	V            *hexutil.Big
 	R            *hexutil.Big
 	S            *hexutil.Big
+	Types        hexutil.Uint64
 }
 
 func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, nil, txType)
+	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, txType)
 }
 
-func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address, txType TxType) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment, txType)
+//func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address, txType TxType) *Transaction {
+//	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment, txType)
+//}
+
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, Default)
 }
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, nil, txType)
-}
-
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, resourcePayer *common.Address, txType TxType) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
