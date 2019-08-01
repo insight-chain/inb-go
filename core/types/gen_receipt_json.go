@@ -23,6 +23,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   common.Address `json:"contractAddress"`
 		GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		IncomeClaimed     hexutil.Uint64 `json:"incomeClaimed" gencodec:"required"`
 	}
 	var enc Receipt
 	enc.PostState = r.PostState
@@ -33,6 +34,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 	enc.TxHash = r.TxHash
 	enc.ContractAddress = r.ContractAddress
 	enc.GasUsed = hexutil.Uint64(r.GasUsed)
+	enc.IncomeClaimed = hexutil.Uint64(r.IncomeClaimed)
 	return json.Marshal(&enc)
 }
 
@@ -47,6 +49,7 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   *common.Address `json:"contractAddress"`
 		GasUsed           *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		IncomeClaimed     *hexutil.Uint64 `json:"incomeClaimed" gencodec:"required"`
 	}
 	var dec Receipt
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -81,5 +84,9 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'gasUsed' for Receipt")
 	}
 	r.GasUsed = uint64(*dec.GasUsed)
+	if dec.IncomeClaimed == nil {
+		return errors.New("missing required field 'incomeClaimed' for Receipt")
+	}
+	r.IncomeClaimed = uint64(*dec.IncomeClaimed)
 	return nil
 }
