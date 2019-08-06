@@ -670,7 +670,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrInsufficientFunds
 	//}
 
-	if !(tx.WhichTypes(types.Repayment) && tx.WhichTypes(types.Reset) && tx.WhichTypes(types.Receive)) {
+	if !(tx.WhichTypes(types.Repayment) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Receive)) {
 
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
@@ -713,6 +713,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	if tx.WhichTypes(types.Regular) {
 		durations := strings.Split(inputStr, ":")
+		if len(durations) <= 1 {
+			return errors.New(" can't resolve field of input transaction ")
+		}
 		convert, err := strconv.Atoi(durations[1])
 		if err != nil {
 			return err

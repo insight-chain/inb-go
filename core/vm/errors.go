@@ -27,4 +27,7 @@ var (
 	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
 	ErrContractAddressCollision = errors.New("contract address collision")
 	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
+
+	//achilles0802 change address length
+	ErrNotResolveInput = errors.New("can't resolve field input of transaction")
 )
