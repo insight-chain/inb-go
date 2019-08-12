@@ -51,15 +51,15 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Resource by zc
 		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:               GetHashFn(header, chain),
-		Origin:                msg.From(),
-		Coinbase:              beneficiary,
-		BlockNumber:           new(big.Int).Set(header.Number),
-		Time:                  new(big.Int).Set(header.Time),
-		SpecialConsensus:      header.SpecialConsensus, //2019.7.31 inb by ghy
-		Difficulty:            new(big.Int).Set(header.Difficulty),
-		GasLimit:              header.GasLimit,
-		GasPrice:              new(big.Int).Set(msg.GasPrice()),
+		GetHash:          GetHashFn(header, chain),
+		Origin:           msg.From(),
+		Coinbase:         beneficiary,
+		BlockNumber:      new(big.Int).Set(header.Number),
+		Time:             new(big.Int).Set(header.Time),
+		SpecialConsensus: header.SpecialConsensus, //2019.7.31 inb by ghy
+		Difficulty:       new(big.Int).Set(header.Difficulty),
+		GasLimit:         header.GasLimit,
+		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
 		CanMortgage:           CanMortgage,
 		CanRedeem:             CanRedeem,
 		CanReset:              CanReset,
@@ -162,7 +162,7 @@ func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
 	db.Receive(sender, sTime)
 }
 
-func CanReset(db vm.StateDB, addr common.Address,now *big.Int) error {
+func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {
 	expire := big.NewInt(0).Add(db.GetDate(addr), params.TxConfig.ResetDuration)
 	//now := big.NewInt(time.Now().Unix())
 	if expire.Cmp(now) > 0 {
@@ -204,7 +204,7 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	return nil
 }
 
-func CanReceive(db vm.StateDB, addr common.Address,now *big.Int) error {
+func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
 	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
 	//now := big.NewInt(time.Now().Unix())
 	if timeLimit.Cmp(now) > 0 {

@@ -156,9 +156,11 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	// Define a formatter to flatten a transaction into a string
 	var format = func(tx *types.Transaction) string {
 		if to := tx.To(); to != nil {
-			return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
+			//return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
+			return fmt.Sprintf("%s: %v wei + %v gas ", tx.To().Hex(), tx.Value(), tx.Gas())
 		}
-		return fmt.Sprintf("contract creation: %v wei + %v gas × %v wei", tx.Value(), tx.Gas(), tx.GasPrice())
+		//return fmt.Sprintf("contract creation: %v wei + %v gas ", tx.Value(), tx.Gas(), tx.GasPrice())
+		return fmt.Sprintf("contract creation: %v wei + %v gas", tx.Value(), tx.Gas())
 	}
 	// Flatten the pending transactions
 	for account, txs := range pending {
@@ -411,9 +413,9 @@ func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs
 	if args.Gas == nil {
 		return nil, fmt.Errorf("gas not specified")
 	}
-	if args.GasPrice == nil {
-		return nil, fmt.Errorf("gasPrice not specified")
-	}
+	//if args.GasPrice == nil {
+	//	return nil, fmt.Errorf("gasPrice not specified")
+	//}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
@@ -1007,13 +1009,13 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice hexutil.Big     `json:"gasPrice"`
-	Value    hexutil.Big     `json:"value"`
-	Data     hexutil.Bytes   `json:"data"`
-	Types    types.TxType    `json:"txType"`
+	From common.Address  `json:"from"`
+	To   *common.Address `json:"to"`
+	Gas  hexutil.Uint64  `json:"gas"`
+	//GasPrice hexutil.Big     `json:"gasPrice"`
+	Value hexutil.Big   `json:"value"`
+	Data  hexutil.Bytes `json:"data"`
+	Types types.TxType  `json:"txType"`
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -1033,16 +1035,21 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 		}
 	}
 	// Set default gas & gas price if none were set
-	gas, gasPrice := uint64(args.Gas), args.GasPrice.ToInt()
+	//achilles190806 todo replace with net
+	//gas, gasPrice := uint64(args.Gas), args.GasPrice.ToInt()
+	//if gas == 0 {
+	//	gas = math.MaxUint64 / 2
+	//}
+	//if gasPrice.Sign() == 0 {
+	//	gasPrice = new(big.Int).SetUint64(defaultGasPrice)
+	//}
+	gas := uint64(args.Gas)
 	if gas == 0 {
 		gas = math.MaxUint64 / 2
 	}
-	if gasPrice.Sign() == 0 {
-		gasPrice = new(big.Int).SetUint64(defaultGasPrice)
-	}
 
 	// Create new call message
-	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false, args.Types)
+	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, args.Data, false, args.Types)
 
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1265,11 +1272,11 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockHash        common.Hash     `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	BlockHash   common.Hash    `json:"blockHash"`
+	BlockNumber *hexutil.Big   `json:"blockNumber"`
+	From        common.Address `json:"from"`
+	Gas         hexutil.Uint64 `json:"gas"`
+	//GasPrice         *hexutil.Big    `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
 	Input            hexutil.Bytes   `json:"input"`
 	Nonce            hexutil.Uint64  `json:"nonce"`
@@ -1293,18 +1300,18 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 	v, r, s := tx.RawSignatureValues()
 
 	result := &RPCTransaction{
-		From:     from,
-		Gas:      hexutil.Uint64(tx.Gas()),
-		GasPrice: (*hexutil.Big)(tx.GasPrice()),
-		Hash:     tx.Hash(),
-		Input:    hexutil.Bytes(tx.Data()),
-		Nonce:    hexutil.Uint64(tx.Nonce()),
-		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Value()),
-		V:        (*hexutil.Big)(v),
-		R:        (*hexutil.Big)(r),
-		S:        (*hexutil.Big)(s),
-		Types:    tx.Types(),
+		From: from,
+		Gas:  hexutil.Uint64(tx.Gas()),
+		//GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Hash:  tx.Hash(),
+		Input: hexutil.Bytes(tx.Data()),
+		Nonce: hexutil.Uint64(tx.Nonce()),
+		To:    tx.To(),
+		Value: (*hexutil.Big)(tx.Value()),
+		V:     (*hexutil.Big)(v),
+		R:     (*hexutil.Big)(r),
+		S:     (*hexutil.Big)(s),
+		Types: tx.Types(),
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
@@ -1520,12 +1527,12 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
 type SendTxArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      *hexutil.Uint64 `json:"gas"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	Value    *hexutil.Big    `json:"value"`
-	Nonce    *hexutil.Uint64 `json:"nonce"`
+	From common.Address  `json:"from"`
+	To   *common.Address `json:"to"`
+	Gas  *hexutil.Uint64 `json:"gas"`
+	//GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value *hexutil.Big    `json:"value"`
+	Nonce *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
 	Data  *hexutil.Bytes `json:"data"`
@@ -1540,13 +1547,13 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 		args.Gas = new(hexutil.Uint64)
 		*(*uint64)(args.Gas) = 90000
 	}
-	if args.GasPrice == nil {
-		price, err := b.SuggestPrice(ctx)
-		if err != nil {
-			return err
-		}
-		args.GasPrice = (*hexutil.Big)(price)
-	}
+	//if args.GasPrice == nil {
+	//	price, err := b.SuggestPrice(ctx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	//args.GasPrice = (*hexutil.Big)(price)
+	//}
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
 	}
@@ -1583,12 +1590,12 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
 	}
 	// 	if args.ResourcePayer != nil {
-	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
+	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
 	// 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
 }
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.
@@ -1866,9 +1873,9 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p) == wantSigHash {
 			// Match. Re-sign and send the transaction.
-			if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
-				sendArgs.GasPrice = gasPrice
-			}
+			//if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
+			//	sendArgs.GasPrice = gasPrice
+			//}
 			if gasLimit != nil && *gasLimit != 0 {
 				sendArgs.Gas = gasLimit
 			}

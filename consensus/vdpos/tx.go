@@ -60,13 +60,13 @@ const (
 	posEventDeclareInfoIp       = 1
 	posEventDeclareInfoPort     = 2
 	//inb by ghy begin
-	posEventDeclareInfoName     = 3
-	posEventDeclareInfoNation   = 4
-	posEventDeclareInfoCity     = 5
-	posEventDeclareInfoImage    = 6
-	posEventDeclareInfoWebsite  = 7
-	posEventDeclareInfoEmail    = 8
-	posEventDeclareInfodata     = 9
+	posEventDeclareInfoName    = 3
+	posEventDeclareInfoNation  = 4
+	posEventDeclareInfoCity    = 5
+	posEventDeclareInfoImage   = 6
+	posEventDeclareInfoWebsite = 7
+	posEventDeclareInfoEmail   = 8
+	posEventDeclareInfodata    = 9
 	//inb by ghy end
 )
 
@@ -76,8 +76,8 @@ type RefundGas map[common.Address]*big.Int
 
 // RefundPair :
 type RefundPair struct {
-	Sender   common.Address
-	GasPrice *big.Int
+	Sender common.Address
+	//GasPrice *big.Int
 }
 
 // RefundHash :
@@ -102,8 +102,6 @@ type Confirmation struct {
 	Signer      common.Address
 	BlockNumber *big.Int
 }
-
-
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
@@ -236,9 +234,9 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
 								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
 									account := state.GetAccountInfo(txSender)
-									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB)==1{
+									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
 										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
-									}else {
+									} else {
 										return headerExtra, nil, errors.Errorf("Account mortgageINB must be greater than 100000")
 									}
 								}
@@ -257,12 +255,14 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 	}
 
-	for _, receipt := range receipts {
-		if pair, ok := refundHash[receipt.TxHash]; ok && receipt.Status == 1 {
-			pair.GasPrice.Mul(pair.GasPrice, big.NewInt(int64(receipt.GasUsed)))
-			refundGas = v.refundAddGas(refundGas, pair.Sender, pair.GasPrice)
-		}
-	}
+	//achilles190806 replace net todo ?
+	//for _, receipt := range receipts {
+	//if pair, ok := refundHash[receipt.TxHash]; ok && receipt.Status == 1 {
+
+	//pair.GasPrice.Mul(pair.GasPrice, big.NewInt(int64(receipt.GasUsed)))
+	//refundGas = v.refundAddGas(refundGas, pair.Sender, pair.GasPrice)
+	//}
+	//}
 	return headerExtra, refundGas, nil
 }
 
@@ -287,44 +287,44 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 				Port:    midEnodeInfo[posEventDeclareInfoPort],
 				Address: declarer,
 			}
-//inb by ghy begin
-			if len(midEnodeInfo) >=4{
-				enodeInfo.Name=midEnodeInfo[posEventDeclareInfoName]
+			//inb by ghy begin
+			if len(midEnodeInfo) >= 4 {
+				enodeInfo.Name = midEnodeInfo[posEventDeclareInfoName]
 			}
 
-			if len(midEnodeInfo) >=5{
-				enodeInfo.Nation=midEnodeInfo[posEventDeclareInfoNation]
+			if len(midEnodeInfo) >= 5 {
+				enodeInfo.Nation = midEnodeInfo[posEventDeclareInfoNation]
 			}
 
-			if len(midEnodeInfo) >=6{
-				enodeInfo.City=midEnodeInfo[posEventDeclareInfoCity]
+			if len(midEnodeInfo) >= 6 {
+				enodeInfo.City = midEnodeInfo[posEventDeclareInfoCity]
 
 			}
 
-			if len(midEnodeInfo) >=7{
-				enodeInfo.Image=midEnodeInfo[posEventDeclareInfoImage]
+			if len(midEnodeInfo) >= 7 {
+				enodeInfo.Image = midEnodeInfo[posEventDeclareInfoImage]
 
 			}
-			if len(midEnodeInfo) >=8{
-				enodeInfo.Website=midEnodeInfo[posEventDeclareInfoWebsite]
+			if len(midEnodeInfo) >= 8 {
+				enodeInfo.Website = midEnodeInfo[posEventDeclareInfoWebsite]
 			}
-			if len(midEnodeInfo) >=9{
-				enodeInfo.Email=midEnodeInfo[posEventDeclareInfoEmail]
+			if len(midEnodeInfo) >= 9 {
+				enodeInfo.Email = midEnodeInfo[posEventDeclareInfoEmail]
 			}
 
-			data:=`{`
-			if len(midEnodeInfo) >=10{
-				enodeData:=strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
-				for _,v:=range enodeData{
+			data := `{`
+			if len(midEnodeInfo) >= 10 {
+				enodeData := strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
+				for _, v := range enodeData {
 					split := strings.Split(v, "/")
-					if len(split)==2{
-						data+=`"`+split[0]+`":"`+split[1]+`",`
+					if len(split) == 2 {
+						data += `"` + split[0] + `":"` + split[1] + `",`
 					}
 				}
-						data=strings.TrimRight(data,",")
+				data = strings.TrimRight(data, ",")
 			}
-			data+=`}`
-			enodeInfo.Data=data
+			data += `}`
+			enodeInfo.Data = data
 
 			//inb by ghy end
 			flag := false
@@ -387,7 +387,7 @@ func (v *Vdpos) processEventConfirm(currentBlockConfirmations []Confirmation, ch
 					Signer:      confirm,
 					BlockNumber: new(big.Int).Set(confirmedBlockNumber),
 				})
-				refundHash[tx.Hash()] = RefundPair{confirm, tx.GasPrice()}
+				refundHash[tx.Hash()] = RefundPair{confirm}
 				break
 			}
 		}

@@ -66,7 +66,7 @@ type Message interface {
 	//FromFrontier() (common.Address, error)
 	To() *common.Address
 
-	GasPrice() *big.Int
+	//GasPrice() *big.Int
 	Gas() uint64
 	Value() *big.Int
 
@@ -120,13 +120,13 @@ func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error)
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
-		gp:       gp,
-		evm:      evm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    evm.StateDB,
+		gp:  gp,
+		evm: evm,
+		msg: msg,
+		//gasPrice: msg.GasPrice(),
+		value: msg.Value(),
+		data:  msg.Data(),
+		state: evm.StateDB,
 	}
 }
 
