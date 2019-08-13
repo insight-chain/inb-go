@@ -45,20 +45,19 @@ type (
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanResetFunc              func(StateDB, common.Address, *big.Int) error
-	CanMortgageFunc           func(StateDB, common.Address, *big.Int, uint) error
-	CanRedeemFunc             func(StateDB, common.Address, *big.Int) error
-	CanReceiveFunc            func(StateDB, common.Address, *big.Int) error
-	RedeemTransferFunc        func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
-	ReceiveTransferFunc       func(StateDB, common.Address, *big.Int)
-	ResetTransferFunc         func(StateDB, common.Address, *big.Int)
+	CanResetFunc        func(StateDB, common.Address, *big.Int) error
+	CanMortgageFunc     func(StateDB, common.Address, *big.Int, uint) error
+	CanRedeemFunc       func(StateDB, common.Address, *big.Int) error
+	CanReceiveFunc      func(StateDB, common.Address, *big.Int) error
+	RedeemTransferFunc  func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc func(StateDB, common.Address, *big.Int)
+	ResetTransferFunc   func(StateDB, common.Address, *big.Int)
 
 	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address) //2019.7.22 inb by ghy begin
 	ReceiveLockedAwardFunc    func(StateDB, common.Address, int, *big.Int, bool, *big.Int, common.Address)                                 //2019.7.22 inb by ghy begin
 	CanReceiveVoteAwardFunc   func(StateDB, common.Address, *big.Int, types.SpecialConsensus) (error, *big.Int, common.Address)            //2019.7.24 inb by ghy begin
 	ReceiveVoteAwardFunc      func(StateDB, common.Address, *big.Int, *big.Int, common.Address)                                            //2019.7.24 inb by ghy begin
 	VoteFunc                  func(StateDB, common.Address, *big.Int)
-
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -256,7 +255,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	} else if txType == types.Regular {
 		regulars := strings.Split(inputStr, ":")
 		if len(regulars) <= 1 {
-			return nil, net, ErrNotResolveInput
+			return nil, net, ErrNotResolveInput, big.NewInt(0)
 		}
 		convert, err := strconv.Atoi(regulars[1])
 
