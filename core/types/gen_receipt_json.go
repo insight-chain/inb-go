@@ -84,6 +84,11 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'gasUsed' for Receipt")
 	}
 	r.GasUsed = uint64(*dec.GasUsed)
+
+	if dec.IncomeClaimed == nil {
+		return errors.New("missing required field 'incomeClaimed' for Receipt")
+	}
 	r.IncomeClaimed = dec.IncomeClaimed//2019.8.1 inb by ghy
+  
 	return nil
 }

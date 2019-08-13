@@ -1279,6 +1279,7 @@ type RPCTransaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
+	Types            types.TxType    `json:"txType"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -1303,6 +1304,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		V:        (*hexutil.Big)(v),
 		R:        (*hexutil.Big)(r),
 		S:        (*hexutil.Big)(s),
+		Types:    tx.Types(),
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
@@ -1526,11 +1528,11 @@ type SendTxArgs struct {
 	Nonce    *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data          *hexutil.Bytes  `json:"data"`
-	Input         *hexutil.Bytes  `json:"input"`
-	Types         types.TxType    `json:"txType"`
-	ResourcePayer *common.Address `json:"resourcePayer"`
-	//Candidates []common.Address `json:"candidates"`
+	Data  *hexutil.Bytes `json:"data"`
+	Input *hexutil.Bytes `json:"input"`
+	Types types.TxType   `json:"txType"`
+	//ResourcePayer *common.Address `json:"resourcePayer"`
+
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1582,7 +1584,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
 	}
 	// 	if args.ResourcePayer != nil {
 	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
