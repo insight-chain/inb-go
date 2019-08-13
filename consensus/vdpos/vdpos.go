@@ -20,6 +20,7 @@ package vdpos
 import (
 	"bytes"
 	"errors"
+	//"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -27,6 +28,7 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/common"
+	//"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
@@ -509,8 +511,6 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	//inb by ghy begin
 	header.Reward = DefaultMinerReward.String()
 	//inb by ghy end
-
-	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 

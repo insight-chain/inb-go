@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/big"
 	"unsafe"
 
 	"github.com/insight-chain/inb-go/common"
@@ -55,7 +56,7 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
-	IncomeClaimed   uint64         `json:"incomeClaimed" gencodec:"required"`
+	IncomeClaimed   *big.Int         `json:"incomeClaimed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
@@ -63,7 +64,7 @@ type receiptMarshaling struct {
 	Status            hexutil.Uint64
 	CumulativeGasUsed hexutil.Uint64
 	GasUsed           hexutil.Uint64
-	IncomeClaimed     hexutil.Uint64
+	IncomeClaimed     *big.Int
 }
 
 // receiptRLP is the consensus encoding of a receipt.
@@ -72,7 +73,7 @@ type receiptRLP struct {
 	CumulativeGasUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
-	//IncomeClaimed     uint64
+	IncomeClaimed     *big.Int
 }
 
 type receiptStorageRLP struct {
@@ -83,7 +84,7 @@ type receiptStorageRLP struct {
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
 	GasUsed           uint64
-	IncomeClaimed     uint64
+	IncomeClaimed     *big.Int
 }
 
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
@@ -100,7 +101,8 @@ func NewReceipt(root []byte, failed bool, cumulativeGasUsed uint64) *Receipt {
 // EncodeRLP implements rlp.Encoder, and flattens the consensus fields of a receipt
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs})
+	return rlp.Encode(w, &receiptRLP{r.statusEncoding(),
+		r.CumulativeGasUsed, r.Bloom, r.Logs,r.IncomeClaimed})//2019.8.1 inb bu ghy
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -113,7 +115,8 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	if err := r.setStatus(dec.PostStateOrStatus); err != nil {
 		return err
 	}
-	r.CumulativeGasUsed, r.Bloom, r.Logs = dec.CumulativeGasUsed, dec.Bloom, dec.Logs
+	r.CumulativeGasUsed, r.Bloom, r.Logs,r.IncomeClaimed =
+		dec.CumulativeGasUsed, dec.Bloom, dec.Logs,dec.IncomeClaimed//2019.8.1 inb by ghy
 	return nil
 }
 
@@ -193,7 +196,7 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		r.Logs[i] = (*Log)(log)
 	}
 	// Assign the implementation fields
-	r.TxHash, r.ContractAddress, r.GasUsed = dec.TxHash, dec.ContractAddress, dec.GasUsed
+	r.TxHash, r.ContractAddress, r.GasUsed,r.IncomeClaimed = dec.TxHash, dec.ContractAddress, dec.GasUsed,dec.IncomeClaimed//2019.8.1 inb by ghy
 	return nil
 }
 

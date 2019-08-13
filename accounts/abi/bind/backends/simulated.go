@@ -311,7 +311,11 @@ func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallM
 	vmenv := vm.NewEVM(evmContext, statedb, b.config, vm.Config{})
 	gaspool := new(core.GasPool).AddGas(math.MaxUint64)
 
-	return core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
+	//2019.8.1 mod inb by ghy
+	ret, usedGas, failed, err, _ := core.NewStateTransition(vmenv, msg, gaspool).TransitionDb()
+
+	return ret, usedGas, failed, err
+	//2019.8.1 mod inb by end
 }
 
 // SendTransaction updates the pending block to include the given transaction.
@@ -441,11 +445,13 @@ func (m callmsg) GasPrice() *big.Int   { return m.CallMsg.GasPrice }
 func (m callmsg) Gas() uint64          { return m.CallMsg.Gas }
 func (m callmsg) Value() *big.Int      { return m.CallMsg.Value }
 func (m callmsg) Data() []byte         { return m.CallMsg.Data }
+func (m callmsg) Receive() *big.Int    { return m.CallMsg.Receive }
 
 //achilles repayment add apis
 func (m callmsg) ResourcePayer() common.Address { return [20]byte{} }
 func (m callmsg) IsRePayment() bool             { return false }
-func (m callmsg) Types() types.TxType	{ return 0 }
+func (m callmsg) Types() types.TxType           { return 0 }
+
 // filterBackend implements filters.Backend to support filtering for logs without
 // taking bloom-bits acceleration structures into account.
 type filterBackend struct {

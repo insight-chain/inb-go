@@ -251,7 +251,7 @@ func ConnectAllSuperNodes(n *Node) {
 	for _, v := range GenesisSuperNodeEcodes {
 		//fmt.Println("lasttttttttttttttttttt",v.Data)
 		url := ParsePeerUrl(v)
-		if !n.server.Self().Equals(url) {
+		if !n.server.Self().Equals(url) && len(v.Id) == 128 {
 			superNode, _ := enode.ParseV4(url)
 			//Add node to p2p net
 			n.server.AddPeer(superNode)
@@ -263,22 +263,15 @@ func ConnectAllSuperNodes(n *Node) {
 	for {
 		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
 
-		//fmt.Println(len(LatesSuperNodeEcodes.SignersPool))
-		//fmt.Println(len(LatesSuperNodeEcodes.Enodes))
-		//if len(LatesSuperNodeEcodes.Enodes)>0{
-		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Address)
-		//	fmt.Println(LatesSuperNodeEcodes.Enodes[0].Data)
-		//}
-		//fmt.Println("come to the latest block!",LatesSuperNodeEcodes.SignersPool)
 		if len(LatesSuperNodeEcodes.SignersPool) > 0 {
-			for _, v := range LatesSuperNodeEcodes.SignersPool {
+			for _, signer := range LatesSuperNodeEcodes.SignersPool {
 				if len(LatesSuperNodeEcodes.Enodes) > 0 {
-					for _, vv := range LatesSuperNodeEcodes.Enodes {
-						if v == vv.Address && !n.server.Self().Equals(ParsePeerUrl(vv)) {
-							//fmt.Println("dont",ParsePeerUrl(vv))
-							latessuperNode, _ := enode.ParseV4(ParsePeerUrl(vv))
+					for _, enodes := range LatesSuperNodeEcodes.Enodes {
+						if signer == enodes.Address && !n.server.Self().Equals(ParsePeerUrl(enodes)) && len(enodes.Id) == 128 {
+
+							latessuperNode, _ := enode.ParseV4(ParsePeerUrl(enodes))
 							n.server.AddPeer(latessuperNode)
-							//AddedNode[v] = true
+
 						}
 					}
 				}
