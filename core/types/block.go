@@ -290,8 +290,9 @@ func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
 
 // TODO: copies
 
-func (b *Block) Uncles() []*Header          { return b.uncles }
-func (b *Block) Transactions() Transactions { return b.transactions }
+func (b *Block) Uncles() []*Header                  { return b.uncles }
+func (b *Block) Transactions() Transactions         { return b.transactions }
+func (b *Block) SpecialConsensus() SpecialConsensus { return b.header.SpecialConsensus } //2019.8.6 inb by ghy
 
 func (b *Block) Transaction(hash common.Hash) *Transaction {
 	for _, transaction := range b.transactions {
@@ -352,7 +353,6 @@ func CalcUncleHash(uncles []*Header) common.Hash {
 // the sealed one.
 func (b *Block) WithSeal(header *Header) *Block {
 	cpy := *header
-
 	return &Block{
 		header:       &cpy,
 		transactions: b.transactions,

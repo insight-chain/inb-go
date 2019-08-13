@@ -5,9 +5,9 @@ package types
 import (
 	"encoding/json"
 	"errors"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
+	"math/big"
 )
 
 var _ = (*receiptMarshaling)(nil)
@@ -23,6 +23,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   common.Address `json:"contractAddress"`
 		GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		IncomeClaimed     *big.Int       `json:"incomeClaimed" gencodec:"required"`//2019.8.1 inb by ghy
 	}
 	var enc Receipt
 	enc.PostState = r.PostState
@@ -33,6 +34,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 	enc.TxHash = r.TxHash
 	enc.ContractAddress = r.ContractAddress
 	enc.GasUsed = hexutil.Uint64(r.GasUsed)
+	enc.IncomeClaimed = r.IncomeClaimed//2019.8.1 inb by ghy
 	return json.Marshal(&enc)
 }
 
@@ -47,6 +49,7 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   *common.Address `json:"contractAddress"`
 		GasUsed           *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
+		IncomeClaimed     *big.Int        `json:"incomeClaimed" gencodec:"required"`//2019.8.1 inb by ghy
 	}
 	var dec Receipt
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -81,5 +84,6 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'gasUsed' for Receipt")
 	}
 	r.GasUsed = uint64(*dec.GasUsed)
+	r.IncomeClaimed = dec.IncomeClaimed//2019.8.1 inb by ghy
 	return nil
 }

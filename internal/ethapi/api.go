@@ -1013,7 +1013,7 @@ type CallArgs struct {
 	GasPrice hexutil.Big     `json:"gasPrice"`
 	Value    hexutil.Big     `json:"value"`
 	Data     hexutil.Bytes   `json:"data"`
-	Types	 types.TxType	 `json:"txType"`
+	Types    types.TxType    `json:"txType"`
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -1042,7 +1042,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	}
 
 	// Create new call message
-	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false,args.Types)
+	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false, args.Types)
 
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1071,7 +1071,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, failed, err := core.ApplyMessage(evm, msg, gp)
+	res, gas, failed, err, _ := core.ApplyMessage(evm, msg, gp)
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
@@ -1476,7 +1476,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
 		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
-		"IncomeClaimed":     hexutil.Uint64(receipt.IncomeClaimed),
+		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
@@ -1528,7 +1528,7 @@ type SendTxArgs struct {
 	// newer name and should be preferred by clients.
 	Data          *hexutil.Bytes  `json:"data"`
 	Input         *hexutil.Bytes  `json:"input"`
-	Types          types.TxType    `json:"txType"`
+	Types         types.TxType    `json:"txType"`
 	ResourcePayer *common.Address `json:"resourcePayer"`
 	//Candidates []common.Address `json:"candidates"`
 }
@@ -1584,10 +1584,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil {
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
 	}
-// 	if args.ResourcePayer != nil {
-// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
-// 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input,args.Types)
+	// 	if args.ResourcePayer != nil {
+	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
+	// 	}
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
 }
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.
@@ -1915,7 +1915,7 @@ func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 	return vdpos.DefaultMinerReward.Uint64()
 }
 
-func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (st.Account, error) {
+func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (*st.Account, error) {
 	state, _, _ := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 
 	return state.GetAccountInfo(address), state.Error()

@@ -27,4 +27,5 @@ var (
 	ErrInsufficientBalance      = errors.New("insufficient balance for transfer")
 	ErrContractAddressCollision = errors.New("contract address collision")
 	ErrNoCompatibleInterpreter  = errors.New("no compatible interpreter")
+	ErrParameter  = errors.New("parameter error")//2019.8.1 inb by ghy
 )
