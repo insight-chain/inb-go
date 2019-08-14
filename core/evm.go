@@ -58,7 +58,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Time:             new(big.Int).Set(header.Time),
 		SpecialConsensus: header.SpecialConsensus, //2019.7.31 inb by ghy
 		Difficulty:       new(big.Int).Set(header.Difficulty),
-		GasLimit:         header.GasLimit,
+		GasLimit:         header.NetLimit,
 		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
 		CanMortgage:           CanMortgage,
 		CanRedeem:             CanRedeem,
