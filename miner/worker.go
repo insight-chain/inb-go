@@ -18,7 +18,6 @@ package miner
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"sync/atomic"
