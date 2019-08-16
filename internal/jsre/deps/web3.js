@@ -2235,7 +2235,7 @@ var toTwosComplement = function (number) {
  * @return {Boolean}
 */
 var isStrictAddress = function (address) {
-    return /^0x[0-9a-f]{42}$/i.test(address);
+    return /^0x95[0-9a-f]{40}$/i.test(address);
 };
 
 /**
@@ -2246,10 +2246,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!/^(0x)?[0-9a-f]{42}$/i.test(address)) {
+    if (!/^(0x)?95[0-9a-f]{40}$/i.test(address)) {
         // check if it has the basic requirements of an address
         return false;
-    } else if (/^(0x)?[0-9a-f]{42}$/.test(address) || /^(0x)?[0-9A-F]{42}$/.test(address)) {
+    } else if (/^(0x)?95[0-9a-f]{40}$/.test(address) || /^(0x)?95[0-9A-F]{40}$/.test(address)) {
         // If it's all small caps or all caps, return true
         return true;
     } else {
@@ -2318,7 +2318,7 @@ var toAddress = function (address) {
         return address;
     }
 
-    if (/^[0-9a-f]{42}$/.test(address)) {
+    if (/^95[0-9a-f]{40}$/.test(address)) {
         return '0x' + address;
     }
 

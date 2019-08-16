@@ -21,6 +21,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
+	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
 	"math"
@@ -222,8 +223,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//if err = st.preCheck(); err != nil {
 	//	return
 	//}
+	if st.msg.From()[0] != crypto.PrefixToAddress[0]{
+		return nil, 0, false, ErrInvalidAddress
+	}
 	if err = st.preCheckForNet(); err != nil {
-		return
+		return nil, 0, false, err
 	}
 
 	//achilles repayment add apis

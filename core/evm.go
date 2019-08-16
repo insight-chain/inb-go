@@ -197,7 +197,8 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	value := db.GetRedeem(addr)
 
 	usable := new(big.Int).Sub(mortgaging, regular)
-	usable = new(big.Int).Add(usable, value)
+	//usable = new(big.Int).Add(usable, value)
+	usable.Sub(usable,value)
 	if usable.Cmp(amount) < 0 {
 		return errors.New(" insufficient available value of mortgage ")
 	}

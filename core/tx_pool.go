@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"github.com/insight-chain/inb-go/crypto"
 	"math"
 	"math/big"
 	"sort"
@@ -94,6 +95,7 @@ var (
 
 	//achilles0718 regular mortgagtion
 	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
+	ErrInvalidAddress = errors.New("invalid address without right prefix")
 )
 
 var (
@@ -650,6 +652,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
+	if from[0] != crypto.PrefixToAddress[0] {
+		return ErrInvalidAddress
+	}
 	if !tx.WhichTypes(types.Repayment) {
 		netPayment = from
 	}
@@ -755,10 +760,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
-		netUse = netUse.Mul(netUse, unit)
-		usableInb := pool.currentState.GetMortgageInbOfNet(netPayment)
-		if usableInb.Cmp(tx.Value()) < 0 {
+		mortgageInb := pool.currentState.GetMortgageInbOfNet(netPayment)
+		mortgageInb.Sub(mortgageInb,pool.currentState.GetRegular(netPayment))
+		mortgageInb.Sub(mortgageInb,pool.currentState.GetRedeem(netPayment))
+		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
 	}

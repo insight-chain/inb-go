@@ -137,7 +137,7 @@ type Store struct {
 
 type Redeem struct {
 	StartTime *big.Int // start time
-	Value     *big.Int // amount of mortgaging
+	Value     *big.Int // amount of redeeming
 }
 
 //Resource by zc
@@ -615,6 +615,7 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 		return
 	}
 	available := new(big.Int).Sub(self.MortgageOfNet(), self.Regular())
+	available.Sub(available,self.GetRedeem())
 	if available.Cmp(amount) < 0 {
 		return
 	}
@@ -624,7 +625,7 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 
 	redeem := Redeem{
 		StartTime: sTime,
-		Value:     amount,
+		Value:     new(big.Int).Add(self.GetRedeem(),amount),
 	}
 	self.data.Redeems[0] = redeem
 	self.SetRedeems(self.data.Redeems)
