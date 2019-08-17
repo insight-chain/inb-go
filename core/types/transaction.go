@@ -39,8 +39,8 @@ var (
 type TxType uint8
 
 const (
-	Default TxType = iota
-	Repayment
+	_ TxType = iota
+	Ordinary
 	Mortgage
 	Regular
 	Redeem
@@ -49,6 +49,7 @@ const (
 	Receive
 	ReceiveLockedAward
 	ReceiveVoteAward
+	Repayment
 )
 
 type Transaction struct {
@@ -116,7 +117,7 @@ func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit u
 //}
 
 func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, data, Default)
+	return newTransaction(nonce, nil, amount, gasLimit, data, Ordinary)
 }
 
 func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {

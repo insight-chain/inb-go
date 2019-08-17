@@ -141,7 +141,7 @@ func TestTransactionPriceNonceSort(t *testing.T) {
 	for start, key := range keys {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		for i := 0; i < 25; i++ {
-			tx, _ := SignTx(NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(start+i)), nil, Default), signer, key)
+			tx, _ := SignTx(NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, nil, Ordinary), signer, key)
 			groups[addr] = append(groups[addr], tx)
 		}
 	}
@@ -192,9 +192,9 @@ func TestTransactionJSON(t *testing.T) {
 		var tx *Transaction
 		switch i % 2 {
 		case 0:
-			tx = NewTransaction(i, common.Address{1}, common.Big0, 1, common.Big2, []byte("abcdef"), Default)
+			tx = NewTransaction(i, common.Address{1}, common.Big0, 1, []byte("abcdef"), Ordinary)
 		case 1:
-			tx = NewContractCreation(i, common.Big0, 1, common.Big2, []byte("abcdef"))
+			tx = NewContractCreation(i, common.Big0, 1, []byte("abcdef"))
 		}
 		transactions = append(transactions, tx)
 

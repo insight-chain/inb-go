@@ -29,9 +29,9 @@ import (
 func TestLookupStorage(t *testing.T) {
 	db := ethdb.NewMemDatabase()
 
-	tx1 := types.NewTransaction(1, common.BytesToAddress([]byte{0x11}), big.NewInt(111), 1111, big.NewInt(11111), []byte{0x11, 0x11, 0x11}, types.Default)
-	tx2 := types.NewTransaction(2, common.BytesToAddress([]byte{0x22}), big.NewInt(222), 2222, big.NewInt(22222), []byte{0x22, 0x22, 0x22}, types.Default)
-	tx3 := types.NewTransaction(3, common.BytesToAddress([]byte{0x33}), big.NewInt(333), 3333, big.NewInt(33333), []byte{0x33, 0x33, 0x33}, types.Default)
+	tx1 := types.NewTransaction(1, common.BytesToAddress([]byte{0x11}), big.NewInt(111), 1111, []byte{0x11, 0x11, 0x11}, types.Ordinary)
+	tx2 := types.NewTransaction(2, common.BytesToAddress([]byte{0x22}), big.NewInt(222), 2222, []byte{0x22, 0x22, 0x22}, types.Ordinary)
+	tx3 := types.NewTransaction(3, common.BytesToAddress([]byte{0x33}), big.NewInt(333), 3333, []byte{0x33, 0x33, 0x33}, types.Ordinary)
 	txs := []*types.Transaction{tx1, tx2, tx3}
 
 	block := types.NewBlock(&types.Header{Number: big.NewInt(314)}, txs, nil, nil)
