@@ -49,7 +49,7 @@ type Genesis struct {
 	Nonce            uint64                 `json:"nonce"`
 	Timestamp        uint64                 `json:"timestamp"`
 	ExtraData        []byte                 `json:"extraData"`
-	NetLimit         uint64                 `json:"gasLimit"   gencodec:"required"`
+	NetLimit         uint64                 `json:"netLimit"   gencodec:"required"`
 	Difficulty       *big.Int               `json:"difficulty" gencodec:"required"`
 	Mixhash          common.Hash            `json:"mixHash"`
 	Coinbase         common.Address         `json:"coinbase"`
@@ -58,7 +58,7 @@ type Genesis struct {
 	// These fields are used for consensus tests. Please don't use them
 	// in actual genesis blocks.
 	Number     uint64      `json:"number"`
-	NetUsed    uint64      `json:"gasUsed"`
+	NetUsed    uint64      `json:"netUsed"`
 	ParentHash common.Hash `json:"parentHash"`
 }
 
@@ -91,8 +91,8 @@ type genesisSpecMarshaling struct {
 	Nonce      math.HexOrDecimal64
 	Timestamp  math.HexOrDecimal64
 	ExtraData  hexutil.Bytes
-	GasLimit   math.HexOrDecimal64
-	GasUsed    math.HexOrDecimal64
+	NetLimit   math.HexOrDecimal64
+	NetUsed    math.HexOrDecimal64
 	Number     math.HexOrDecimal64
 	Difficulty *math.HexOrDecimal256
 	Alloc      map[common.UnprefixedAddress]GenesisAccount

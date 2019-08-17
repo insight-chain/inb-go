@@ -77,8 +77,8 @@ type Header struct {
 	Bloom            Bloom            `json:"logsBloom"        gencodec:"required"`
 	Difficulty       *big.Int         `json:"difficulty"       gencodec:"required"`
 	Number           *big.Int         `json:"number"           gencodec:"required"`
-	NetLimit         uint64           `json:"gasLimit"         gencodec:"required"`
-	NetUsed          uint64           `json:"gasUsed"          gencodec:"required"`
+	NetLimit         uint64           `json:"netLimit"         gencodec:"required"`
+	NetUsed          uint64           `json:"netUsed"          gencodec:"required"`
 	Time             *big.Int         `json:"timestamp"        gencodec:"required"`
 	Extra            []byte           `json:"extraData"        gencodec:"required"`
 	MixDigest        common.Hash      `json:"mixHash"`
@@ -109,8 +109,8 @@ type SpecialConsensusAddress struct {
 type headerMarshaling struct {
 	Difficulty *hexutil.Big
 	Number     *hexutil.Big
-	GasLimit   hexutil.Uint64
-	GasUsed    hexutil.Uint64
+	NetLimit   hexutil.Uint64
+	NetUsed    hexutil.Uint64
 	Time       *hexutil.Big
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON

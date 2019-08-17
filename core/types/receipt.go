@@ -47,29 +47,29 @@ type Receipt struct {
 	// Consensus fields
 	PostState         []byte `json:"root"`
 	Status            uint64 `json:"status"`
-	CumulativeGasUsed uint64 `json:"cumulativeGasUsed" gencodec:"required"`
+	CumulativeNetUsed uint64 `json:"cumulativeNetUsed" gencodec:"required"`
 	Bloom             Bloom  `json:"logsBloom"         gencodec:"required"`
 	Logs              []*Log `json:"logs"              gencodec:"required"`
 
 	// Implementation fields (don't reorder!)
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
-	GasUsed         uint64         `json:"gasUsed" gencodec:"required"`
+	NetUsed         uint64         `json:"netUsed" gencodec:"required"`
 	IncomeClaimed   uint64         `json:"incomeClaimed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
 	PostState         hexutil.Bytes
 	Status            hexutil.Uint64
-	CumulativeGasUsed hexutil.Uint64
-	GasUsed           hexutil.Uint64
+	CumulativeNetUsed hexutil.Uint64
+	NetUsed           hexutil.Uint64
 	IncomeClaimed     hexutil.Uint64
 }
 
 // receiptRLP is the consensus encoding of a receipt.
 type receiptRLP struct {
 	PostStateOrStatus []byte
-	CumulativeGasUsed uint64
+	CumulativeNetUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
 	//IncomeClaimed     uint64
@@ -77,18 +77,18 @@ type receiptRLP struct {
 
 type receiptStorageRLP struct {
 	PostStateOrStatus []byte
-	CumulativeGasUsed uint64
+	CumulativeNetUsed uint64
 	Bloom             Bloom
 	TxHash            common.Hash
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
-	GasUsed           uint64
+	NetUsed           uint64
 	IncomeClaimed     uint64
 }
 
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
-func NewReceipt(root []byte, failed bool, cumulativeGasUsed uint64) *Receipt {
-	r := &Receipt{PostState: common.CopyBytes(root), CumulativeGasUsed: cumulativeGasUsed}
+func NewReceipt(root []byte, failed bool, cumulativeNetUsed uint64) *Receipt {
+	r := &Receipt{PostState: common.CopyBytes(root), CumulativeNetUsed: cumulativeNetUsed}
 	if failed {
 		r.Status = ReceiptStatusFailed
 	} else {
@@ -100,7 +100,7 @@ func NewReceipt(root []byte, failed bool, cumulativeGasUsed uint64) *Receipt {
 // EncodeRLP implements rlp.Encoder, and flattens the consensus fields of a receipt
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &receiptRLP{r.statusEncoding(), r.CumulativeGasUsed, r.Bloom, r.Logs})
+	return rlp.Encode(w, &receiptRLP{r.statusEncoding(), r.CumulativeNetUsed, r.Bloom, r.Logs})
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -113,7 +113,7 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	if err := r.setStatus(dec.PostStateOrStatus); err != nil {
 		return err
 	}
-	r.CumulativeGasUsed, r.Bloom, r.Logs = dec.CumulativeGasUsed, dec.Bloom, dec.Logs
+	r.CumulativeNetUsed, r.Bloom, r.Logs = dec.CumulativeNetUsed, dec.Bloom, dec.Logs
 	return nil
 }
 
@@ -162,12 +162,12 @@ type ReceiptForStorage Receipt
 func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 	enc := &receiptStorageRLP{
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
-		CumulativeGasUsed: r.CumulativeGasUsed,
+		CumulativeNetUsed: r.CumulativeNetUsed,
 		Bloom:             r.Bloom,
 		TxHash:            r.TxHash,
 		ContractAddress:   r.ContractAddress,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
-		GasUsed:           r.GasUsed,
+		NetUsed:           r.NetUsed,
 		IncomeClaimed:     r.IncomeClaimed,
 	}
 	for i, log := range r.Logs {
@@ -187,13 +187,13 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 	// Assign the consensus fields
-	r.CumulativeGasUsed, r.Bloom = dec.CumulativeGasUsed, dec.Bloom
+	r.CumulativeNetUsed, r.Bloom = dec.CumulativeNetUsed, dec.Bloom
 	r.Logs = make([]*Log, len(dec.Logs))
 	for i, log := range dec.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
 	// Assign the implementation fields
-	r.TxHash, r.ContractAddress, r.GasUsed = dec.TxHash, dec.ContractAddress, dec.GasUsed
+	r.TxHash, r.ContractAddress, r.NetUsed = dec.TxHash, dec.ContractAddress, dec.NetUsed
 	return nil
 }
 

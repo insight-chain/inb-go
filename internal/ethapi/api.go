@@ -1220,8 +1220,8 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"difficulty":       (*hexutil.Big)(head.Difficulty),
 		"extraData":        hexutil.Bytes(head.Extra),
 		"size":             hexutil.Uint64(b.Size()),
-		"gasLimit":         hexutil.Uint64(head.NetLimit),
-		"gasUsed":          hexutil.Uint64(head.NetUsed),
+		"netLimit":         hexutil.Uint64(head.NetLimit),
+		"netUsed":          hexutil.Uint64(head.NetUsed),
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
@@ -1483,8 +1483,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from,
 		"to":                tx.To(),
-		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
-		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
+		"netUsed":           hexutil.Uint64(receipt.NetUsed),           //inb by ssh 190628
+		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeNetUsed), //inb by ssh 190628
 		"IncomeClaimed":     hexutil.Uint64(receipt.IncomeClaimed),
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,

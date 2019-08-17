@@ -218,7 +218,7 @@ func (st *StateTransition) preCheckForNet() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error) {
+func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bool, err error) {
 	//achilles replace gas with net
 	//if err = st.preCheck(); err != nil {
 	//	return

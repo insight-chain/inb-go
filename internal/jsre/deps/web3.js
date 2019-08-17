@@ -3808,8 +3808,8 @@ var outputTransactionReceiptFormatter = function (receipt){
         receipt.blockNumber = utils.toDecimal(receipt.blockNumber);
     if(receipt.transactionIndex !== null)
         receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex);
-    receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed);
-    receipt.gasUsed = utils.toDecimal(receipt.gasUsed);
+    receipt.cumulativeNetUsed = utils.toDecimal(receipt.cumulativeNetUsed);
+    receipt.netUsed = utils.toDecimal(receipt.netUsed);
 
     if(utils.isArray(receipt.logs)) {
         receipt.logs = receipt.logs.map(function(log){

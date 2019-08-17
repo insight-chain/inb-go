@@ -22,13 +22,13 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Nonce            math.HexOrDecimal64                         `json:"nonce"`
 		Timestamp        math.HexOrDecimal64                         `json:"timestamp"`
 		ExtraData        hexutil.Bytes                               `json:"extraData"`
-		NetLimit         math.HexOrDecimal64                         `json:"gasLimit"   gencodec:"required"`
+		NetLimit         math.HexOrDecimal64                         `json:"netLimit"   gencodec:"required"`
 		Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
 		Mixhash          common.Hash                                 `json:"mixHash"`
 		Coinbase         common.Address                              `json:"coinbase"`
 		Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
 		Number           math.HexOrDecimal64                         `json:"number"`
-		NetUsed          math.HexOrDecimal64                         `json:"gasUsed"`
+		NetUsed          math.HexOrDecimal64                         `json:"netUsed"`
 		ParentHash       common.Hash                                 `json:"parentHash"`
 		SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"`
 	}
@@ -60,13 +60,13 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		Nonce            *math.HexOrDecimal64                        `json:"nonce"`
 		Timestamp        *math.HexOrDecimal64                        `json:"timestamp"`
 		ExtraData        *hexutil.Bytes                              `json:"extraData"`
-		NetLimit         *math.HexOrDecimal64                        `json:"gasLimit"   gencodec:"required"`
+		NetLimit         *math.HexOrDecimal64                        `json:"netLimit"   gencodec:"required"`
 		Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
 		Mixhash          *common.Hash                                `json:"mixHash"`
 		Coinbase         *common.Address                             `json:"coinbase"`
 		Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
 		Number           *math.HexOrDecimal64                        `json:"number"`
-		NetUsed          *math.HexOrDecimal64                        `json:"gasUsed"`
+		NetUsed          *math.HexOrDecimal64                        `json:"netUsed"`
 		ParentHash       *common.Hash                                `json:"parentHash"`
 		SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
 	}
