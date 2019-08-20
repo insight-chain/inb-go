@@ -157,7 +157,7 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	var format = func(tx *types.Transaction) string {
 		if to := tx.To(); to != nil {
 			//return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
-			return fmt.Sprintf("%s: %v wei + %v gas ", tx.To().Hex(), tx.Value(), tx.Gas())
+			return fmt.Sprintf("%s: %v wei + %v net ", tx.To().Hex(), tx.Value(), tx.Gas())
 		}
 		//return fmt.Sprintf("contract creation: %v wei + %v gas ", tx.Value(), tx.Gas(), tx.GasPrice())
 		return fmt.Sprintf("contract creation: %v wei + %v gas", tx.Value(), tx.Gas())
@@ -410,12 +410,15 @@ func (s *PrivateAccountAPI) Investment(ctx context.Context, args SendTxArgs, pas
 func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs, passwd string) (*SignTransactionResult, error) {
 	// No need to obtain the noncelock mutex, since we won't be sending this
 	// tx into the transaction pool, but right back to the user
-	if args.Gas == nil {
-		return nil, fmt.Errorf("gas not specified")
-	}
+	//if args.Gas == nil {
+	//	return nil, fmt.Errorf("gas not specified")
+	//}
 	//if args.GasPrice == nil {
 	//	return nil, fmt.Errorf("gasPrice not specified")
 	//}
+	if args.Types == 0 {
+		return nil, fmt.Errorf("txType not specified")
+	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
@@ -1275,7 +1278,7 @@ type RPCTransaction struct {
 	BlockHash   common.Hash    `json:"blockHash"`
 	BlockNumber *hexutil.Big   `json:"blockNumber"`
 	From        common.Address `json:"from"`
-	Gas         hexutil.Uint64 `json:"gas"`
+	//Gas         hexutil.Uint64 `json:"gas"`
 	//GasPrice         *hexutil.Big    `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
 	Input            hexutil.Bytes   `json:"input"`
@@ -1301,7 +1304,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 
 	result := &RPCTransaction{
 		From: from,
-		Gas:  hexutil.Uint64(tx.Gas()),
+		//Gas:  hexutil.Uint64(tx.Gas()),
 		//GasPrice: (*hexutil.Big)(tx.GasPrice()),
 		Hash:  tx.Hash(),
 		Input: hexutil.Bytes(tx.Data()),
@@ -1529,7 +1532,7 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 type SendTxArgs struct {
 	From common.Address  `json:"from"`
 	To   *common.Address `json:"to"`
-	Gas  *hexutil.Uint64 `json:"gas"`
+	//Gas  *hexutil.Uint64 `json:"gas"`
 	//GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value *hexutil.Big    `json:"value"`
 	Nonce *hexutil.Uint64 `json:"nonce"`
@@ -1543,10 +1546,10 @@ type SendTxArgs struct {
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
-	if args.Gas == nil {
-		args.Gas = new(hexutil.Uint64)
-		*(*uint64)(args.Gas) = 90000
-	}
+	//if args.Gas == nil {
+	//	args.Gas = new(hexutil.Uint64)
+	//	*(*uint64)(args.Gas) = 90000
+	//}
 	//if args.GasPrice == nil {
 	//	price, err := b.SuggestPrice(ctx)
 	//	if err != nil {
@@ -1554,6 +1557,9 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	//	}
 	//	//args.GasPrice = (*hexutil.Big)(price)
 	//}
+	if args.Types == 0 {
+		return errors.New(`txType not specified`)
+	}
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
 	}
@@ -1590,12 +1596,14 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		input = *args.Input
 	}
 	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
+		//return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input)
 	}
 	// 	if args.ResourcePayer != nil {
 	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
 	// 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types)
 }
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.
@@ -1754,6 +1762,9 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 	//if args.GasPrice == nil {
 	//	return nil, fmt.Errorf("gasPrice not specified")
 	//}
+	if args.Types == 0 {
+		return nil, fmt.Errorf("txType not specified")
+	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
@@ -1875,9 +1886,9 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 			//if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
 			//	sendArgs.GasPrice = gasPrice
 			//}
-			if gasLimit != nil && *gasLimit != 0 {
-				sendArgs.Gas = gasLimit
-			}
+			//if gasLimit != nil && *gasLimit != 0 {
+			//	sendArgs.Gas = gasLimit
+			//}
 			signedTx, err := s.sign(sendArgs.From, sendArgs.toTransaction())
 			if err != nil {
 				return common.Hash{}, err

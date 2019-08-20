@@ -235,11 +235,12 @@ func (tx *Transaction) EncodeJSON() (string, error) {
 	return string(data), err
 }
 
-func (tx *Transaction) GetData() []byte      { return tx.tx.Data() }
-func (tx *Transaction) GetGas() int64        { return int64(tx.tx.Gas()) }
-func (tx *Transaction) GetGasPrice() *BigInt { return &BigInt{tx.tx.GasPrice()} }
-func (tx *Transaction) GetValue() *BigInt    { return &BigInt{tx.tx.Value()} }
-func (tx *Transaction) GetNonce() int64      { return int64(tx.tx.Nonce()) }
+func (tx *Transaction) GetData() []byte { return tx.tx.Data() }
+func (tx *Transaction) GetGas() int64   { return int64(tx.tx.Gas()) }
+
+//func (tx *Transaction) GetGasPrice() *BigInt { return &BigInt{tx.tx.GasPrice()} }
+func (tx *Transaction) GetValue() *BigInt { return &BigInt{tx.tx.Value()} }
+func (tx *Transaction) GetNonce() int64   { return int64(tx.tx.Nonce()) }
 
 func (tx *Transaction) GetHash() *Hash   { return &Hash{tx.tx.Hash()} }
 func (tx *Transaction) GetCost() *BigInt { return &BigInt{tx.tx.Cost()} }

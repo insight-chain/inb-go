@@ -87,7 +87,7 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.ExtraData = *dec.ExtraData
 	}
 	if dec.NetLimit == nil {
-		return errors.New("missing required field 'gasLimit' for Genesis")
+		return errors.New("missing required field 'netLimit' for Genesis")
 	}
 	g.NetLimit = uint64(*dec.NetLimit)
 	if dec.Difficulty == nil {

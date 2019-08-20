@@ -94,7 +94,7 @@ var (
 	ErrParameterError              = errors.New("Parameter error")
 
 	//achilles0718 regular mortgagtion
-	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
+	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
 	ErrInvalidAddress = errors.New("invalid address without right prefix")
 )
 
@@ -733,7 +733,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive)) {
+	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.Redeem)) {
 		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
@@ -761,8 +761,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return errors.New(" insufficient available mortgage ")
 		}
 		mortgageInb := pool.currentState.GetMortgageInbOfNet(netPayment)
-		mortgageInb.Sub(mortgageInb,pool.currentState.GetRegular(netPayment))
-		mortgageInb.Sub(mortgageInb,pool.currentState.GetRedeem(netPayment))
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRegular(netPayment))
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRedeem(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}

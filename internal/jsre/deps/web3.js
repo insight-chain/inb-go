@@ -3768,10 +3768,15 @@ var inputTransactionFormatter = function (options){
         options.resourcePayer = inputAddressFormatter(options.resourcePayer);
     }
 
-    ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
-        return options[key] !== undefined;
+    // ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+    //     return options[key] !== undefined;
+    // }).forEach(function(key){
+    //     options[key] = utils.fromDecimal(options[key]);
+    // });
+    ['value', 'nonce'].filter(function (key) {
+      return options[key] !== undefined;
     }).forEach(function(key){
-        options[key] = utils.fromDecimal(options[key]);
+      options[key] = utils.fromDecimal(options[key]);
     });
 
     return options;
@@ -3790,8 +3795,8 @@ var outputTransactionFormatter = function (tx){
     if(tx.transactionIndex !== null)
         tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
     tx.nonce = utils.toDecimal(tx.nonce);
-    tx.gas = utils.toDecimal(tx.gas);
-    tx.gasPrice = utils.toBigNumber(tx.gasPrice);
+    tx.net = utils.toDecimal(tx.net);
+    // tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     tx.value = utils.toBigNumber(tx.value);
     return tx;
 };
@@ -3830,8 +3835,8 @@ var outputTransactionReceiptFormatter = function (receipt){
 var outputBlockFormatter = function(block) {
 
     // transform to number
-    block.gasLimit = utils.toDecimal(block.gasLimit);
-    block.gasUsed = utils.toDecimal(block.gasUsed);
+    block.netLimit = utils.toDecimal(block.netLimit);
+    block.netUsed = utils.toDecimal(block.netUsed);
     block.size = utils.toDecimal(block.size);
     block.timestamp = utils.toDecimal(block.timestamp);
     if(block.number !== null)
@@ -3969,7 +3974,7 @@ module.exports = {
     outputBlockFormatter: outputBlockFormatter,
     outputLogFormatter: outputLogFormatter,
     outputPostFormatter: outputPostFormatter,
-    outputSyncingFormatter: outputSyncingFormatter
+    outputSyncingFormatter: outputSyncingFormatter,
     //Resource by zc
     inputBigNumberFormatter:inputBigNumberFormatter
     //Resource by zc
