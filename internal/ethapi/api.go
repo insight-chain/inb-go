@@ -1531,7 +1531,7 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
 type SendTxArgs struct {
 	From common.Address  `json:"from"`
-	To   *common.Address `json:"to"`
+	To   *common.Address `json:"to" `
 	//Gas  *hexutil.Uint64 `json:"gas"`
 	//GasPrice *hexutil.Big    `json:"gasPrice"`
 	Value *hexutil.Big    `json:"value"`
@@ -1573,7 +1573,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
 		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
 	}
-	if args.To == nil {
+	if args.To == nil && args.Types == types.Ordinary {
 		// Contract creation
 		var input []byte
 		if args.Data != nil {
@@ -1595,7 +1595,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	if args.To == nil {
+	if args.To == nil && args.Types == types.Ordinary {
 		//return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input)
 	}
@@ -1611,7 +1611,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if tx.To() == nil {
+	if tx.To() == nil && tx.Types() == types.Ordinary {
 		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number())
 		from, err := types.Sender(signer, tx)
 		if err != nil {

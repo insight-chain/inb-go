@@ -66,7 +66,7 @@ func (c *StateDB) PerInbIsNet() *big.Int {
 func (c *StateDB) UnitConvertNet() *big.Int {
 
 	//get mortgaged inbs with whole network
-	totalMortgageInb := c.GetMortgageStateObject().data.Resources.NET.MortgagteINB
+	totalMortgageInb := c.GetMortgagePreviousStateObject().data.Balance
 	mortgage := totalMortgageInb.Div(totalMortgageInb, params.TxConfig.Wei)
 	weiToNet := big.NewInt(1)
 	if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {

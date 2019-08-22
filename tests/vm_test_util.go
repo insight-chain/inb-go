@@ -47,7 +47,7 @@ type vmJSON struct {
 	Env           stEnv                 `json:"env"`
 	Exec          vmExec                `json:"exec"`
 	Logs          common.UnprefixedHash `json:"logs"`
-	GasRemaining  *math.HexOrDecimal64  `json:"gas"`
+	GasRemaining  *math.HexOrDecimal64  `json:"net"`
 	Out           hexutil.Bytes         `json:"out"`
 	Pre           core.GenesisAlloc     `json:"pre"`
 	Post          core.GenesisAlloc     `json:"post"`

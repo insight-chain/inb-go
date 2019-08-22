@@ -118,7 +118,7 @@ func (tt *ttTransaction) verify(signer types.Signer, tx *types.Transaction) erro
 	if v.Cmp(tt.V) != 0 {
 		return fmt.Errorf("V mismatch: got %v, want %v", v, tt.V)
 	}
-	if tx.To() == nil {
+	if tx.To() == nil && tx.Types() == types.Ordinary {
 		if tt.To != (common.Address{}) {
 			return fmt.Errorf("To mismatch when recipient is nil (contract creation): %x", tt.To)
 		}

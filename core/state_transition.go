@@ -139,13 +139,17 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
+//func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
+//	return NewStateTransition(evm, msg, gp).TransitionDb()
+//}
+
 func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
+	if st.msg == nil || (st.msg.To() == nil && st.msg.Types() == types.Ordinary) /* contract creation */ {
 		return common.Address{}
 	}
 	return *st.msg.To()
@@ -235,6 +239,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	//if err = st.preCheck(); err != nil {
 	//	return
 	//}
+
 	if st.msg.From()[0] != crypto.PrefixToAddress[0] {
 		return nil, 0, false, ErrInvalidAddress
 	}
@@ -251,7 +256,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
-	contractCreation := msg.To() == nil
+	contractCreation := msg.To() == nil && msg.Types() == types.Ordinary
 
 	// Pay intrinsic gas
 	////achilles replace gas with net

@@ -238,6 +238,14 @@ func (tx *Transaction) CheckNonce() bool { return true }
 func (tx *Transaction) Types() TxType                { return tx.data.Types }
 func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
 
+func (tx *Transaction) isContract() bool {
+	flag := false
+	if tx.data.Types == Ordinary && tx.data.Recipient == nil {
+		flag = true
+	}
+	return flag
+}
+
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
 func (tx *Transaction) To() *common.Address {

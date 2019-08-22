@@ -587,6 +587,8 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
+	fmt.Println("tx.size() rlp : " + tx.Size().String())
+	fmt.Println("tx.data() : " + string(len(tx.Data())))
 	if tx.Size() > 32*1024 {
 		return ErrOversizedData
 	}
@@ -734,7 +736,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.Redeem)) {
-		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Ordinary, pool.homestead)
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {

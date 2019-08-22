@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/mclock"
 	"github.com/insight-chain/inb-go/common/prque"
@@ -43,7 +44,6 @@ import (
 	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/trie"
-	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -793,7 +793,7 @@ func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts ty
 		receipts[j].TxHash = transactions[j].Hash()
 
 		// The contract address can be derived from the transaction itself
-		if transactions[j].To() == nil {
+		if transactions[j].To() == nil && transactions[j].Types() == types.Ordinary {
 			// Deriving the signer is expensive, only do if it's actually needed
 			from, _ := types.Sender(signer, transactions[j])
 			receipts[j].ContractAddress = crypto.CreateAddress(from, transactions[j].Nonce())
