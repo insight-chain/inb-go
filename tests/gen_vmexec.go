@@ -23,7 +23,7 @@ func (v vmExec) MarshalJSON() ([]byte, error) {
 		Data     hexutil.Bytes            `json:"data"     gencodec:"required"`
 		Value    *math.HexOrDecimal256    `json:"value"    gencodec:"required"`
 		GasLimit math.HexOrDecimal64      `json:"gas"      gencodec:"required"`
-		GasPrice *math.HexOrDecimal256    `json:"gasPrice" gencodec:"required"`
+		//GasPrice *math.HexOrDecimal256    `json:"gasPrice" gencodec:"required"`
 	}
 	var enc vmExec
 	enc.Address = common.UnprefixedAddress(v.Address)

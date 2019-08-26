@@ -37,6 +37,7 @@ import (
 var (
 	secp256k1N, _  = new(big.Int).SetString("fffffffffffffffffffffffffffffffebaaedce6af48a03bbfd25e8cd0364141", 16)
 	secp256k1halfN = new(big.Int).Div(secp256k1N, big.NewInt(2))
+	PrefixToAddress = []uint8{149}
 )
 
 var errInvalidPubkey = errors.New("invalid secp256k1 public key")
@@ -73,13 +74,18 @@ func Keccak512(data ...[]byte) []byte {
 // CreateAddress creates an ethereum address given the bytes and the nonce
 func CreateAddress(b common.Address, nonce uint64) common.Address {
 	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
-	return common.BytesToAddress(Keccak256(data)[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(PrefixToAddress, Keccak256(data)[12:]...)
+	//return common.BytesToAddress(Keccak256(data)[12:])
+	return common.BytesToAddress(newAddrBytes)
 }
 
 // CreateAddress2 creates an ethereum address given the address bytes, initial
 // contract code hash and a salt.
 func CreateAddress2(b common.Address, salt [32]byte, inithash []byte) common.Address {
-	return common.BytesToAddress(Keccak256([]byte{0xff}, b.Bytes(), salt[:], inithash)[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(PrefixToAddress, Keccak256([]byte{0xff}, b.Bytes(), salt[:], inithash)[12:]...)
+	return common.BytesToAddress(newAddrBytes)
 }
 
 // ToECDSA creates a private key with the given D value.
@@ -202,7 +208,10 @@ func ValidateSignatureValues(v byte, r, s *big.Int, homestead bool) bool {
 
 func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
 	pubBytes := FromECDSAPub(&p)
-	return common.BytesToAddress(Keccak256(pubBytes[1:])[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(PrefixToAddress, Keccak256(pubBytes[1:])[12:]...)
+	//return common.BytesToAddress(Keccak256(pubBytes[1:])[12:])
+	return common.BytesToAddress(newAddrBytes)
 }
 
 func zeroBytes(bytes []byte) {

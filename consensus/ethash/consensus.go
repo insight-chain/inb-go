@@ -261,23 +261,23 @@ func (ethash *Ethash) verifyHeader(chain consensus.ChainReader, header, parent *
 	}
 	// Verify that the gas limit is <= 2^63-1
 	cap := uint64(0x7fffffffffffffff)
-	if header.GasLimit > cap {
-		return fmt.Errorf("invalid gasLimit: have %v, max %v", header.GasLimit, cap)
+	if header.NetLimit > cap {
+		return fmt.Errorf("invalid netLimit: have %v, max %v", header.NetLimit, cap)
 	}
 	// Verify that the gasUsed is <= gasLimit
-	if header.GasUsed > header.GasLimit {
-		return fmt.Errorf("invalid gasUsed: have %d, gasLimit %d", header.GasUsed, header.GasLimit)
+	if header.NetUsed > header.NetLimit {
+		return fmt.Errorf("invalid netUsed: have %d, netLimit %d", header.NetUsed, header.NetLimit)
 	}
 
 	// Verify that the gas limit remains within allowed bounds
-	diff := int64(parent.GasLimit) - int64(header.GasLimit)
+	diff := int64(parent.NetLimit) - int64(header.NetLimit)
 	if diff < 0 {
 		diff *= -1
 	}
-	limit := parent.GasLimit / params.GasLimitBoundDivisor
+	limit := parent.NetLimit / params.GasLimitBoundDivisor
 
-	if uint64(diff) >= limit || header.GasLimit < params.MinGasLimit {
-		return fmt.Errorf("invalid gas limit: have %d, want %d += %d", header.GasLimit, parent.GasLimit, limit)
+	if uint64(diff) >= limit || header.NetLimit < params.MinGasLimit {
+		return fmt.Errorf("invalid net limit: have %d, want %d += %d", header.NetLimit, parent.NetLimit, limit)
 	}
 	// Verify that the block number is parent's +1
 	if diff := new(big.Int).Sub(header.Number, parent.Number); diff.Cmp(big.NewInt(1)) != 0 {
@@ -586,8 +586,8 @@ func (ethash *Ethash) SealHash(header *types.Header) (hash common.Hash) {
 		header.Bloom,
 		header.Difficulty,
 		header.Number,
-		header.GasLimit,
-		header.GasUsed,
+		header.NetLimit,
+		header.NetUsed,
 		header.Time,
 		header.Extra,
 	})

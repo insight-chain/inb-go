@@ -51,15 +51,15 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Resource by zc
 		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:               GetHashFn(header, chain),
-		Origin:                msg.From(),
-		Coinbase:              beneficiary,
-		BlockNumber:           new(big.Int).Set(header.Number),
-		Time:                  new(big.Int).Set(header.Time),
-		SpecialConsensus:      header.SpecialConsensus, //2019.7.31 inb by ghy
-		Difficulty:            new(big.Int).Set(header.Difficulty),
-		GasLimit:              header.GasLimit,
-		GasPrice:              new(big.Int).Set(msg.GasPrice()),
+		GetHash:          GetHashFn(header, chain),
+		Origin:           msg.From(),
+		Coinbase:         beneficiary,
+		BlockNumber:      new(big.Int).Set(header.Number),
+		Time:             new(big.Int).Set(header.Time),
+		SpecialConsensus: header.SpecialConsensus, //2019.7.31 inb by ghy
+		Difficulty:       new(big.Int).Set(header.Difficulty),
+		GasLimit:         header.NetLimit,
+		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
 		CanMortgage:           CanMortgage,
 		CanRedeem:             CanRedeem,
 		CanReset:              CanReset,
@@ -197,7 +197,8 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	value := db.GetRedeem(addr)
 
 	usable := new(big.Int).Sub(mortgaging, regular)
-	usable = new(big.Int).Add(usable, value)
+	//usable = new(big.Int).Add(usable, value)
+	usable.Sub(usable,value)
 	if usable.Cmp(amount) < 0 {
 		return errors.New(" insufficient available value of mortgage ")
 	}

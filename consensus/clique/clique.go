@@ -159,8 +159,8 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.Bloom,
 		header.Difficulty,
 		header.Number,
-		header.GasLimit,
-		header.GasUsed,
+		header.NetLimit,
+		header.NetUsed,
 		header.Time,
 		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
 		header.MixDigest,
@@ -188,9 +188,11 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	if err != nil {
 		return common.Address{}, err
 	}
+	//achilles0814 add a prefix to the address
 	var signer common.Address
-	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
-
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pubkey[1:])[12:]...)
+	//copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
+	copy(signer[:], newAddrBytes)
 	sigcache.Add(hash, signer)
 	return signer, nil
 }

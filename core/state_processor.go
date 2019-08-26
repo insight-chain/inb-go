@@ -80,11 +80,15 @@ func (p *StateProcessor) Process(block *types.Block, statedb *state.StateDB, cfg
 	return receipts, allLogs, *usedGas, nil
 }
 
+//func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedNet *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+//	return ApplyTransactionNew(config, bc, author, gp, statedb, header, tx, usedNet, cfg,nil)
+//}
+
 // ApplyTransaction attempts to apply a transaction to the given state database
 // and uses the input parameters for its environment. It returns the receipt
 // for the transaction, gas used and an error if the transaction failed,
 // indicating the block was invalid.
-func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedGas *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
+func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *common.Address, gp *GasPool, statedb *state.StateDB, header *types.Header, tx *types.Transaction, usedNet *uint64, cfg vm.Config) (*types.Receipt, uint64, error) {
 	msg, err := tx.AsMessage(types.MakeSigner(config, header.Number))
 	if err != nil {
 		return nil, 0, err
@@ -95,7 +99,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// about the transaction and calling mechanisms.
 	vmenv := vm.NewEVM(context, statedb, config, cfg)
 	// Apply the transaction to the current state (included in the env)
-	_, gas, failed, err, receive := ApplyMessage(vmenv, msg, gp)
+	_, net, failed, err, receive := ApplyMessage(vmenv, msg, gp)
 	if err != nil {
 		return nil, 0, err
 	}
@@ -106,22 +110,22 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	} else {
 		root = statedb.IntermediateRoot(config.IsEIP158(header.Number)).Bytes()
 	}
-	*usedGas += gas
+	*usedNet += net
 
 	// Create a new receipt for the transaction, storing the intermediate root and gas used by the tx
 	// based on the eip phase, we're passing whether the root touch-delete accounts.
-	receipt := types.NewReceipt(root, failed, *usedGas)
+	receipt := types.NewReceipt(root, failed, *usedNet)
 	receipt.TxHash = tx.Hash()
-	receipt.GasUsed = gas
-	receipt.IncomeClaimed = receive
 
+	receipt.IncomeClaimed = receive
+	receipt.NetUsed = net
 	// if the transaction created a contract, store the creation address in the receipt.
-	if msg.To() == nil {
+	if msg.To() == nil && msg.Types() == types.Ordinary {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
-	return receipt, gas, err
+	return receipt, net, err
 }

@@ -27,13 +27,13 @@ import (
 	"io"
 	"math/big"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/insight-chain/inb-go/accounts"
 	"github.com/insight-chain/inb-go/accounts/usbwallet/internal/trezor"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/log"
-	"github.com/golang/protobuf/proto"
 )
 
 // ErrTrezorPINNeeded is returned if opening the trezor requires a PIN code. In
@@ -177,9 +177,9 @@ func (w *trezorDriver) trezorSign(derivationPath []uint32, tx *types.Transaction
 	length := uint32(len(data))
 
 	request := &trezor.EthereumSignTx{
-		AddressN:   derivationPath,
-		Nonce:      new(big.Int).SetUint64(tx.Nonce()).Bytes(),
-		GasPrice:   tx.GasPrice().Bytes(),
+		AddressN: derivationPath,
+		Nonce:    new(big.Int).SetUint64(tx.Nonce()).Bytes(),
+		//GasPrice:   tx.GasPrice().Bytes(),
 		GasLimit:   new(big.Int).SetUint64(tx.Gas()).Bytes(),
 		Value:      tx.Value().Bytes(),
 		DataLength: &length,

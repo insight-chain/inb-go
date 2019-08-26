@@ -14,7 +14,7 @@ var _ = (*stTransactionMarshaling)(nil)
 
 func (s stTransaction) MarshalJSON() ([]byte, error) {
 	type stTransaction struct {
-		GasPrice   *math.HexOrDecimal256 `json:"gasPrice"`
+		//GasPrice   *math.HexOrDecimal256 `json:"gasPrice"`
 		Nonce      math.HexOrDecimal64   `json:"nonce"`
 		To         string                `json:"to"`
 		Data       []string              `json:"data"`

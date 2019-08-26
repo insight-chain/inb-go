@@ -173,8 +173,9 @@ func (s EIP155Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		tx.data.Price,
-		tx.data.GasLimit,
+		//tx.data.Price,
+		//tx.data.GasLimit,
+		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
@@ -225,8 +226,9 @@ func (fs FrontierSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v *
 func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		tx.data.Price,
-		tx.data.GasLimit,
+		//tx.data.Price,
+		//tx.data.GasLimit,
+		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
@@ -261,7 +263,10 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 		return common.Address{}, errors.New("invalid public key")
 	}
 	var addr common.Address
-	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[12:]...)
+	copy(addr[:], newAddrBytes)
+	//copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil
 }
 

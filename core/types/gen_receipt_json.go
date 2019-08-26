@@ -17,24 +17,26 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 	type Receipt struct {
 		PostState         hexutil.Bytes  `json:"root"`
 		Status            hexutil.Uint64 `json:"status"`
-		CumulativeGasUsed hexutil.Uint64 `json:"cumulativeGasUsed" gencodec:"required"`
+		CumulativeNetUsed hexutil.Uint64 `json:"cumulativeNetUsed" gencodec:"required"`
 		Bloom             Bloom          `json:"logsBloom"         gencodec:"required"`
 		Logs              []*Log         `json:"logs"              gencodec:"required"`
 		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   common.Address `json:"contractAddress"`
-		GasUsed           hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		IncomeClaimed     *big.Int       `json:"incomeClaimed" gencodec:"required"`//2019.8.1 inb by ghy
+		NetUsed           hexutil.Uint64 `json:"netUsed" gencodec:"required"`
+
 	}
 	var enc Receipt
 	enc.PostState = r.PostState
 	enc.Status = hexutil.Uint64(r.Status)
-	enc.CumulativeGasUsed = hexutil.Uint64(r.CumulativeGasUsed)
+	enc.CumulativeNetUsed = hexutil.Uint64(r.CumulativeNetUsed)
 	enc.Bloom = r.Bloom
 	enc.Logs = r.Logs
 	enc.TxHash = r.TxHash
 	enc.ContractAddress = r.ContractAddress
-	enc.GasUsed = hexutil.Uint64(r.GasUsed)
 	enc.IncomeClaimed = r.IncomeClaimed//2019.8.1 inb by ghy
+	enc.NetUsed = hexutil.Uint64(r.NetUsed)
+
 	return json.Marshal(&enc)
 }
 
@@ -43,13 +45,14 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 	type Receipt struct {
 		PostState         *hexutil.Bytes  `json:"root"`
 		Status            *hexutil.Uint64 `json:"status"`
-		CumulativeGasUsed *hexutil.Uint64 `json:"cumulativeGasUsed" gencodec:"required"`
+		CumulativeNetUsed *hexutil.Uint64 `json:"cumulativeNetUsed" gencodec:"required"`
 		Bloom             *Bloom          `json:"logsBloom"         gencodec:"required"`
 		Logs              []*Log          `json:"logs"              gencodec:"required"`
 		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   *common.Address `json:"contractAddress"`
-		GasUsed           *hexutil.Uint64 `json:"gasUsed" gencodec:"required"`
 		IncomeClaimed     *big.Int        `json:"incomeClaimed" gencodec:"required"`//2019.8.1 inb by ghy
+		NetUsed           *hexutil.Uint64 `json:"netUsed" gencodec:"required"`
+
 	}
 	var dec Receipt
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -61,10 +64,10 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 	if dec.Status != nil {
 		r.Status = uint64(*dec.Status)
 	}
-	if dec.CumulativeGasUsed == nil {
-		return errors.New("missing required field 'cumulativeGasUsed' for Receipt")
+	if dec.CumulativeNetUsed == nil {
+		return errors.New("missing required field 'cumulativeNetUsed' for Receipt")
 	}
-	r.CumulativeGasUsed = uint64(*dec.CumulativeGasUsed)
+	r.CumulativeNetUsed = uint64(*dec.CumulativeNetUsed)
 	if dec.Bloom == nil {
 		return errors.New("missing required field 'logsBloom' for Receipt")
 	}
@@ -80,11 +83,10 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 	if dec.ContractAddress != nil {
 		r.ContractAddress = *dec.ContractAddress
 	}
-	if dec.GasUsed == nil {
-		return errors.New("missing required field 'gasUsed' for Receipt")
+	if dec.NetUsed == nil {
+		return errors.New("missing required field 'netUsed' for Receipt")
 	}
-	r.GasUsed = uint64(*dec.GasUsed)
-
+	r.NetUsed = uint64(*dec.NetUsed)
 	if dec.IncomeClaimed == nil {
 		return errors.New("missing required field 'incomeClaimed' for Receipt")
 	}

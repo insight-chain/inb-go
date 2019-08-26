@@ -154,9 +154,12 @@ type getBlockPricesResult struct {
 
 type transactionsByGasPrice []*types.Transaction
 
-func (t transactionsByGasPrice) Len() int           { return len(t) }
-func (t transactionsByGasPrice) Swap(i, j int)      { t[i], t[j] = t[j], t[i] }
-func (t transactionsByGasPrice) Less(i, j int) bool { return t[i].GasPrice().Cmp(t[j].GasPrice()) < 0 }
+func (t transactionsByGasPrice) Len() int      { return len(t) }
+func (t transactionsByGasPrice) Swap(i, j int) { t[i], t[j] = t[j], t[i] }
+
+//achilles190806 todo replace with net
+//func (t transactionsByGasPrice) Less(i, j int) bool { return t[i].GasPrice().Cmp(t[j].GasPrice()) < 0 }
+func (t transactionsByGasPrice) Less(i, j int) bool { return false }
 
 // getBlockPrices calculates the lowest transaction gas price in a given block
 // and sends it to the result channel. If the block is empty, price is nil.
@@ -175,7 +178,8 @@ func (gpo *Oracle) getBlockPrices(ctx context.Context, signer types.Signer, bloc
 	for _, tx := range txs {
 		sender, err := types.Sender(signer, tx)
 		if err == nil && sender != block.Coinbase() {
-			ch <- getBlockPricesResult{tx.GasPrice(), nil}
+			//ch <- getBlockPricesResult{tx.GasPrice(), nil}
+			ch <- getBlockPricesResult{nil, nil}
 			return
 		}
 	}

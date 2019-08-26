@@ -210,8 +210,9 @@ func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
+
 func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
-	return evm.NewCall(caller, addr, input, net, value, 0)
+	return evm.NewCall(caller, addr, input, net, value, types.Ordinary)
 }
 
 // Call executes the contract associated with the addr with the given input as
