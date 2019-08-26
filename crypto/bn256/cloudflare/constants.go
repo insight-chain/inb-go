@@ -5,6 +5,7 @@
 package bn256
 
 import (
+	"github.com/insight-chain/inb-go/common"
 	"math/big"
 )
 
@@ -12,6 +13,12 @@ func bigFromBase10(s string) *big.Int {
 	n, _ := new(big.Int).SetString(s, 10)
 	return n
 }
+
+var TestNumber1 = new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+18))
+var TestNumber2 = new(big.Int).Mul(big.NewInt(1e+9), big.NewInt(1e+18))
+
+//testAccount is a test account for testing environment use
+var TestAccount1 = common.Address{58, 100, 4, 10, 120, 240, 237, 213, 146, 159, 215, 139, 137, 9, 135, 13, 224, 54, 42, 53}
 
 // u is the BN parameter that determines the prime: 1868033³.
 var u = bigFromBase10("4965661367192848881")

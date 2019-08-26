@@ -1081,7 +1081,7 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 	// Setup the gas pool (also for unmetered requests)
 	// and apply the message.
 	gp := new(core.GasPool).AddGas(math.MaxUint64)
-	res, gas, failed, err := core.ApplyMessage(evm, msg, gp)
+	res, gas, failed, err, _ := core.ApplyMessage(evm, msg, gp)
 	if err := vmError(); err != nil {
 		return nil, 0, false, err
 	}
@@ -1488,7 +1488,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"netUsed":           hexutil.Uint64(receipt.NetUsed),           //inb by ssh 190628
 		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeNetUsed), //inb by ssh 190628
-		"IncomeClaimed":     hexutil.Uint64(receipt.IncomeClaimed),
+		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
@@ -1542,6 +1542,7 @@ type SendTxArgs struct {
 	Input *hexutil.Bytes `json:"input"`
 	Types types.TxType   `json:"txType"`
 	//ResourcePayer *common.Address `json:"resourcePayer"`
+
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1933,7 +1934,7 @@ func (s *PublicBlockChainAPI) MinerReward(ctx context.Context) uint64 {
 	return vdpos.DefaultMinerReward.Uint64()
 }
 
-func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (st.Account, error) {
+func (s *PublicBlockChainAPI) GetAccountInfo(ctx context.Context, address common.Address) (*st.Account, error) {
 	state, _, _ := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 
 	return state.GetAccountInfo(address), state.Error()

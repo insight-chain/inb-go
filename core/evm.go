@@ -128,26 +128,26 @@ func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
 //Resource by zc
 
 //2019.7.22 inb by ghy begin
-func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int) (error, *big.Int, bool) {
-	return db.CanReceiveLockedAward(from, nonce, time)
+func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int, specialConsensus types.SpecialConsensus) (error, *big.Int, bool, common.Address) {
+	return db.CanReceiveLockedAward(from, nonce, time, specialConsensus)
 
 }
 
-func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int, consense types.SpecialConsensus) {
-	db.ReceiveLockedAward(from, nonce, values, isAll, time, consense)
+func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int, toAddress common.Address) {
+	db.ReceiveLockedAward(from, nonce, values, isAll, time, toAddress)
 }
 
-func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int) (error, *big.Int) {
-	return db.CanReceiveVoteAward(from, time)
+func CanReceiveVoteAwardFunc(db vm.StateDB, from common.Address, time *big.Int, specialConsensus types.SpecialConsensus) (error, *big.Int, common.Address) {
+	return db.CanReceiveVoteAward(from, time, specialConsensus)
 
 }
 
-func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int, specialConsensus types.SpecialConsensus) {
-	db.ReceiveVoteAward(from, values, time, specialConsensus)
+func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, time *big.Int, toAddress common.Address) {
+	db.ReceiveVoteAward(from, values, time, toAddress)
 }
 
-func Vote(db vm.StateDB, from common.Address) {
-	db.Vote(from)
+func Vote(db vm.StateDB, from common.Address, time *big.Int) {
+	db.Vote(from,time)
 }
 
 //2019.7.22 inb by ghy end

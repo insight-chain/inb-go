@@ -410,6 +410,7 @@ func (w *worker) mainLoop() {
 	//vdpos by ssh end
 
 	for {
+		//w.commitNewWork(nil, false, time.Now().Unix())
 		select {
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
@@ -492,7 +493,7 @@ func (w *worker) mainLoop() {
 		case <-time.After(vdposDelay):
 			// try to seal block in each period, even no new block received in dpos
 			if w.config.Vdpos != nil && w.config.Vdpos.Period > 0 {
-				w.commitNewWork(nil, false, time.Now().Unix())
+				w.commitNewWork(nil, true, time.Now().Unix())
 			}
 		//vdpos by ssh end
 
@@ -714,6 +715,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 	snap := w.current.state.Snapshot()
 
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.NetUsed, *w.chain.GetVMConfig())
+
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		return nil, err
@@ -782,7 +784,6 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		}
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
-
 		logs, err := w.commitTransaction(tx, coinbase)
 		switch err {
 		case core.ErrGasLimitReached:
@@ -834,6 +835,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
+
 	return false
 }
 
@@ -936,10 +938,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
 	}
-	// Short circuit if there is no available pending transactions
+	//Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		w.updateSnapshot()
-		return
+		//return
 	}
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
@@ -949,6 +951,60 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			localTxs[account] = txs
 		}
 	}
+	//
+	//type SendTxArgs struct {
+	//	From     common.Address  `json:"from"`
+	//	To       *common.Address `json:"to"`
+	//	Gas      *hexutil.Uint64 `json:"gas"`
+	//	GasPrice *hexutil.Big    `json:"gasPrice"`
+	//	Value    *big.Int        `json:"value"`
+	//	Nonce    uint64          `json:"nonce"`
+	//	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+	//	// newer name and should be preferred by clients.
+	//	Data          *hexutil.Bytes  `json:"data"`
+	//	Input         *hexutil.Bytes  `json:"input"`
+	//	Types         types.TxType    `json:"txType"`
+	//	ResourcePayer *common.Address `json:"resourcePayer"`
+	//	//Candidates []common.Address `json:"candidates"`
+	//}
+	//
+	//args := SendTxArgs{
+	//	From:  w.chain.CurrentBlock().Header().SpecialConsensus.SpecialConsensusAddress[0].ToAddress,
+	//	To:    &w.chain.CurrentBlock().Header().Coinbase,
+	//	Value: new(big.Int),
+	//	Types: 11,
+	//	Nonce: 0,
+	//}
+	//if args.Gas == nil {
+	//	args.Gas = new(hexutil.Uint64)
+	//	*(*uint64)(args.Gas) = 90000
+	//}
+	//
+	//db, err := w.chain.State()
+	//nonce := db.GetNonce(args.From)
+	////if args.Nonce == nil {
+	////	args.Nonce = new(hexutil.Uint64)
+	////	*(*uint64)(args.Nonce) = 0
+	////}
+	//args.Nonce = nonce
+	//args.Value = big.NewInt(666666000)
+	//
+	//to := common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748")
+	//args.To = &to
+	//var input []byte
+	//if args.To == nil {
+	//	// Contract creation
+	//
+	//	if args.Data != nil {
+	//		input = *args.Data
+	//	} else if args.Input != nil {
+	//		input = *args.Input
+	//	}
+	//
+	//}
+	//newTransaction := types.NewTransaction(args.Nonce, *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+	//localTxs[args.From] = append(localTxs[args.From], newTransaction)
+
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
@@ -987,7 +1043,77 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
+			//transactions := block.Transactions()
 
+			//type SendTxArgs struct {
+			//	From     common.Address  `json:"from"`
+			//	To       *common.Address `json:"to"`
+			//	Gas      *hexutil.Uint64 `json:"gas"`
+			//	GasPrice *hexutil.Big    `json:"gasPrice"`
+			//	Value    *hexutil.Big    `json:"value"`
+			//	Nonce    *hexutil.Uint64 `json:"nonce"`
+			//	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+			//	// newer name and should be preferred by clients.
+			//	Data          *hexutil.Bytes  `json:"data"`
+			//	Input         *hexutil.Bytes  `json:"input"`
+			//	Types         types.TxType    `json:"txType"`
+			//	ResourcePayer *common.Address `json:"resourcePayer"`
+			//	//Candidates []common.Address `json:"candidates"`
+			//}
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//fmt.Println(w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress)
+			//args := SendTxArgs{
+			//	From:  w.current.header.SpecialConsensus.SpecialConsensusAddress[0].ToAddress,
+			//	To:    &w.current.header.Coinbase,
+			//	Value: new(hexutil.Big),
+			//	Types: 0,
+			//	Nonce: new(hexutil.Uint64),
+			//}
+			//if args.Gas == nil {
+			//	args.Gas = new(hexutil.Uint64)
+			//	*(*uint64)(args.Gas) = 90000
+			//}
+			//if args.Nonce == nil {
+			//	args.Nonce = new(hexutil.Uint64)
+			//	*(*uint64)(args.Nonce) = 1
+			//}
+			//
+			//if args.Value == nil {
+			//	args.Value = new(hexutil.Big)
+			//	*(*uint64)(args.Nonce) = 99999999999999
+			//}
+			//var input []byte
+			//if args.To == nil {
+			//	// Contract creation
+			//
+			//	if args.Data != nil {
+			//		input = *args.Data
+			//	} else if args.Input != nil {
+			//		input = *args.Input
+			//	}
+			//
+			//}
+			//
+			//fmt.Println("11111len", len(transactions))
+			//newTransaction := types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+			//
+			//fmt.Println("newTransaction", newTransaction)
+			//transactions = append(transactions, newTransaction)
+			//
+			//fmt.Println("2222222222len", len(transactions))
+			//receipt := &types.Receipt{
+			//	GasUsed: 9999999,
+			//}
+			//receipts = append(receipts, receipt)
+			//
+			//fmt.Println("rece", len(receipts))
+			//
+			//fmt.Println("block.Transactions()", len(transactions))
+			//fmt.Println("receipts", len(receipts))
 			//achilles190806 todo replace with net
 			//for i, tx := range block.Transactions() {
 			//	feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))

@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"math/big"
 	"unsafe"
 
 	"github.com/insight-chain/inb-go/common"
@@ -54,16 +55,18 @@ type Receipt struct {
 	// Implementation fields (don't reorder!)
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
+
+	IncomeClaimed   *big.Int         `json:"incomeClaimed" gencodec:"required"`
 	NetUsed         uint64         `json:"netUsed" gencodec:"required"`
-	IncomeClaimed   uint64         `json:"incomeClaimed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
 	PostState         hexutil.Bytes
 	Status            hexutil.Uint64
+	IncomeClaimed     *big.Int
 	CumulativeNetUsed hexutil.Uint64
 	NetUsed           hexutil.Uint64
-	IncomeClaimed     hexutil.Uint64
+
 }
 
 // receiptRLP is the consensus encoding of a receipt.
@@ -72,7 +75,7 @@ type receiptRLP struct {
 	CumulativeNetUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
-	//IncomeClaimed     uint64
+	IncomeClaimed     *big.Int
 }
 
 type receiptStorageRLP struct {
@@ -82,8 +85,9 @@ type receiptStorageRLP struct {
 	TxHash            common.Hash
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
+	IncomeClaimed     *big.Int
 	NetUsed           uint64
-	IncomeClaimed     uint64
+
 }
 
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
@@ -100,7 +104,8 @@ func NewReceipt(root []byte, failed bool, cumulativeNetUsed uint64) *Receipt {
 // EncodeRLP implements rlp.Encoder, and flattens the consensus fields of a receipt
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, &receiptRLP{r.statusEncoding(), r.CumulativeNetUsed, r.Bloom, r.Logs})
+	return rlp.Encode(w, &receiptRLP{r.statusEncoding(),
+		r.CumulativeNetUsed, r.Bloom, r.Logs,r.IncomeClaimed})//2019.8.1 inb bu ghy
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -113,7 +118,8 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	if err := r.setStatus(dec.PostStateOrStatus); err != nil {
 		return err
 	}
-	r.CumulativeNetUsed, r.Bloom, r.Logs = dec.CumulativeNetUsed, dec.Bloom, dec.Logs
+	r.CumulativeNetUsed, r.Bloom, r.Logs,r.IncomeClaimed =
+		dec.CumulativeNetUsed, dec.Bloom, dec.Logs,dec.IncomeClaimed//2019.8.1 inb by ghy
 	return nil
 }
 
@@ -193,7 +199,8 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		r.Logs[i] = (*Log)(log)
 	}
 	// Assign the implementation fields
-	r.TxHash, r.ContractAddress, r.NetUsed = dec.TxHash, dec.ContractAddress, dec.NetUsed
+	r.TxHash, r.ContractAddress, r.NetUsed,r.IncomeClaimed = dec.TxHash, dec.ContractAddress, dec.NetUsed,dec.IncomeClaimed//2019.8.1 inb by ghy
+
 	return nil
 }
 

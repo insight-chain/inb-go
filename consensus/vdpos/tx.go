@@ -35,38 +35,38 @@ const (
 	/*
 	 *  inb:version:category:action/data
 	 */
-	inbPrefix              = "inb"
-	inbVersion             = "1"
-	inbCategoryEvent       = "event"
-	inbEventVote           = "vote"
-	inbEventVoteCandidates = "candidates"
-	inbEventConfirm        = "confirm"
-	inbEventDeclare        = "declare"
-	inbMinSplitLen         = 3
-	posPrefix              = 0
-	posVersion             = 1
-	posCategory            = 2
-	posEventVote           = 3
-	posEventConfirm        = 3
-	posEventDeclare        = 3
-	posEventConfirmNumber  = 4
-	posEventDeclareInfo    = 4
+	InbPrefix              = "inb"
+	InbVersion             = "1"
+	InbCategoryEvent       = "event"
+	InbEventVote           = "vote"
+	InbEventVoteCandidates = "candidates"
+	InbEventConfirm        = "confirm"
+	InbEventDeclare        = "declare"
+	InbMinSplitLen         = 3
+	PosPrefix              = 0
+	PosVersion             = 1
+	PosCategory            = 2
+	PosEventVote           = 3
+	PosEventConfirm        = 3
+	PosEventDeclare        = 3
+	PosEventConfirmNumber  = 4
+	PosEventDeclareInfo    = 4
 	//achilles
 	posEventVoteCandidates       = 4
 	posEventVoteCandidatesNumber = 5
 
-	posEventDeclareInfoSplitLen = 3
-	posEventDeclareInfoId       = 0
-	posEventDeclareInfoIp       = 1
-	posEventDeclareInfoPort     = 2
+	PosEventDeclareInfoSplitLen = 3
+	PosEventDeclareInfoId       = 0
+	PosEventDeclareInfoIp       = 1
+	PosEventDeclareInfoPort     = 2
 	//inb by ghy begin
-	posEventDeclareInfoName    = 3
-	posEventDeclareInfoNation  = 4
-	posEventDeclareInfoCity    = 5
-	posEventDeclareInfoImage   = 6
-	posEventDeclareInfoWebsite = 7
-	posEventDeclareInfoEmail   = 8
-	posEventDeclareInfodata    = 9
+	PosEventDeclareInfoName    = 3
+	PosEventDeclareInfoNation  = 4
+	PosEventDeclareInfoCity    = 5
+	PosEventDeclareInfoImage   = 6
+	PosEventDeclareInfoWebsite = 7
+	PosEventDeclareInfoEmail   = 8
+	PosEventDeclareInfodata    = 9
 	//inb by ghy end
 )
 
@@ -191,35 +191,65 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 		txData := string(tx.Data())
 		//achilles config
-		if strings.Contains(txData, "candidates") {
+		//if strings.Contains(txData, "candidates") {
+		//	var candidates []common.Address
+		//	txDataInfo := strings.Split(txData, ":")
+		//	if txDataInfo[0] == "candidates" {
+		//		candidatesStr := strings.Split(txDataInfo[1], ",")
+		//		for _, value := range candidatesStr {
+		//			address := common.HexToAddress(value)
+		//			candidates = append(candidates, address)
+		//		}
+		//		if params.TxConfig.CandidateSize < uint64(len(candidates)) {
+		//			return headerExtra, nil, errors.Errorf("candidates over size")
+		//		}
+		//		headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+		//	}
+		//}
+		//2019.8.5 inb mod by ghy begin
+		if tx.WhichTypes(types.Vote) {
 			var candidates []common.Address
-			txDataInfo := strings.Split(txData, ":")
-			if txDataInfo[0] == "candidates" {
-				candidatesStr := strings.Split(txDataInfo[1], ",")
-				for _, value := range candidatesStr {
-					address := common.HexToAddress(value)
-					candidates = append(candidates, address)
-				}
-				if params.TxConfig.CandidateSize < uint64(len(candidates)) {
-					return headerExtra, nil, errors.Errorf("candidates over size")
-				}
-				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+			candidatesStr := strings.Split(txData, ",")
+			for _, value := range candidatesStr {
+				address := common.HexToAddress(value)
+				candidates = append(candidates, address)
 			}
+			if params.TxConfig.CandidateSize < uint64(len(candidates)) {
+				return headerExtra, nil, errors.Errorf("candidates over size")
+			}
+			headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+
 		}
 
-		if len(txData) >= len(inbPrefix) {
+		if tx.WhichTypes(types.UpdateNodeInformation) {
+
+			account := state.GetAccountInfo(txSender)
+			if account == nil {
+				return headerExtra, nil, errors.Errorf("error of account")
+			}
+
+			if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
+
+				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender)
+			}
+
+		}
+
+		//2019.8.5 inb mod by ghy end
+
+		if len(txData) >= len(InbPrefix) {
 			txDataInfo := strings.Split(txData, "|")
-			if len(txDataInfo) >= inbMinSplitLen {
-				if txDataInfo[posPrefix] == inbPrefix {
-					if txDataInfo[posVersion] == inbVersion {
+			if len(txDataInfo) >= InbMinSplitLen {
+				if txDataInfo[PosPrefix] == InbPrefix {
+					if txDataInfo[PosVersion] == InbVersion {
 						// process vote event
-						if txDataInfo[posCategory] == inbCategoryEvent {
-							if len(txDataInfo) > inbMinSplitLen {
+						if txDataInfo[PosCategory] == InbCategoryEvent {
+							if len(txDataInfo) > InbMinSplitLen {
 								// check is vote or not
-								if txDataInfo[posEventVote] == inbEventVote {
+								if txDataInfo[PosEventVote] == InbEventVote {
 									//var candidates []common.Address
 									////achilles vote
-									//if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
+									//if txDataInfo[posEventVoteCandidates] == InbEventVoteCandidates {
 									//	candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
 									//	for _, value := range candidatesStr {
 									//		address := common.HexToAddress(value)
@@ -230,15 +260,8 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 									//	}
 									//}
 									//headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
-								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
+								} else if txDataInfo[PosEventConfirm] == InbEventConfirm && snap.isCandidate(txSender) {
 									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
-								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
-									account := state.GetAccountInfo(txSender)
-									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
-										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
-									} else {
-										return headerExtra, nil, errors.Errorf("Account mortgageINB must be greater than 100000")
-									}
 								}
 							} else {
 								// todo : leave this transaction to process as normal transaction
@@ -276,70 +299,67 @@ func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value 
 	return refundGas
 }
 
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo []string, declarer common.Address) []common.EnodeInfo {
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address) []common.EnodeInfo {
 
-	if len(txDataInfo) > posEventDeclareInfo {
-		midEnodeInfo := strings.Split(txDataInfo[posEventDeclareInfo], "~")
-		if len(midEnodeInfo) >= posEventDeclareInfoSplitLen {
-			enodeInfo := common.EnodeInfo{
-				Id:      midEnodeInfo[posEventDeclareInfoId],
-				Ip:      midEnodeInfo[posEventDeclareInfoIp],
-				Port:    midEnodeInfo[posEventDeclareInfoPort],
-				Address: declarer,
-			}
-			//inb by ghy begin
-			if len(midEnodeInfo) >= 4 {
-				enodeInfo.Name = midEnodeInfo[posEventDeclareInfoName]
-			}
+	midEnodeInfo := strings.Split(txDataInfo, "~")
+	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
+		enodeInfo := common.EnodeInfo{
+			Id:      midEnodeInfo[PosEventDeclareInfoId],
+			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+			Port:    midEnodeInfo[PosEventDeclareInfoPort],
+			Address: declarer,
+		}
+		//inb by ghy begin
+		if len(midEnodeInfo) >= 4 {
+			enodeInfo.Name = midEnodeInfo[PosEventDeclareInfoName]
+		}
 
-			if len(midEnodeInfo) >= 5 {
-				enodeInfo.Nation = midEnodeInfo[posEventDeclareInfoNation]
-			}
+		if len(midEnodeInfo) >= 5 {
+			enodeInfo.Nation = midEnodeInfo[PosEventDeclareInfoNation]
+		}
 
-			if len(midEnodeInfo) >= 6 {
-				enodeInfo.City = midEnodeInfo[posEventDeclareInfoCity]
+		if len(midEnodeInfo) >= 6 {
+			enodeInfo.City = midEnodeInfo[PosEventDeclareInfoCity]
+		}
+		if len(midEnodeInfo) >= 7 {
+			enodeInfo.Image = midEnodeInfo[PosEventDeclareInfoImage]
 
-			}
+		}
+		if len(midEnodeInfo) >= 8 {
+			enodeInfo.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
+		}
+		if len(midEnodeInfo) >= 9 {
+			enodeInfo.Email = midEnodeInfo[PosEventDeclareInfoEmail]
+		}
 
-			if len(midEnodeInfo) >= 7 {
-				enodeInfo.Image = midEnodeInfo[posEventDeclareInfoImage]
-
-			}
-			if len(midEnodeInfo) >= 8 {
-				enodeInfo.Website = midEnodeInfo[posEventDeclareInfoWebsite]
-			}
-			if len(midEnodeInfo) >= 9 {
-				enodeInfo.Email = midEnodeInfo[posEventDeclareInfoEmail]
-			}
-
-			data := `{`
-			if len(midEnodeInfo) >= 10 {
-				enodeData := strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
-				for _, v := range enodeData {
-					split := strings.Split(v, "/")
-					if len(split) == 2 {
-						data += `"` + split[0] + `":"` + split[1] + `",`
-					}
-				}
-				data = strings.TrimRight(data, ",")
-			}
-			data += `}`
-			enodeInfo.Data = data
-
-			//inb by ghy end
-			flag := false
-			for i, enode := range currentEnodeInfos {
-				if enode.Address == declarer {
-					flag = true
-					currentEnodeInfos[i] = enodeInfo
-					break
+		data := `{`
+		if len(midEnodeInfo) >= 10 {
+			enodeData := strings.Split(midEnodeInfo[PosEventDeclareInfodata], "-")
+			for _, v := range enodeData {
+				split := strings.Split(v, "/")
+				if len(split) == 2 {
+					data += `"` + split[0] + `":"` + split[1] + `",`
 				}
 			}
-			if !flag {
-				currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
+			data = strings.TrimRight(data, ",")
+		}
+		data += `}`
+		enodeInfo.Data = data
+
+		//inb by ghy end
+		flag := false
+		for i, enode := range currentEnodeInfos {
+			if enode.Address == declarer {
+				flag = true
+				currentEnodeInfos[i] = enodeInfo
+				break
 			}
 		}
+		if !flag {
+			currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
+		}
 	}
+
 	return currentEnodeInfos
 }
 
@@ -361,9 +381,9 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 }
 
 func (v *Vdpos) processEventConfirm(currentBlockConfirmations []Confirmation, chain consensus.ChainReader, txDataInfo []string, number uint64, tx *types.Transaction, confirm common.Address, refundHash RefundHash) ([]Confirmation, RefundHash) {
-	if len(txDataInfo) > posEventConfirmNumber {
+	if len(txDataInfo) > PosEventConfirmNumber {
 		confirmedBlockNumber := new(big.Int)
-		err := confirmedBlockNumber.UnmarshalText([]byte(txDataInfo[posEventConfirmNumber]))
+		err := confirmedBlockNumber.UnmarshalText([]byte(txDataInfo[PosEventConfirmNumber]))
 		if err != nil || number-confirmedBlockNumber.Uint64() > v.config.MaxSignerCount*v.config.SignerBlocks || number-confirmedBlockNumber.Uint64() < 0 {
 			return currentBlockConfirmations, refundHash
 		}

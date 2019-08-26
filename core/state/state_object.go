@@ -21,6 +21,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/core/types"
+
 	//"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/rlp"
@@ -398,10 +400,11 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 
 	if duration > 0 {
 		store := Store{
-			Nonce:     self.data.Nonce,
-			StartTime: sTime,
-			Days:      duration,
-			Value:     *amount,
+			Nonce:            self.data.Nonce,
+			StartTime:        sTime,
+			Days:             duration,
+			Value:            *amount,
+			LastReceivedTime: &sTime,
 		}
 		stores := append(self.data.Stores, store)
 		regular := new(big.Int).Add(self.data.Regular, amount)
@@ -423,114 +426,67 @@ func (self *stateObject) ResetNet(update *big.Int) {
 }
 
 //2019.7.22 inb by ghy begin
-func (self *stateObject) CanReceiveAward(nonce int, time *big.Int) (err error, value *big.Int, isAll bool) {
-	if self.data.Voted.Uint64() > 0 {
-		if len(self.data.Stores) > 0 {
-			for _, v := range self.data.Stores {
-				if nonce == int(v.Nonce) {
-					//timeNow := time.Uint64()
-					//totalValue := v.Value.Uint64()
-					//startTime := v.StartTime.Uint64()
-					//receivedValue := v.Received.Uint64()
-					//lastReceivedtime := v.LastReceivedTime.Uint64()
-					//daySeconds := uint64(v.Days * 24 * 60 * 60)
-					//
-					////CycleTime:=daySeconds/vdpos.CycleTimes
-					//CycleTime := daySeconds / common.CycleTimes
-					//if timeNow < startTime {
-					//	return
-					//}
-					//sub := timeNow - startTime
-					//number := sub / CycleTime
-					//
-					//if number > common.CycleTimes/200 {
-					//	number = common.CycleTimes / 200
-					//}
-					//
-					////CanReceivedValue := float64(number) * vdpos.ResponseRate * float64(totalValue)
-					//CanReceivedValue := float64(number) * common.ResponseRate * float64(totalValue)
-					//
-					//subValue := CanReceivedValue - float64(receivedValue)
-					//
-					//if subValue > 0 {
-					//	return nil, int(math.Floor(subValue)), number == 12
-					//}
+func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, isAll bool) {
+	if self.data.Voted.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("can only receive locked rewards after voting"), big.NewInt(0), false
+	}
+	if len(self.data.Stores) <= 0 {
+		return errors.New("no lock record"), big.NewInt(0), false
+	}
+	for _, v := range self.data.Stores {
+		if nonce == int(v.Nonce) {
+			timeNow := time
+			startTime := &v.StartTime
+			//totalValue := v.Value.Uint64()
+			//receivedValue := v.Received.Uint64()
+			lastReceivedTime := v.LastReceivedTime
 
-					timeNow := time.Int64()
-					startTime := v.StartTime.Int64()
-					//totalValue := v.Value.Uint64()
-					//receivedValue := v.Received.Uint64()
-					lastReceivedtime := v.LastReceivedTime.Int64()
+			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
+			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
 
-					daySeconds := int64(v.Days * 24 * 60 * 60)
-					endTimeSecond := startTime + daySeconds
+			totalValue := &v.Value
+			receivedValue := &v.Received
 
-					totalValue := &v.Value
-					receivedValue := &v.Received
+			if lastReceivedTime.Cmp(endTimeSecond) == 1 {
+				return errors.New("all the rewards are received"), big.NewInt(0), false
+			}
+			if startTime.Cmp(lastReceivedTime) == 1 {
+				return errors.New("last receipt time and start time error"), big.NewInt(0), false
+			}
+			if lastReceivedTime.Cmp(timeNow) == 1 {
+				return errors.New("ast receipt time error"), big.NewInt(0), false
+			}
+			if timeNow.Cmp(endTimeSecond) == 1 {
+				timeNow = endTimeSecond
+			}
 
-					if timeNow > endTimeSecond {
-						timeNow = endTimeSecond
-					}
+			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
 
-					if lastReceivedtime < startTime {
-						lastReceivedtime = startTime
-					}
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, common.VoteRewardCycleSeconds)
 
-					FromLastReceivedPassTimeSecond := timeNow - lastReceivedtime
-					FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
 
-					FromStartPassTimeSecond := timeNow - startTime
-					FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, common.VoteRewardCycleSeconds)
 
-					if lastReceivedtime < endTimeSecond && timeNow > lastReceivedtime {
+			if FromLastReceivedPassDays.Cmp(common.LockedRewardCycleTimes) == -1 {
+				return errors.New("have no rewards to received"), big.NewInt(0), false
+			}
 
-						if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
-
-							totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
-							totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
-							totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
-							MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
-							//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
-							//subValue := MaxReceivedValueNow - float64(receivedValue)
-							subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
-							if subValue.Cmp(big.NewInt(0)) == 1 {
-								return nil, subValue, timeNow == endTimeSecond
-							}
-						}
-					}
-					//sub := new(big.Int).Sub(time, &v.StartTime)
-					//number := new(big.Int).Div(big.NewInt(int64(v.Days*24*60*60)), sub)
-					//
-					////new(big.Int).Add(pool.chain.CurrentBlock().Time(),&v.StartTime)
-					////new(big.Int).Mul(big.NewInt(int64(v.Days*24*60*60+v.Received/v.Value)),)
-					//persent := new(big.Int).Div(&v.Received, &v.Value)
-					//number := new(big.Int).Mul(persent, vdpos.CycleTimes)
-					//AddNumber := new(big.Int).Add(number, big.NewInt(1))
-					//persents := new(big.Int).Div(AddNumber, vdpos.CycleTimes)
-					//if persents.Cmp(big.NewInt(1)) > 0 {
-					//	return errors.New("The reward has been received")
-					//}
-					//cycleTime := big.NewInt(int64(v.Days * 24 * 60 * 60))
-					//mul := new(big.Int).Mul(cycleTime, persents)
-					//end := new(big.Int).Add(cycleTime, mul)
-					//endTime := new(big.Int).Add(end, &v.StartTime)
-					//if time.Cmp(endTime) != 1 {
-					//	return errors.New("It's not time to receive the prize")
-					//} else {
-					//	return nil
-					//}
-
-				}
+			totalValue1 := new(big.Int).Mul(totalValue, common.LockedDenominator)
+			totalValue2 := new(big.Int).Div(totalValue1, common.LockedHundred)
+			totalValue3 := new(big.Int).Div(totalValue2, common.LockedNumberOfDaysOneYear)
+			MaxReceivedValueNow := new(big.Int).Mul(totalValue3, FromStartPassDays)
+			subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+			if subValue.Cmp(big.NewInt(0)) == 1 {
+				return nil, subValue, timeNow == endTimeSecond
 			}
 		}
-		return errors.New("Have no Inb to received"), big.NewInt(0), false
-	} else {
-		return errors.New("Can only receive rewards after voting"), big.NewInt(0), false
 	}
+	return errors.New("no such lock record"), big.NewInt(0), false
 
 }
 
-func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, time *big.Int) {
+func (self *stateObject) ReceiveLockedAward(nonce int, value *big.Int, isAll bool, time *big.Int) {
 
 	if len(self.data.Stores) > 0 {
 		for k, v := range self.data.Stores {
@@ -568,33 +524,26 @@ func (self *stateObject) ReceiveAward(nonce int, value *big.Int, isAll bool, tim
 func (self *stateObject) CanReceiveVoteAward(time *big.Int) (err error, value *big.Int) {
 	//account := pool.currentState.GetAccountInfo(from)
 	votes := self.data.Voted
-	if votes.Cmp(big.NewInt(0)) == 1 {
-		timeNow := time.Int64()
-		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime.Int64()
-		if lastReceiveVoteAwardTime == 0 {
-			votes1 := new(big.Int).Mul(votes, common.Denominator)
-			votes2 := new(big.Int).Div(votes1, common.Hundred)
-			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
-			value := new(big.Int).Mul(votes3, common.ReceivingCycleDays)
-			return nil, value
-		}
-		intervalTime := timeNow - lastReceiveVoteAwardTime
-		if intervalTime > common.VoteRewardCycleSeconds {
-			days := intervalTime / common.VoteRewardOneDaySecond
-			votes1 := new(big.Int).Mul(votes, common.Denominator)
-			votes2 := new(big.Int).Div(votes1, common.Hundred)
-			votes3 := new(big.Int).Div(votes2, common.NumberOfDaysOneYear)
-			value := new(big.Int).Mul(votes3, big.NewInt(days))
+	if votes.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("please receive vote award after voting"), big.NewInt(0)
 
-			return nil, value
-		} else {
-			return errors.New("Not receiving voting time"), big.NewInt(0)
-		}
-
-	} else {
-		return errors.New("Can only receive rewards after voting"), big.NewInt(0)
 	}
+	timeNow := time
+	lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime
+	if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+		return errors.New("please receive vote award after voting"), big.NewInt(0)
+	}
+	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
+	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
+	if cycles.Cmp(common.VoteRewardCycleTimes) == 1 {
+		votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
+		votes2 := new(big.Int).Div(votes1, common.VoteHundred)
+		votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYear)
+		value := new(big.Int).Mul(votes3, cycles)
 
+		return nil, value
+	}
+	return errors.New("not receive vote award time"), big.NewInt(0)
 }
 
 func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
@@ -603,8 +552,9 @@ func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
 
 }
 
-func (self *stateObject) Vote() {
+func (self *stateObject) Vote(time *big.Int) {
 	self.data.Voted = self.data.Resources.NET.MortgagteINB
+	self.data.LastReceiveVoteAwardTime = time
 }
 
 //2019.7.22 inb by ghy end

@@ -79,6 +79,7 @@ type Message interface {
 	Types() types.TxType
 	//ResourcePayer() common.Address
 	//IsRePayment() bool
+	Receive() *big.Int
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -139,11 +140,8 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
-//func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
-//	return NewStateTransition(evm, msg, gp).TransitionDb()
-//}
 
-func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error) {
+func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error, *big.Int) {
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
@@ -234,7 +232,8 @@ func (st *StateTransition) preCheckForNet() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bool, err error) {
+
+func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bool, err error, receive *big.Int) {
 	//achilles replace gas with net
 	//if err = st.preCheck(); err != nil {
 	//	return
@@ -270,9 +269,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	//}
 
 	//mgval := new(big.Int).SetUint64(st.msg.Gas())
-	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.Receive || st.msg.Types() == types.Redeem) {
+	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.Receive || st.msg.Types() == types.SpecilaTx || st.msg.Types() == types.Redeem) {
 		if st.state.GetNet(netPayment).Cmp(big.NewInt(int64(net))) < 0 {
-			return nil, 0, false, errInsufficientBalanceForGas
+			return nil, 0, false, errInsufficientBalanceForGas, nil
 		}
 		st.state.UseNet(netPayment, big.NewInt(int64(net)))
 	}
@@ -289,7 +288,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.net, vmerr = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types())
+		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
@@ -297,7 +296,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 		// sufficient balance to make the transfer happen. The first
 		// balance transfer may never fail.
 		if vmerr == vm.ErrInsufficientBalance {
-			return nil, 0, false, vmerr
+			return nil, 0, false, vmerr, nil
 		}
 	}
 	//achilles
@@ -305,7 +304,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	//return ret, st.gasUsed(), vmerr != nil, err
-	return ret, net, vmerr != nil, err
+	return ret, net, vmerr != nil, err, receive
 }
 
 func (st *StateTransition) refundGas() {
