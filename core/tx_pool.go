@@ -761,9 +761,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-
 	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.SpecilaTx) || tx.WhichTypes(types.Redeem)) {
-		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Ordinary, pool.homestead)
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {

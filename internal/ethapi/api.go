@@ -1574,7 +1574,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
 		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
 	}
-	if args.To == nil && args.Types == types.Ordinary {
+	if args.To == nil && args.Types == types.Contract {
 		// Contract creation
 		var input []byte
 		if args.Data != nil {
@@ -1596,7 +1596,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	if args.To == nil && args.Types == types.Ordinary {
+	if args.To == nil && args.Types == types.Contract {
 		//return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input)
 	}
@@ -1612,7 +1612,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if tx.To() == nil && tx.Types() == types.Ordinary {
+	if tx.To() == nil && tx.Types() == types.Contract {
 		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number())
 		from, err := types.Sender(signer, tx)
 		if err != nil {

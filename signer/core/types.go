@@ -120,7 +120,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	if args.To == nil && args.Types == types.Ordinary {
+	if args.To == nil && args.Types == types.Contract {
 		return types.NewContractCreation(uint64(args.Nonce), (*big.Int)(&args.Value), uint64(args.Net), input)
 	}
 	return types.NewTransaction(uint64(args.Nonce), args.To.Address(), (*big.Int)(&args.Value), (uint64)(args.Net), input, args.Types)
@@ -128,7 +128,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 
 func (args *SendTxArgs) isContract() bool {
 	flag := false
-	if args.Types == types.Ordinary && args.To == nil {
+	if args.Types == types.Contract && args.To == nil {
 		flag = true
 	}
 	return flag

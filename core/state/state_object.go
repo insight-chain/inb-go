@@ -386,11 +386,12 @@ func (self *stateObject) setVoteRecord(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int) {
+func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
 	netUse := self.db.ConvertToNets(amount)
+	nets = netUse
 	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
 
 	mortgageStateObject := self.db.GetMortgageStateObject()
@@ -416,9 +417,10 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 	}
 }
 
-func (self *stateObject) ResetNet(update *big.Int) {
+func (self *stateObject) ResetNet(update *big.Int, nets *big.Int) {
 	//available := new(big.Int).Sub(self.MortgageOfNet(), self.GetRedeem())
 	netUse := self.db.ConvertToNets(self.MortgageOfNet())
+	nets = netUse
 	netUsed := big.NewInt(0)
 
 	self.SetNet(netUsed, netUse, self.MortgageOfINB())
@@ -565,7 +567,7 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 		return
 	}
 	available := new(big.Int).Sub(self.MortgageOfNet(), self.Regular())
-	available.Sub(available,self.GetRedeem())
+	available.Sub(available, self.GetRedeem())
 	if available.Cmp(amount) < 0 {
 		return
 	}
@@ -575,16 +577,15 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 
 	redeem := Redeem{
 		StartTime: sTime,
-		Value:     new(big.Int).Add(self.GetRedeem(),amount),
+		Value:     new(big.Int).Add(self.GetRedeem(), amount),
 	}
 	self.data.Redeems[0] = redeem
 	self.SetRedeems(self.data.Redeems)
 }
 
-func (self *stateObject) Receive(sTime *big.Int) {
+func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 
 	value := self.GetRedeem()
-
 	redeem := Redeem{
 		StartTime: sTime,
 		Value:     big.NewInt(0),
@@ -599,6 +600,7 @@ func (self *stateObject) Receive(sTime *big.Int) {
 	}
 	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
 	mortgageStateObject.SubBalance(value)
+	amount = value
 }
 
 func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {

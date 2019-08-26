@@ -147,7 +147,7 @@ func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, 
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || (st.msg.To() == nil && st.msg.Types() == types.Ordinary) /* contract creation */ {
+	if st.msg == nil || (st.msg.To() == nil && st.msg.Types() == types.Contract) /* contract creation */ {
 		return common.Address{}
 	}
 	return *st.msg.To()
@@ -240,10 +240,10 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	//}
 
 	if st.msg.From()[0] != crypto.PrefixToAddress[0] {
-		return nil, 0, false, ErrInvalidAddress
+		return nil, 0, false, ErrInvalidAddress, nil
 	}
 	if err = st.preCheckForNet(); err != nil {
-		return nil, 0, false, err
+		return nil, 0, false, err, nil
 	}
 
 	//achilles repayment add apis
@@ -255,7 +255,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
-	contractCreation := msg.To() == nil && msg.Types() == types.Ordinary
+	contractCreation := msg.To() == nil && msg.Types() == types.Contract
 
 	// Pay intrinsic gas
 	////achilles replace gas with net

@@ -406,7 +406,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		}
 	}
 
-	instrNet, err := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Ordinary, pool.homestead)
+	instrNet, err := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
 	usableMorgageNetOfInb := currentState.GetNet(netPayment)
 	if !tx.IsMortgageNet() && !tx.IsUnMortgageNet() {
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
