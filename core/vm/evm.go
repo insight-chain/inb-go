@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"fmt"
 	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
@@ -270,11 +269,9 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 		}
 	} else if txType == types.Mortgage {
-		fmt.Println(" evm.NewCall() CanMortgage block number start = " + evm.BlockNumber.String())
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
 			return nil, net, err
 		}
-		fmt.Println(" evm.NewCall() CanMortgage block number end = " + evm.BlockNumber.String())
 	} else if txType == types.Redeem {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
 			return nil, net, err

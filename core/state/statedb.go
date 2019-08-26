@@ -101,10 +101,11 @@ func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
 
 // GetMortgagePreviousStateObject get last block state of mortgageAccount
 func (self *StateDB) GetMortgagePreviousStateObject() (s *stateObject) {
+
 	addr := common.HexToAddress(MortgageAccount)
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
-		self.setError(err)
+		log.Error("Failed to tryGet state object", "addr", addr, "err", err)
 		return nil
 	}
 	var data Account
