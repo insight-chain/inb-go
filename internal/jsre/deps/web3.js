@@ -1120,7 +1120,7 @@ var formatOutputString = function (param) {
  */
 var formatOutputAddress = function (param) {
     var value = param.staticPart();
-    return "0x" + value.slice(value.length - 40, value.length);
+    return "0x" + value.slice(value.length - 42, value.length);
 };
 
 module.exports = {
@@ -2235,7 +2235,7 @@ var toTwosComplement = function (number) {
  * @return {Boolean}
 */
 var isStrictAddress = function (address) {
-    return /^0x[0-9a-f]{40}$/i.test(address);
+    return /^0x95[0-9a-f]{40}$/i.test(address);
 };
 
 /**
@@ -2246,10 +2246,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!/^(0x)?[0-9a-f]{40}$/i.test(address)) {
+    if (!/^(0x)?95[0-9a-f]{40}$/i.test(address)) {
         // check if it has the basic requirements of an address
         return false;
-    } else if (/^(0x)?[0-9a-f]{40}$/.test(address) || /^(0x)?[0-9A-F]{40}$/.test(address)) {
+    } else if (/^(0x)?95[0-9a-f]{40}$/.test(address) || /^(0x)?95[0-9A-F]{40}$/.test(address)) {
         // If it's all small caps or all caps, return true
         return true;
     } else {
@@ -2270,7 +2270,7 @@ var isChecksumAddress = function (address) {
     address = address.replace('0x','');
     var addressHash = sha3(address.toLowerCase());
 
-    for (var i = 0; i < 40; i++ ) {
+    for (var i = 0; i < 42; i++ ) {
         // the nth letter should be uppercase if the nth digit of casemap is 1
         if ((parseInt(addressHash[i], 16) > 7 && address[i].toUpperCase() !== address[i]) || (parseInt(addressHash[i], 16) <= 7 && address[i].toLowerCase() !== address[i])) {
             return false;
@@ -2318,11 +2318,11 @@ var toAddress = function (address) {
         return address;
     }
 
-    if (/^[0-9a-f]{40}$/.test(address)) {
+    if (/^95[0-9a-f]{40}$/.test(address)) {
         return '0x' + address;
     }
 
-    return '0x' + padLeft(toHex(address).substr(2), 40);
+    return '0x' + padLeft(toHex(address).substr(2), 42);
 };
 
 /**
@@ -3768,10 +3768,15 @@ var inputTransactionFormatter = function (options){
         options.resourcePayer = inputAddressFormatter(options.resourcePayer);
     }
 
-    ['gasPrice', 'gas', 'value', 'nonce','txType'].filter(function (key) {
-        return options[key] !== undefined;
+    // ['gasPrice', 'gas', 'value', 'nonce'].filter(function (key) {
+    //     return options[key] !== undefined;
+    // }).forEach(function(key){
+    //     options[key] = utils.fromDecimal(options[key]);
+    // });
+    ['value', 'nonce'].filter(function (key) {
+      return options[key] !== undefined;
     }).forEach(function(key){
-        options[key] = utils.fromDecimal(options[key]);
+      options[key] = utils.fromDecimal(options[key]);
     });
 
     return options;
@@ -3790,8 +3795,8 @@ var outputTransactionFormatter = function (tx){
     if(tx.transactionIndex !== null)
         tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
     tx.nonce = utils.toDecimal(tx.nonce);
-    tx.gas = utils.toDecimal(tx.gas);
-    tx.gasPrice = utils.toBigNumber(tx.gasPrice);
+    tx.net = utils.toDecimal(tx.net);
+    // tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     tx.value = utils.toBigNumber(tx.value);
     return tx;
 };
@@ -3808,8 +3813,8 @@ var outputTransactionReceiptFormatter = function (receipt){
         receipt.blockNumber = utils.toDecimal(receipt.blockNumber);
     if(receipt.transactionIndex !== null)
         receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex);
-    receipt.cumulativeGasUsed = utils.toDecimal(receipt.cumulativeGasUsed);
-    receipt.gasUsed = utils.toDecimal(receipt.gasUsed);
+    receipt.cumulativeNetUsed = utils.toDecimal(receipt.cumulativeNetUsed);
+    receipt.netUsed = utils.toDecimal(receipt.netUsed);
 
     if(utils.isArray(receipt.logs)) {
         receipt.logs = receipt.logs.map(function(log){
@@ -3830,8 +3835,8 @@ var outputTransactionReceiptFormatter = function (receipt){
 var outputBlockFormatter = function(block) {
 
     // transform to number
-    block.gasLimit = utils.toDecimal(block.gasLimit);
-    block.gasUsed = utils.toDecimal(block.gasUsed);
+    block.netLimit = utils.toDecimal(block.netLimit);
+    block.netUsed = utils.toDecimal(block.netUsed);
     block.size = utils.toDecimal(block.size);
     block.timestamp = utils.toDecimal(block.timestamp);
     if(block.number !== null)
@@ -3969,7 +3974,7 @@ module.exports = {
     outputBlockFormatter: outputBlockFormatter,
     outputLogFormatter: outputLogFormatter,
     outputPostFormatter: outputPostFormatter,
-    outputSyncingFormatter: outputSyncingFormatter
+    outputSyncingFormatter: outputSyncingFormatter,
     //Resource by zc
     inputBigNumberFormatter:inputBigNumberFormatter
     //Resource by zc
@@ -4590,7 +4595,7 @@ Iban.prototype.isDirect = function () {
  * @returns {Boolean} true if it is, otherwise false
  */
 Iban.prototype.isIndirect = function () {
-    return this._iban.length === 20;
+    return this._iban.length === 21;
 };
 
 /**

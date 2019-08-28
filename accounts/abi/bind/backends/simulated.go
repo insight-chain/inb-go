@@ -67,7 +67,7 @@ type SimulatedBackend struct {
 // for testing purposes.
 func NewSimulatedBackend(alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
 	database := ethdb.NewMemDatabase()
-	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, GasLimit: gasLimit, Alloc: alloc}
+	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, NetLimit: gasLimit, Alloc: alloc}
 	genesis.MustCommit(database)
 	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ethash.NewFaker(), vm.Config{}, nil)
 
@@ -248,8 +248,9 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 		hi  uint64
 		cap uint64
 	)
-	if call.Gas >= params.TxGas {
-		hi = call.Gas
+	//achilles0817 replace column 'gas' with 'net'
+	if call.Net >= params.TxGas {
+		hi = call.Net
 	} else {
 		hi = b.pendingBlock.GasLimit()
 	}
@@ -257,7 +258,7 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 
 	// Create a helper to check if a gas allowance results in an executable transaction
 	executable := func(gas uint64) bool {
-		call.Gas = gas
+		call.Net = gas
 
 		snapshot := b.pendingState.Snapshot()
 		_, _, failed, err := b.callContract(ctx, call, b.pendingBlock, b.pendingState)
@@ -290,11 +291,11 @@ func (b *SimulatedBackend) EstimateGas(ctx context.Context, call ethereum.CallMs
 // state is modified during execution, make sure to copy it if necessary.
 func (b *SimulatedBackend) callContract(ctx context.Context, call ethereum.CallMsg, block *types.Block, statedb *state.StateDB) ([]byte, uint64, bool, error) {
 	// Ensure message is initialized properly.
-	if call.GasPrice == nil {
-		call.GasPrice = big.NewInt(1)
-	}
-	if call.Gas == 0 {
-		call.Gas = 50000000
+	//if call.GasPrice == nil {
+	//	call.GasPrice = big.NewInt(1)
+	//}
+	if call.Net == 0 {
+		call.Net = 50000000
 	}
 	if call.Value == nil {
 		call.Value = new(big.Int)
@@ -441,14 +442,16 @@ func (m callmsg) From() common.Address { return m.CallMsg.From }
 func (m callmsg) Nonce() uint64        { return 0 }
 func (m callmsg) CheckNonce() bool     { return false }
 func (m callmsg) To() *common.Address  { return m.CallMsg.To }
-func (m callmsg) GasPrice() *big.Int   { return m.CallMsg.GasPrice }
-func (m callmsg) Gas() uint64          { return m.CallMsg.Gas }
-func (m callmsg) Value() *big.Int      { return m.CallMsg.Value }
-func (m callmsg) Data() []byte         { return m.CallMsg.Data }
 func (m callmsg) Receive() *big.Int    { return m.CallMsg.Receive }
+//func (m callmsg) GasPrice() *big.Int   { return m.CallMsg.GasPrice }
+func (m callmsg) GasPrice() *big.Int { return big.NewInt(1) }
+func (m callmsg) Gas() uint64        { return m.CallMsg.Net }
+func (m callmsg) Value() *big.Int    { return m.CallMsg.Value }
+func (m callmsg) Data() []byte       { return m.CallMsg.Data }
+
 
 //achilles repayment add apis
-func (m callmsg) ResourcePayer() common.Address { return [20]byte{} }
+func (m callmsg) ResourcePayer() common.Address { return [21]byte{} }
 func (m callmsg) IsRePayment() bool             { return false }
 func (m callmsg) Types() types.TxType           { return 0 }
 

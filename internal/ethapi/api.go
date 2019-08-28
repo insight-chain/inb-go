@@ -156,9 +156,11 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	// Define a formatter to flatten a transaction into a string
 	var format = func(tx *types.Transaction) string {
 		if to := tx.To(); to != nil {
-			return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
+			//return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
+			return fmt.Sprintf("%s: %v wei + %v net ", tx.To().Hex(), tx.Value(), tx.Gas())
 		}
-		return fmt.Sprintf("contract creation: %v wei + %v gas × %v wei", tx.Value(), tx.Gas(), tx.GasPrice())
+		//return fmt.Sprintf("contract creation: %v wei + %v gas ", tx.Value(), tx.Gas(), tx.GasPrice())
+		return fmt.Sprintf("contract creation: %v wei + %v gas", tx.Value(), tx.Gas())
 	}
 	// Flatten the pending transactions
 	for account, txs := range pending {
@@ -408,11 +410,14 @@ func (s *PrivateAccountAPI) Investment(ctx context.Context, args SendTxArgs, pas
 func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs, passwd string) (*SignTransactionResult, error) {
 	// No need to obtain the noncelock mutex, since we won't be sending this
 	// tx into the transaction pool, but right back to the user
-	if args.Gas == nil {
-		return nil, fmt.Errorf("gas not specified")
-	}
-	if args.GasPrice == nil {
-		return nil, fmt.Errorf("gasPrice not specified")
+	//if args.Gas == nil {
+	//	return nil, fmt.Errorf("gas not specified")
+	//}
+	//if args.GasPrice == nil {
+	//	return nil, fmt.Errorf("gasPrice not specified")
+	//}
+	if args.Types == 0 {
+		return nil, fmt.Errorf("txType not specified")
 	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
@@ -1007,13 +1012,13 @@ func (s *PublicBlockChainAPI) GetStorageAt(ctx context.Context, address common.A
 
 // CallArgs represents the arguments for a call.
 type CallArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      hexutil.Uint64  `json:"gas"`
-	GasPrice hexutil.Big     `json:"gasPrice"`
-	Value    hexutil.Big     `json:"value"`
-	Data     hexutil.Bytes   `json:"data"`
-	Types    types.TxType    `json:"txType"`
+	From common.Address  `json:"from"`
+	To   *common.Address `json:"to"`
+	Gas  hexutil.Uint64  `json:"gas"`
+	//GasPrice hexutil.Big     `json:"gasPrice"`
+	Value hexutil.Big   `json:"value"`
+	Data  hexutil.Bytes `json:"data"`
+	Types types.TxType  `json:"txType"`
 }
 
 func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr rpc.BlockNumber, timeout time.Duration) ([]byte, uint64, bool, error) {
@@ -1033,16 +1038,21 @@ func (s *PublicBlockChainAPI) doCall(ctx context.Context, args CallArgs, blockNr
 		}
 	}
 	// Set default gas & gas price if none were set
-	gas, gasPrice := uint64(args.Gas), args.GasPrice.ToInt()
+	//achilles190806 todo replace with net
+	//gas, gasPrice := uint64(args.Gas), args.GasPrice.ToInt()
+	//if gas == 0 {
+	//	gas = math.MaxUint64 / 2
+	//}
+	//if gasPrice.Sign() == 0 {
+	//	gasPrice = new(big.Int).SetUint64(defaultGasPrice)
+	//}
+	gas := uint64(args.Gas)
 	if gas == 0 {
 		gas = math.MaxUint64 / 2
 	}
-	if gasPrice.Sign() == 0 {
-		gasPrice = new(big.Int).SetUint64(defaultGasPrice)
-	}
 
 	// Create new call message
-	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, gasPrice, args.Data, false, args.Types)
+	msg := types.NewMessage(addr, args.To, 0, args.Value.ToInt(), gas, args.Data, false, args.Types)
 
 	// Setup context so it may be cancelled the call has completed
 	// or, in case of unmetered gas, setup a context with a timeout.
@@ -1213,8 +1223,8 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"difficulty":       (*hexutil.Big)(head.Difficulty),
 		"extraData":        hexutil.Bytes(head.Extra),
 		"size":             hexutil.Uint64(b.Size()),
-		"gasLimit":         hexutil.Uint64(head.GasLimit),
-		"gasUsed":          hexutil.Uint64(head.GasUsed),
+		"netLimit":         hexutil.Uint64(head.NetLimit),
+		"netUsed":          hexutil.Uint64(head.NetUsed),
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
@@ -1265,11 +1275,11 @@ func (s *PublicBlockChainAPI) rpcOutputBlock(b *types.Block, inclTx bool, fullTx
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockHash        common.Hash     `json:"blockHash"`
-	BlockNumber      *hexutil.Big    `json:"blockNumber"`
-	From             common.Address  `json:"from"`
-	Gas              hexutil.Uint64  `json:"gas"`
-	GasPrice         *hexutil.Big    `json:"gasPrice"`
+	BlockHash   common.Hash    `json:"blockHash"`
+	BlockNumber *hexutil.Big   `json:"blockNumber"`
+	From        common.Address `json:"from"`
+	//Gas         hexutil.Uint64 `json:"gas"`
+	//GasPrice         *hexutil.Big    `json:"gasPrice"`
 	Hash             common.Hash     `json:"hash"`
 	Input            hexutil.Bytes   `json:"input"`
 	Nonce            hexutil.Uint64  `json:"nonce"`
@@ -1293,18 +1303,18 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 	v, r, s := tx.RawSignatureValues()
 
 	result := &RPCTransaction{
-		From:     from,
-		Gas:      hexutil.Uint64(tx.Gas()),
-		GasPrice: (*hexutil.Big)(tx.GasPrice()),
-		Hash:     tx.Hash(),
-		Input:    hexutil.Bytes(tx.Data()),
-		Nonce:    hexutil.Uint64(tx.Nonce()),
-		To:       tx.To(),
-		Value:    (*hexutil.Big)(tx.Value()),
-		V:        (*hexutil.Big)(v),
-		R:        (*hexutil.Big)(r),
-		S:        (*hexutil.Big)(s),
-		Types:    tx.Types(),
+		From: from,
+		//Gas:  hexutil.Uint64(tx.Gas()),
+		//GasPrice: (*hexutil.Big)(tx.GasPrice()),
+		Hash:  tx.Hash(),
+		Input: hexutil.Bytes(tx.Data()),
+		Nonce: hexutil.Uint64(tx.Nonce()),
+		To:    tx.To(),
+		Value: (*hexutil.Big)(tx.Value()),
+		V:     (*hexutil.Big)(v),
+		R:     (*hexutil.Big)(r),
+		S:     (*hexutil.Big)(s),
+		Types: tx.Types(),
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
@@ -1476,8 +1486,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from,
 		"to":                tx.To(),
-		"netUsed":           hexutil.Uint64(receipt.GasUsed),           //inb by ssh 190628
-		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeGasUsed), //inb by ssh 190628
+		"netUsed":           hexutil.Uint64(receipt.NetUsed),           //inb by ssh 190628
+		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeNetUsed), //inb by ssh 190628
 		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
@@ -1520,12 +1530,12 @@ func (s *PublicTransactionPoolAPI) sign(addr common.Address, tx *types.Transacti
 
 // SendTxArgs represents the arguments to sumbit a new transaction into the transaction pool.
 type SendTxArgs struct {
-	From     common.Address  `json:"from"`
-	To       *common.Address `json:"to"`
-	Gas      *hexutil.Uint64 `json:"gas"`
-	GasPrice *hexutil.Big    `json:"gasPrice"`
-	Value    *hexutil.Big    `json:"value"`
-	Nonce    *hexutil.Uint64 `json:"nonce"`
+	From common.Address  `json:"from"`
+	To   *common.Address `json:"to" `
+	//Gas  *hexutil.Uint64 `json:"gas"`
+	//GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value *hexutil.Big    `json:"value"`
+	Nonce *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
 	Data  *hexutil.Bytes `json:"data"`
@@ -1537,16 +1547,19 @@ type SendTxArgs struct {
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
 func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
-	if args.Gas == nil {
-		args.Gas = new(hexutil.Uint64)
-		*(*uint64)(args.Gas) = 90000
-	}
-	if args.GasPrice == nil {
-		price, err := b.SuggestPrice(ctx)
-		if err != nil {
-			return err
-		}
-		args.GasPrice = (*hexutil.Big)(price)
+	//if args.Gas == nil {
+	//	args.Gas = new(hexutil.Uint64)
+	//	*(*uint64)(args.Gas) = 90000
+	//}
+	//if args.GasPrice == nil {
+	//	price, err := b.SuggestPrice(ctx)
+	//	if err != nil {
+	//		return err
+	//	}
+	//	//args.GasPrice = (*hexutil.Big)(price)
+	//}
+	if args.Types == 0 {
+		return errors.New(`txType not specified`)
 	}
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
@@ -1561,7 +1574,7 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
 		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
 	}
-	if args.To == nil {
+	if args.To == nil && args.Types == types.Contract {
 		// Contract creation
 		var input []byte
 		if args.Data != nil {
@@ -1583,13 +1596,15 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	if args.To == nil {
-		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input)
+	if args.To == nil && args.Types == types.Contract {
+		//return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
+		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input)
 	}
 	// 	if args.ResourcePayer != nil {
-	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.ResourcePayer,args.Types)
+	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
 	// 	}
-	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types)
 }
 
 // submitTransaction is a helper function that submits tx to txPool and logs a message.
@@ -1597,7 +1612,7 @@ func submitTransaction(ctx context.Context, b Backend, tx *types.Transaction) (c
 	if err := b.SendTx(ctx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if tx.To() == nil {
+	if tx.To() == nil && tx.Types() == types.Contract {
 		signer := types.MakeSigner(b.ChainConfig(), b.CurrentBlock().Number())
 		from, err := types.Sender(signer, tx)
 		if err != nil {
@@ -1629,7 +1644,6 @@ func (s *PublicTransactionPoolAPI) SendTransaction(ctx context.Context, args Sen
 		s.nonceLock.LockAddr(args.From)
 		defer s.nonceLock.UnlockAddr(args.From)
 	}
-
 	// Set some sanity defaults and terminate on failure
 	if err := args.setDefaults(ctx, s.b); err != nil {
 		return common.Hash{}, err
@@ -1749,6 +1763,9 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 	//if args.GasPrice == nil {
 	//	return nil, fmt.Errorf("gasPrice not specified")
 	//}
+	if args.Types == 0 {
+		return nil, fmt.Errorf("txType not specified")
+	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
@@ -1867,12 +1884,12 @@ func (s *PublicTransactionPoolAPI) Resend(ctx context.Context, sendArgs SendTxAr
 
 		if pFrom, err := types.Sender(signer, p); err == nil && pFrom == sendArgs.From && signer.Hash(p) == wantSigHash {
 			// Match. Re-sign and send the transaction.
-			if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
-				sendArgs.GasPrice = gasPrice
-			}
-			if gasLimit != nil && *gasLimit != 0 {
-				sendArgs.Gas = gasLimit
-			}
+			//if gasPrice != nil && (*big.Int)(gasPrice).Sign() != 0 {
+			//	sendArgs.GasPrice = gasPrice
+			//}
+			//if gasLimit != nil && *gasLimit != 0 {
+			//	sendArgs.Gas = gasLimit
+			//}
 			signedTx, err := s.sign(sendArgs.From, sendArgs.toTransaction())
 			if err != nil {
 				return common.Hash{}, err

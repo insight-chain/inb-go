@@ -51,15 +51,15 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		//Resource by zc
 		MortgageTransfer: MortgageTransfer,
 		//Resource by zc
-		GetHash:               GetHashFn(header, chain),
-		Origin:                msg.From(),
-		Coinbase:              beneficiary,
-		BlockNumber:           new(big.Int).Set(header.Number),
-		Time:                  new(big.Int).Set(header.Time),
-		SpecialConsensus:      header.SpecialConsensus, //2019.7.31 inb by ghy
-		Difficulty:            new(big.Int).Set(header.Difficulty),
-		GasLimit:              header.GasLimit,
-		GasPrice:              new(big.Int).Set(msg.GasPrice()),
+		GetHash:          GetHashFn(header, chain),
+		Origin:           msg.From(),
+		Coinbase:         beneficiary,
+		BlockNumber:      new(big.Int).Set(header.Number),
+		Time:             new(big.Int).Set(header.Time),
+		SpecialConsensus: header.SpecialConsensus, //2019.7.31 inb by ghy
+		Difficulty:       new(big.Int).Set(header.Difficulty),
+		GasLimit:         header.NetLimit,
+		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
 		CanMortgage:           CanMortgage,
 		CanRedeem:             CanRedeem,
 		CanReset:              CanReset,
@@ -114,15 +114,15 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) {
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
 	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	db.MortgageNet(sender, amount, duration, sTime)
+	db.MortgageNet(sender, amount, duration, sTime, nets)
 }
 
 //achilles0719 regular mortgagtion
-func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) {
-	db.ResetNet(sender, update)
+func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int, nets *big.Int) {
+	db.ResetNet(sender, update, nets)
 }
 
 //Resource by zc
@@ -147,7 +147,7 @@ func ReceiveVoteAwardFunc(db vm.StateDB, from common.Address, values *big.Int, t
 }
 
 func Vote(db vm.StateDB, from common.Address, time *big.Int) {
-	db.Vote(from,time)
+	db.Vote(from, time)
 }
 
 //2019.7.22 inb by ghy end
@@ -156,10 +156,8 @@ func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big
 	db.Redeem(sender, amount, sTime)
 }
 
-func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) {
-	//db.SubBalance(recipient, amount)
-	//db.AddBalance(sender, amount)
-	db.Receive(sender, sTime)
+func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int, amount *big.Int) {
+	db.Receive(sender, sTime, amount)
 }
 
 func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {
@@ -197,7 +195,8 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	value := db.GetRedeem(addr)
 
 	usable := new(big.Int).Sub(mortgaging, regular)
-	usable = new(big.Int).Add(usable, value)
+	//usable = new(big.Int).Add(usable, value)
+	usable.Sub(usable, value)
 	if usable.Cmp(amount) < 0 {
 		return errors.New(" insufficient available value of mortgage ")
 	}

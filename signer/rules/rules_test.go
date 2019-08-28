@@ -458,12 +458,12 @@ func dummyTx(value hexutil.Big) *core.SignTxRequest {
 
 	return &core.SignTxRequest{
 		Transaction: core.SendTxArgs{
-			From:     *from,
-			To:       to,
-			Value:    value,
-			Nonce:    n,
-			GasPrice: gasPrice,
-			Gas:      gas,
+			From:  *from,
+			To:    to,
+			Value: value,
+			Nonce: n,
+			//GasPrice: gasPrice,
+			Net: gas,
 		},
 		Callinfo: []core.ValidationInfo{
 			{Typ: "Warning", Message: "All your base are bellong to us"},
@@ -480,9 +480,9 @@ func dummyTxWithV(value uint64) *core.SignTxRequest {
 func dummySigned(value *big.Int) *types.Transaction {
 	to := common.HexToAddress("000000000000000000000000000000000000dead")
 	gas := uint64(21000)
-	gasPrice := big.NewInt(2000000)
+	//gasPrice := big.NewInt(2000000)
 	data := make([]byte, 0)
-	return types.NewTransaction(3, to, value, gas, gasPrice, data, types.Default)
+	return types.NewTransaction(3, to, value, gas, data, types.Ordinary)
 
 }
 func TestLimitWindow(t *testing.T) {

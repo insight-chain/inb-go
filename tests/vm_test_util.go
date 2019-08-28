@@ -47,7 +47,7 @@ type vmJSON struct {
 	Env           stEnv                 `json:"env"`
 	Exec          vmExec                `json:"exec"`
 	Logs          common.UnprefixedHash `json:"logs"`
-	GasRemaining  *math.HexOrDecimal64  `json:"gas"`
+	GasRemaining  *math.HexOrDecimal64  `json:"net"`
 	Out           hexutil.Bytes         `json:"out"`
 	Pre           core.GenesisAlloc     `json:"pre"`
 	Post          core.GenesisAlloc     `json:"post"`
@@ -63,8 +63,8 @@ type vmExec struct {
 	Code     []byte         `json:"code"     gencodec:"required"`
 	Data     []byte         `json:"data"     gencodec:"required"`
 	Value    *big.Int       `json:"value"    gencodec:"required"`
-	GasLimit uint64         `json:"gas"      gencodec:"required"`
-	GasPrice *big.Int       `json:"gasPrice" gencodec:"required"`
+	NetLimit uint64         `json:"net"      gencodec:"required"`
+	//GasPrice *big.Int       `json:"gasPrice" gencodec:"required"`
 }
 
 type vmExecMarshaling struct {
@@ -74,8 +74,8 @@ type vmExecMarshaling struct {
 	Code     hexutil.Bytes
 	Data     hexutil.Bytes
 	Value    *math.HexOrDecimal256
-	GasLimit math.HexOrDecimal64
-	GasPrice *math.HexOrDecimal256
+	NetLimit math.HexOrDecimal64
+	//GasPrice *math.HexOrDecimal256
 }
 
 func (t *VMTest) Run(vmconfig vm.Config) error {
@@ -117,7 +117,7 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, error) {
 	evm := t.newEVM(statedb, vmconfig)
 	e := t.json.Exec
-	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.GasLimit, e.Value)
+	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.NetLimit, e.Value)
 }
 
 func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
@@ -140,7 +140,7 @@ func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {
 		Time:        new(big.Int).SetUint64(t.json.Env.Timestamp),
 		GasLimit:    t.json.Env.GasLimit,
 		Difficulty:  t.json.Env.Difficulty,
-		GasPrice:    t.json.Exec.GasPrice,
+		//GasPrice:    t.json.Exec.GasPrice,
 	}
 	vmconfig.NoRecursion = true
 	return vm.NewEVM(context, statedb, params.MainnetChainConfig, vmconfig)

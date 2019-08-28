@@ -107,8 +107,8 @@ func (h *Header) GetReceiptHash() *Hash  { return &Hash{h.header.ReceiptHash} }
 func (h *Header) GetBloom() *Bloom       { return &Bloom{h.header.Bloom} }
 func (h *Header) GetDifficulty() *BigInt { return &BigInt{h.header.Difficulty} }
 func (h *Header) GetNumber() int64       { return h.header.Number.Int64() }
-func (h *Header) GetGasLimit() int64     { return int64(h.header.GasLimit) }
-func (h *Header) GetGasUsed() int64      { return int64(h.header.GasUsed) }
+func (h *Header) GetGasLimit() int64     { return int64(h.header.NetLimit) }
+func (h *Header) GetGasUsed() int64      { return int64(h.header.NetUsed) }
 func (h *Header) GetTime() int64         { return h.header.Time.Int64() }
 func (h *Header) GetExtra() []byte       { return h.header.Extra }
 func (h *Header) GetMixDigest() *Hash    { return &Hash{h.header.MixDigest} }
@@ -199,7 +199,7 @@ type Transaction struct {
 
 // NewTransaction creates a new transaction with the given properties.
 func NewTransaction(nonce int64, to *Address, amount *BigInt, gasLimit int64, gasPrice *BigInt, data []byte) *Transaction {
-	return &Transaction{types.NewTransaction(uint64(nonce), to.address, amount.bigint, uint64(gasLimit), gasPrice.bigint, common.CopyBytes(data), types.Default)}
+	return &Transaction{types.NewTransaction(uint64(nonce), to.address, amount.bigint, uint64(gasLimit), common.CopyBytes(data), types.Ordinary)}
 }
 
 // NewTransactionFromRLP parses a transaction from an RLP data dump.
@@ -235,11 +235,12 @@ func (tx *Transaction) EncodeJSON() (string, error) {
 	return string(data), err
 }
 
-func (tx *Transaction) GetData() []byte      { return tx.tx.Data() }
-func (tx *Transaction) GetGas() int64        { return int64(tx.tx.Gas()) }
-func (tx *Transaction) GetGasPrice() *BigInt { return &BigInt{tx.tx.GasPrice()} }
-func (tx *Transaction) GetValue() *BigInt    { return &BigInt{tx.tx.Value()} }
-func (tx *Transaction) GetNonce() int64      { return int64(tx.tx.Nonce()) }
+func (tx *Transaction) GetData() []byte { return tx.tx.Data() }
+func (tx *Transaction) GetGas() int64   { return int64(tx.tx.Gas()) }
+
+//func (tx *Transaction) GetGasPrice() *BigInt { return &BigInt{tx.tx.GasPrice()} }
+func (tx *Transaction) GetValue() *BigInt { return &BigInt{tx.tx.Value()} }
+func (tx *Transaction) GetNonce() int64   { return int64(tx.tx.Nonce()) }
 
 func (tx *Transaction) GetHash() *Hash   { return &Hash{tx.tx.Hash()} }
 func (tx *Transaction) GetCost() *BigInt { return &BigInt{tx.tx.Cost()} }
@@ -329,12 +330,12 @@ func (r *Receipt) EncodeJSON() (string, error) {
 
 func (r *Receipt) GetStatus() int               { return int(r.receipt.Status) }
 func (r *Receipt) GetPostState() []byte         { return r.receipt.PostState }
-func (r *Receipt) GetCumulativeGasUsed() int64  { return int64(r.receipt.CumulativeGasUsed) }
+func (r *Receipt) GetCumulativeGasUsed() int64  { return int64(r.receipt.CumulativeNetUsed) }
 func (r *Receipt) GetBloom() *Bloom             { return &Bloom{r.receipt.Bloom} }
 func (r *Receipt) GetLogs() *Logs               { return &Logs{r.receipt.Logs} }
 func (r *Receipt) GetTxHash() *Hash             { return &Hash{r.receipt.TxHash} }
 func (r *Receipt) GetContractAddress() *Address { return &Address{r.receipt.ContractAddress} }
-func (r *Receipt) GetGasUsed() int64            { return int64(r.receipt.GasUsed) }
+func (r *Receipt) GetGasUsed() int64            { return int64(r.receipt.NetUsed) }
 
 // Info represents a diagnostic information about the whisper node.
 type Info struct {

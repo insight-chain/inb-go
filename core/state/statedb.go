@@ -60,17 +60,17 @@ const (
 	//unMortgageNet
 	unMortgageNet //3
 
-	MasterAccount    string = "0x1000000000000000000000000000000000000000" // account record value of circulation
-	MortgageAccount  string = "0x3000000000000000000000000000000000000000" // account record value of mortgaging
-	BonusAccount     string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
-	MarketingAccount string = "0x5000000000000000000000000000000000000000" // account record value of Marketing
-	Foundation       string = "Foundation"                                 // account record value of Foundation
-	MiningReward     string = "MiningReward"                               // account record value of Mining
-	VerifyReward     string = "VerifyReward"                               // account record value of Verify
-	VotingReward     string = "VotingReward"                               // account record value of Voting
-	Team             string = "Team"                                       // account record value of team
-	OnlineMarketing  string = "OnlineMarketing"                            // account record value of OnlineMarketing
-	OfflineMarketing string = "OfflineMarketing"                           // account record value of OfflineMarketing
+	MasterAccount    string = "0x1000000000000000000000000000000000000000"   // account record value of circulation
+	MortgageAccount  string = "0x953000000000000000000000000000000000000000" // account record value of mortgaging
+	BonusAccount     string = "0x3000000000000000000000000000000000000000"   // account record value of Bonus
+	MarketingAccount string = "0x5000000000000000000000000000000000000000"   // account record value of Marketing
+	Foundation       string = "Foundation"                                   // account record value of Foundation
+	MiningReward     string = "MiningReward"                                 // account record value of Mining
+	VerifyReward     string = "VerifyReward"                                 // account record value of Verify
+	VotingReward     string = "VotingReward"                                 // account record value of Voting
+	Team             string = "Team"                                         // account record value of team
+	OnlineMarketing  string = "OnlineMarketing"                              // account record value of OnlineMarketing
+	OfflineMarketing string = "OfflineMarketing"                             // account record value of OfflineMarketing
 
 	FoundationAccount       string = "0x1100000000000000000000000000000000000000" // account record value of Foundation
 	MiningRewardAccount     string = "0x1310000000000000000000000000000000000000" // account record value of Mining
@@ -97,6 +97,23 @@ func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
 //achilles0709 add accounts
 func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
 	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
+}
+
+// GetMortgagePreviousStateObject get last block state of mortgageAccount
+func (self *StateDB) GetMortgagePreviousStateObject() (s *stateObject) {
+
+	addr := common.HexToAddress(MortgageAccount)
+	enc, err := self.trie.TryGet(addr[:])
+	if len(enc) == 0 {
+		log.Error("Failed to tryGet state object", "addr", addr, "err", err)
+		return nil
+	}
+	var data Account
+	if err := rlp.DecodeBytes(enc, &data); err != nil {
+		log.Error("Failed to decode state object", "addr", addr, "err", err)
+		return nil
+	}
+	return newObject(self, addr, data)
 }
 
 func (self *StateDB) GetMasterStateObject() (s *stateObject) {
@@ -523,17 +540,17 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int) {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.MortgageNet(amount, duration, sTime)
+		stateObject.MortgageNet(amount, duration, sTime, nets)
 	}
 }
 
-func (self *StateDB) ResetNet(addr common.Address, update *big.Int) {
+func (self *StateDB) ResetNet(addr common.Address, update *big.Int, nets *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.ResetNet(update)
+		stateObject.ResetNet(update, nets)
 	}
 }
 
@@ -603,11 +620,10 @@ func (self *StateDB) Vote(addr common.Address, time *big.Int) {
 
 //2019.7.22 inb by ghy end
 
-//removed
-func (self *StateDB) Receive(addr common.Address, sTime *big.Int) {
+func (self *StateDB) Receive(addr common.Address, sTime *big.Int, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.Receive(sTime)
+		stateObject.Receive(sTime, amount)
 	}
 }
 

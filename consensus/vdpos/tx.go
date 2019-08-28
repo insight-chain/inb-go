@@ -76,8 +76,8 @@ type RefundGas map[common.Address]*big.Int
 
 // RefundPair :
 type RefundPair struct {
-	Sender   common.Address
-	GasPrice *big.Int
+	Sender common.Address
+	//GasPrice *big.Int
 }
 
 // RefundHash :
@@ -278,12 +278,14 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 	}
 
-	for _, receipt := range receipts {
-		if pair, ok := refundHash[receipt.TxHash]; ok && receipt.Status == 1 {
-			pair.GasPrice.Mul(pair.GasPrice, big.NewInt(int64(receipt.GasUsed)))
-			refundGas = v.refundAddGas(refundGas, pair.Sender, pair.GasPrice)
-		}
-	}
+	//achilles190806 replace net todo ?
+	//for _, receipt := range receipts {
+	//if pair, ok := refundHash[receipt.TxHash]; ok && receipt.Status == 1 {
+
+	//pair.GasPrice.Mul(pair.GasPrice, big.NewInt(int64(receipt.GasUsed)))
+	//refundGas = v.refundAddGas(refundGas, pair.Sender, pair.GasPrice)
+	//}
+	//}
 	return headerExtra, refundGas, nil
 }
 
@@ -318,9 +320,7 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 
 		if len(midEnodeInfo) >= 6 {
 			enodeInfo.City = midEnodeInfo[PosEventDeclareInfoCity]
-
 		}
-
 		if len(midEnodeInfo) >= 7 {
 			enodeInfo.Image = midEnodeInfo[PosEventDeclareInfoImage]
 
@@ -407,7 +407,7 @@ func (v *Vdpos) processEventConfirm(currentBlockConfirmations []Confirmation, ch
 					Signer:      confirm,
 					BlockNumber: new(big.Int).Set(confirmedBlockNumber),
 				})
-				refundHash[tx.Hash()] = RefundPair{confirm, tx.GasPrice()}
+				refundHash[tx.Hash()] = RefundPair{confirm}
 				break
 			}
 		}

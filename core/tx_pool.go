@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"github.com/insight-chain/inb-go/crypto"
 	"math"
 	"math/big"
 	"sort"
@@ -93,7 +94,8 @@ var (
 	ErrParameterError              = errors.New("Parameter error")
 
 	//achilles0718 regular mortgagtion
-	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
+	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
+	ErrInvalidAddress = errors.New("invalid address without right prefix")
 )
 
 var (
@@ -430,7 +432,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 	pool.currentState = statedb
 	pool.pendingState = state.ManageState(statedb)
-	pool.currentMaxGas = newHead.GasLimit
+	pool.currentMaxGas = newHead.NetLimit
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -682,6 +684,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
+	if from[0] != crypto.PrefixToAddress[0] {
+		return ErrInvalidAddress
+	}
 	if !tx.WhichTypes(types.Repayment) {
 		netPayment = from
 	}
@@ -762,8 +767,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.SpecialTx) || tx.WhichTypes(types.Receive)) {
-		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+
+	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.SpecilaTx) || tx.WhichTypes(types.Redeem)) {
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
+
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
@@ -789,10 +796,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
-		netUse = netUse.Mul(netUse, unit)
-		usableInb := pool.currentState.GetMortgageInbOfNet(netPayment)
-		if usableInb.Cmp(tx.Value()) < 0 {
+		mortgageInb := pool.currentState.GetMortgageInbOfNet(netPayment)
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRegular(netPayment))
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRedeem(netPayment))
+		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
 	}
@@ -825,14 +832,16 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
 		// If the new transaction is underpriced, don't accept it
 		if !local && pool.priced.Underpriced(tx, pool.locals) {
-			log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			//log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			log.Trace("Discarding underpriced transaction", "hash", hash)
 			underpricedTxCounter.Inc(1)
 			return false, ErrUnderpriced
 		}
 		// New transaction is better than our worse ones, make room for it
 		drop := pool.priced.Discard(pool.all.Count()-int(pool.config.GlobalSlots+pool.config.GlobalQueue-1), pool.locals)
 		for _, tx := range drop {
-			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			//log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash())
 			underpricedTxCounter.Inc(1)
 			pool.removeTx(tx.Hash(), false)
 		}

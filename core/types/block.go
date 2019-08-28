@@ -77,8 +77,8 @@ type Header struct {
 	Bloom            Bloom            `json:"logsBloom"        gencodec:"required"`
 	Difficulty       *big.Int         `json:"difficulty"       gencodec:"required"`
 	Number           *big.Int         `json:"number"           gencodec:"required"`
-	GasLimit         uint64           `json:"gasLimit"         gencodec:"required"`
-	GasUsed          uint64           `json:"gasUsed"          gencodec:"required"`
+	NetLimit         uint64           `json:"netLimit"         gencodec:"required"`
+	NetUsed          uint64           `json:"netUsed"          gencodec:"required"`
 	Time             *big.Int         `json:"timestamp"        gencodec:"required"`
 	Extra            []byte           `json:"extraData"        gencodec:"required"`
 	MixDigest        common.Hash      `json:"mixHash"`
@@ -109,8 +109,8 @@ type SpecialConsensusAddress struct {
 type headerMarshaling struct {
 	Difficulty *hexutil.Big
 	Number     *hexutil.Big
-	GasLimit   hexutil.Uint64
-	GasUsed    hexutil.Uint64
+	NetLimit   hexutil.Uint64
+	NetUsed    hexutil.Uint64
 	Time       *hexutil.Big
 	Extra      hexutil.Bytes
 	Hash       common.Hash `json:"hash"` // adds call to Hash() in MarshalJSON
@@ -304,8 +304,8 @@ func (b *Block) Transaction(hash common.Hash) *Transaction {
 }
 
 func (b *Block) Number() *big.Int     { return new(big.Int).Set(b.header.Number) }
-func (b *Block) GasLimit() uint64     { return b.header.GasLimit }
-func (b *Block) GasUsed() uint64      { return b.header.GasUsed }
+func (b *Block) GasLimit() uint64     { return b.header.NetLimit }
+func (b *Block) GasUsed() uint64      { return b.header.NetUsed }
 func (b *Block) Difficulty() *big.Int { return new(big.Int).Set(b.header.Difficulty) }
 func (b *Block) Time() *big.Int       { return new(big.Int).Set(b.header.Time) }
 

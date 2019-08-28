@@ -21,6 +21,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
+	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
 	"math"
@@ -49,10 +50,11 @@ The state transitioning model does all the necessary work to work out a valid ne
 6) Derive new state root
 */
 type StateTransition struct {
-	gp         *GasPool
-	msg        Message
-	gas        uint64
-	gasPrice   *big.Int
+	gp  *GasPool
+	msg Message
+	net uint64
+	//gas        uint64
+	//gasPrice   *big.Int
 	initialGas uint64
 	value      *big.Int
 	data       []byte
@@ -66,7 +68,7 @@ type Message interface {
 	//FromFrontier() (common.Address, error)
 	To() *common.Address
 
-	GasPrice() *big.Int
+	//GasPrice() *big.Int
 	Gas() uint64
 	Value() *big.Int
 
@@ -121,13 +123,13 @@ func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error)
 // NewStateTransition initialises and returns a new state transition object.
 func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition {
 	return &StateTransition{
-		gp:       gp,
-		evm:      evm,
-		msg:      msg,
-		gasPrice: msg.GasPrice(),
-		value:    msg.Value(),
-		data:     msg.Data(),
-		state:    evm.StateDB,
+		gp:  gp,
+		evm: evm,
+		msg: msg,
+		//gasPrice: msg.GasPrice(),
+		value: msg.Value(),
+		data:  msg.Data(),
+		state: evm.StateDB,
 	}
 }
 
@@ -138,23 +140,34 @@ func NewStateTransition(evm *vm.EVM, msg Message, gp *GasPool) *StateTransition 
 // the gas used (which includes gas refunds) and an error if it failed. An error always
 // indicates a core error meaning that the message would always fail for that particular
 // state and would never be accepted within a block.
+
 func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, error, *big.Int) {
 	return NewStateTransition(evm, msg, gp).TransitionDb()
 }
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
+	if st.msg == nil || (st.msg.To() == nil && st.msg.Types() == types.Contract) /* contract creation */ {
 		return common.Address{}
 	}
 	return *st.msg.To()
 }
 
 func (st *StateTransition) useGas(amount uint64) error {
-	if st.gas < amount {
+	//if st.gas < amount {
+	//	return vm.ErrOutOfGas
+	//}
+	//st.gas -= amount
+	//
+	//return nil
+	return st.useNet(amount)
+}
+
+func (st *StateTransition) useNet(amount uint64) error {
+	if st.net < amount {
 		return vm.ErrOutOfGas
 	}
-	st.gas -= amount
+	st.net -= amount
 
 	return nil
 }
@@ -170,7 +183,8 @@ func (st *StateTransition) useGas(amount uint64) error {
 //}
 
 func (st *StateTransition) buyGas() error {
-	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	//mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	mgval := new(big.Int).SetUint64(st.msg.Gas())
 	//achilles repayment add apis
 	payment := st.msg.From()
 	//if st.msg.IsRePayment() {
@@ -182,7 +196,7 @@ func (st *StateTransition) buyGas() error {
 	if err := st.gp.SubGas(st.msg.Gas()); err != nil {
 		return err
 	}
-	st.gas += st.msg.Gas()
+	st.net += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
 	st.state.SubBalance(payment, mgval)
@@ -218,13 +232,18 @@ func (st *StateTransition) preCheckForNet() error {
 // TransitionDb will transition the state by applying the current message and
 // returning the result including the used gas. It returns an error if failed.
 // An error indicates a consensus issue.
-func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bool, err error, receive *big.Int) {
+
+func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bool, err error, receive *big.Int) {
 	//achilles replace gas with net
 	//if err = st.preCheck(); err != nil {
 	//	return
 	//}
+
+	if st.msg.From()[0] != crypto.PrefixToAddress[0] {
+		return nil, 0, false, ErrInvalidAddress, nil
+	}
 	if err = st.preCheckForNet(); err != nil {
-		return
+		return nil, 0, false, err, nil
 	}
 
 	//achilles repayment add apis
@@ -236,7 +255,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
 	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
-	contractCreation := msg.To() == nil
+	contractCreation := msg.To() == nil && msg.Types() == types.Contract
 
 	// Pay intrinsic gas
 	////achilles replace gas with net
@@ -250,7 +269,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//}
 
 	//mgval := new(big.Int).SetUint64(st.msg.Gas())
-	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.SpecialTx || st.msg.Types() == types.Receive) {
+
+	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.Receive || st.msg.Types() == types.SpecilaTx || st.msg.Types() == types.Redeem) {
+
 		if st.state.GetNet(netPayment).Cmp(big.NewInt(int64(net))) < 0 {
 			return nil, 0, false, errInsufficientBalanceForGas, nil
 		}
@@ -265,12 +286,11 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		vmerr error
 	)
 	if contractCreation {
-		ret, _, st.gas, vmerr = evm.Create(sender, st.data, st.gas, st.value)
-
+		ret, _, st.net, vmerr = evm.Create(sender, st.data, st.net, st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.gas, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.gas, st.value, st.msg.Types())
+		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
@@ -291,27 +311,28 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 
 func (st *StateTransition) refundGas() {
 	// Apply refund counter, capped to half of the used gas.
-	refund := st.gasUsed() / 2
-	if refund > st.state.GetRefund() {
-		refund = st.state.GetRefund()
-	}
-	st.gas += refund
-
-	// Return ETH for remaining gas, exchanged at the original rate.
-	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	//achilles repayment add apis
-	//if st.msg.IsRePayment() {
-	//	st.state.AddBalance(st.msg.ResourcePayer(), remaining)
-	//} else {
-	st.state.AddBalance(st.msg.From(), remaining)
+	//refund := st.gasUsed() / 2
+	//if refund > st.state.GetRefund() {
+	//	refund = st.state.GetRefund()
 	//}
-
-	// Also return remaining gas to the block gas counter so it is
-	// available for the next transaction.
-	st.gp.AddGas(st.gas)
+	//st.gas += refund
+	//
+	//// Return ETH for remaining gas, exchanged at the original rate.
+	//remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
+	////achilles repayment add apis
+	////if st.msg.IsRePayment() {
+	////	st.state.AddBalance(st.msg.ResourcePayer(), remaining)
+	////} else {
+	//st.state.AddBalance(st.msg.From(), remaining)
+	////}
+	//
+	//// Also return remaining gas to the block gas counter so it is
+	//// available for the next transaction.
+	//st.gp.AddGas(st.gas)
 }
 
 // gasUsed returns the amount of gas used up by the state transition.
 func (st *StateTransition) gasUsed() uint64 {
-	return st.initialGas - st.gas
+	//return st.initialGas - st.gas
+	return st.initialGas - st.net
 }
