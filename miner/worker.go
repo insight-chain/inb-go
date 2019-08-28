@@ -741,9 +741,7 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
-
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.NetUsed, *w.chain.GetVMConfig())
-
 
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
@@ -1079,7 +1077,7 @@ func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transa
 
 	input = args.From.Bytes()
 
-	newTransaction := types.NewTransaction(args.Nonce, args.To, (*big.Int)(args.Value), uint64(*args.Gas), (*big.Int)(args.GasPrice), input, args.Types)
+	newTransaction := types.NewTransaction(args.Nonce, args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
 
 	return newTransaction
 }
@@ -1108,10 +1106,9 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 
 			feesWei := new(big.Int)
 
-
-			for i, tx := range block.Transactions() {
-				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
-			}
+			//for i, tx := range block.Transactions() {
+			//	feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
+			//}
 
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 
