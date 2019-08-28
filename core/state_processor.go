@@ -24,6 +24,7 @@ import (
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/params"
+	"math/big"
 )
 
 // StateProcessor is a basic Processor, which takes care of transitioning
@@ -121,6 +122,31 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	}
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
+
+	if receive != nil && receive.Cmp(big.NewInt(0)) == 1 {
+		Votingaddress := common.Address{}
+		Onlineaddress := common.Address{}
+		log := &types.Log{}
+		for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
+			if v.Name == "VotingReward" {
+				Votingaddress = v.TotalAddress
+			} else if v.Name == "OnlineMarketing" {
+				Onlineaddress = v.TotalAddress
+			}
+		}
+		switch msg.Types() {
+		case types.ReceiveVoteAward:
+			log = &types.Log{From: Votingaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+		case types.ReceiveLockedAward:
+			log = &types.Log{From: Onlineaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+		default:
+			break
+		}
+
+		receipt.Logs = append(receipt.Logs, log)
+
+	}
+
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
 	return receipt, gas, err

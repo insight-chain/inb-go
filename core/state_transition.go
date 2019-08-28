@@ -250,7 +250,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 	//}
 
 	//mgval := new(big.Int).SetUint64(st.msg.Gas())
-	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.SpecilaTx || st.msg.Types() == types.Receive) {
+	if !(st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.SpecialTx || st.msg.Types() == types.Receive) {
 		if st.state.GetNet(netPayment).Cmp(big.NewInt(int64(net))) < 0 {
 			return nil, 0, false, errInsufficientBalanceForGas, nil
 		}

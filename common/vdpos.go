@@ -1,6 +1,8 @@
 package common
 
-import "math/big"
+import (
+	"math/big"
+)
 
 // 2019.7.22 inb by ghy begin
 var (
@@ -13,14 +15,43 @@ var (
 	VoteHundred             = big.NewInt(100)
 	VoteNumberOfDaysOneYear = big.NewInt(365)
 
-	//locked
-	LockedRewardCycleSeconds  = big.NewInt(1)
-	LockedRewardCycleTimes    = big.NewInt(7)
-	LockedDenominator         = big.NewInt(12)
-	LockedHundred             = big.NewInt(100)
-	LockedNumberOfDaysOneYear = big.NewInt(365)
+	//Mortgage,unMortgage,change vote
+	VoteRewardCycleSecondsForChange  = big.NewInt(1)
+	VoteRewardCycleTimesForChange    = big.NewInt(1)
+	VoteDenominatorForChange         = big.NewInt(12)
+	VoteHundredForChange             = big.NewInt(100)
+	VoteNumberOfDaysOneYearForChange = big.NewInt(365)
+
+	//locked 30days
+	LockedRewardCycleSecondsFor30days  = big.NewInt(1)
+	LockedRewardCycleTimesFor30days    = big.NewInt(7)
+	LockedDenominatorFor30days         = big.NewInt(9)
+	LockedHundredFor30days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor30days = big.NewInt(365)
+
+	//locked 90days
+	LockedRewardCycleSecondsFor90days  = big.NewInt(1)
+	LockedRewardCycleTimesFor90days    = big.NewInt(7)
+	LockedDenominatorFor90days         = big.NewInt(10)
+	LockedHundredFor90days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor90days = big.NewInt(365)
+
+	//locked 180days
+	LockedRewardCycleSecondsFor180days  = big.NewInt(1)
+	LockedRewardCycleTimesFor180days    = big.NewInt(7)
+	LockedDenominatorFor180days         = big.NewInt(11)
+	LockedHundredFor180days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor180days = big.NewInt(365)
+
+	//locked 360days
+	LockedRewardCycleSecondsFor360days  = big.NewInt(1)
+	LockedRewardCycleTimesFor360days    = big.NewInt(7)
+	LockedDenominatorFor360days         = big.NewInt(12)
+	LockedHundredFor360days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor360days = big.NewInt(365)
 
 	// 2019.7.22 inb by ghy end
+	//
 
 )
 

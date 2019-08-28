@@ -873,8 +873,12 @@ func (self *StateDB) GetRefund() uint64 {
 // Finalise finalises the state by removing the self destructed objects
 // and clears the journal as well as the refunds.
 func (s *StateDB) Finalise(deleteEmptyObjects bool) {
+	//fmt.Println(s.journal.dirties)
 	for addr := range s.journal.dirties {
+
 		stateObject, exist := s.stateObjects[addr]
+		//fmt.Println(stateObject.address.String())
+		//fmt.Println(stateObject.data.Balance)
 		if !exist {
 			// ripeMD is 'touched' at block 1714175, in tx 0x1237f737031e40bcde4a8b7e717b2d15e3ecadfe49bb1bbc71ee9deb09c6fcf2
 			// That tx goes out of gas, and although the notion of 'touched' does not exist there, the

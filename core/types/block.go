@@ -89,14 +89,14 @@ type Header struct {
 }
 
 type SpecialConsensus struct {
+	Molecule                *big.Int                  `json:"molecule"`
+	Denominator             *big.Int                  `json:"denominator"`
 	SpecialNumer            []SpecialNumber           `json:"specialNumber"`
 	SpecialConsensusAddress []SpecialConsensusAddress `json:"specialConsensusAddress"`
 }
 
 type SpecialNumber struct {
-	Number      *big.Int `json:"number"`
-	Molecule    *big.Int `json:"molecule"`
-	Denominator *big.Int `json:"denominator"`
+	Number *big.Int `json:"number"`
 }
 
 type SpecialConsensusAddress struct {
