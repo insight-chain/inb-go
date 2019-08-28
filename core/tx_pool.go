@@ -604,6 +604,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrGasLimit
 	//}
 
+	for _, v := range pool.chain.CurrentBlock().SpecialConsensus().SpecialConsensusAddress {
+		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
+			return errors.New("can not transfer to special consensus address")
+		}
+	}
+
 	//achilles repayment
 	//v, r, s := tx.RawPaymentSignatureValues()
 	//if v != nil && r != nil && s != nil{
@@ -761,8 +767,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
+
 	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.SpecilaTx) || tx.WhichTypes(types.Redeem)) {
 		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
+
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
@@ -1498,8 +1506,43 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	if len(account.Stores) <= 0 {
 		return errors.New("no locked record")
 	}
+
+	LockedRewardCycleSeconds := new(big.Int)
+	LockedRewardCycleTimes := new(big.Int)
+	LockedDenominator := new(big.Int)
+	LockedHundred := new(big.Int)
+	LockedNumberOfDaysOneYear := new(big.Int)
 	for _, v := range account.Stores {
 		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
+			switch v.Days {
+			case 30:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
+				LockedDenominator = common.LockedDenominatorFor30days
+				LockedHundred = common.LockedHundredFor30days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor30days
+			case 90:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor90days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor90days
+				LockedDenominator = common.LockedDenominatorFor90days
+				LockedHundred = common.LockedHundredFor90days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
+			case 180:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor180days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
+				LockedDenominator = common.LockedDenominatorFor180days
+				LockedHundred = common.LockedHundredFor180days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
+			case 360:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
+				LockedDenominator = common.LockedDenominatorFor360days
+				LockedHundred = common.LockedHundredFor360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+			default:
+				return errors.New("unknow times")
+			}
+
 			timeNow := pool.chain.CurrentBlock().Time()
 
 			startTime := &v.StartTime
@@ -1526,18 +1569,18 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 
 			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
 
-			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, common.LockedRewardCycleSeconds)
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, LockedRewardCycleSeconds)
 
 			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
 
-			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, common.LockedRewardCycleSeconds)
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, LockedRewardCycleSeconds)
 
-			if FromLastReceivedPassDays.Cmp(common.LockedRewardCycleTimes) == -1 {
+			if FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
 				return errors.New("have no rewards to received")
 			}
-			totalValue1 := new(big.Int).Mul(totalValue, common.LockedDenominator)
-			totalValue2 := new(big.Int).Div(totalValue1, common.LockedHundred)
-			totalValue3 := new(big.Int).Div(totalValue2, common.LockedNumberOfDaysOneYear)
+			totalValue1 := new(big.Int).Mul(totalValue, LockedDenominator)
+			totalValue2 := new(big.Int).Div(totalValue1, LockedHundred)
+			totalValue3 := new(big.Int).Div(totalValue2, LockedNumberOfDaysOneYear)
 			MaxReceivedValueNow := new(big.Int).Mul(totalValue3, FromStartPassDays)
 			subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
 

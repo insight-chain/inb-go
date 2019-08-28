@@ -113,7 +113,9 @@ func main() {
 			panic(err)
 		}
 		// Create a self transaction and inject into the pool
+
 		tx, err := types.SignTx(types.NewTransaction(nonces[index], crypto.PubkeyToAddress(faucets[index].PublicKey), new(big.Int), 21000, nil,types.Ordinary), types.HomesteadSigner{}, faucets[index])
+
 		if err != nil {
 			panic(err)
 		}

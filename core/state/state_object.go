@@ -415,6 +415,26 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 	if !(big.NewInt(0).Cmp(self.Date()) < 0) {
 		self.SetDate(&sTime)
 	}
+
+	votes := self.data.Voted
+
+	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardTime.Cmp(big.NewInt(0)) == 1 {
+		timeNow := sTime
+		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime
+		if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+			return
+		}
+		fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(&timeNow, lastReceiveVoteAwardTime)
+		cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSecondsForChange)
+		if cycles.Cmp(common.VoteRewardCycleTimesForChange) != -1 {
+			votes1 := new(big.Int).Mul(votes, common.VoteDenominatorForChange)
+			votes2 := new(big.Int).Div(votes1, common.VoteHundredForChange)
+			votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYearForChange)
+			value := new(big.Int).Mul(votes3, cycles)
+			self.Vote(&sTime)
+			self.ReceiveVoteAward(value, &sTime)
+		}
+	}
 }
 
 func (self *stateObject) ResetNet(update *big.Int, nets *big.Int) {
@@ -435,8 +455,43 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consens
 	if len(self.data.Stores) <= 0 {
 		return errors.New("no lock record"), big.NewInt(0), false
 	}
+	LockedRewardCycleSeconds := new(big.Int)
+	LockedRewardCycleTimes := new(big.Int)
+	LockedDenominator := new(big.Int)
+	LockedHundred := new(big.Int)
+	LockedNumberOfDaysOneYear := new(big.Int)
+
 	for _, v := range self.data.Stores {
 		if nonce == int(v.Nonce) {
+			switch v.Days {
+			case 30:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
+				LockedDenominator = common.LockedDenominatorFor30days
+				LockedHundred = common.LockedHundredFor30days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor30days
+			case 90:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor90days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor90days
+				LockedDenominator = common.LockedDenominatorFor90days
+				LockedHundred = common.LockedHundredFor90days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
+			case 180:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor180days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
+				LockedDenominator = common.LockedDenominatorFor180days
+				LockedHundred = common.LockedHundredFor180days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
+			case 360:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
+				LockedDenominator = common.LockedDenominatorFor360days
+				LockedHundred = common.LockedHundredFor360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+			default:
+				return errors.New("unknow times"), big.NewInt(0), false
+			}
+
 			timeNow := time
 			startTime := &v.StartTime
 			//totalValue := v.Value.Uint64()
@@ -464,19 +519,19 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consens
 
 			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
 
-			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, common.VoteRewardCycleSeconds)
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, LockedRewardCycleSeconds)
 
 			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
 
-			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, common.VoteRewardCycleSeconds)
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, LockedRewardCycleSeconds)
 
-			if FromLastReceivedPassDays.Cmp(common.LockedRewardCycleTimes) == -1 {
+			if FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
 				return errors.New("have no rewards to received"), big.NewInt(0), false
 			}
 
-			totalValue1 := new(big.Int).Mul(totalValue, common.LockedDenominator)
-			totalValue2 := new(big.Int).Div(totalValue1, common.LockedHundred)
-			totalValue3 := new(big.Int).Div(totalValue2, common.LockedNumberOfDaysOneYear)
+			totalValue1 := new(big.Int).Mul(totalValue, LockedDenominator)
+			totalValue2 := new(big.Int).Div(totalValue1, LockedHundred)
+			totalValue3 := new(big.Int).Div(totalValue2, LockedNumberOfDaysOneYear)
 			MaxReceivedValueNow := new(big.Int).Mul(totalValue3, FromStartPassDays)
 			subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
 			if subValue.Cmp(big.NewInt(0)) == 1 {
@@ -537,7 +592,7 @@ func (self *stateObject) CanReceiveVoteAward(time *big.Int) (err error, value *b
 	}
 	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
 	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
-	if cycles.Cmp(common.VoteRewardCycleTimes) == 1 {
+	if cycles.Cmp(common.VoteRewardCycleTimes) != -1 {
 		votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
 		votes2 := new(big.Int).Div(votes1, common.VoteHundred)
 		votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYear)
@@ -600,7 +655,30 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 	}
 	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
 	mortgageStateObject.SubBalance(value)
+
+	votes := self.data.Voted
+
+	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardTime.Cmp(big.NewInt(0)) == 1 {
+		timeNow := sTime
+		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime
+		if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+			return
+		}
+		fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
+		cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSecondsForChange)
+		if cycles.Cmp(common.VoteRewardCycleTimesForChange) != -1 {
+			votes1 := new(big.Int).Mul(votes, common.VoteDenominatorForChange)
+			votes2 := new(big.Int).Div(votes1, common.VoteHundredForChange)
+			votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYearForChange)
+			value := new(big.Int).Mul(votes3, cycles)
+			self.Vote(sTime)
+			self.ReceiveVoteAward(value, sTime)
+		}
+	}
+
+
 	amount = value
+
 }
 
 func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
