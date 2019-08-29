@@ -116,8 +116,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 }
 
 func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error) {
-	netUse := big.NewInt(1).Add(params.TxConfig.NetUse, big.NewInt(120))
-	return netUse.Add(netUse, big.NewInt(int64(len(data)))).Uint64(), nil
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet), nil
 }
 
 // NewStateTransition initialises and returns a new state transition object.
