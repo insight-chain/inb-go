@@ -978,6 +978,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			localTxs[account] = txs
 		}
 	}
+
+	//2019.8.29 inb by ghy begin
 	//blockNumberOneYear := vdpos.OneYearBySec / int64(v.config.Period)
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
 	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
@@ -1039,6 +1041,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		default:
 		}
 	}
+
+	//2019.8.29 inb by ghy end
 
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)

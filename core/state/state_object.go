@@ -415,7 +415,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 	if !(big.NewInt(0).Cmp(self.Date()) < 0) {
 		self.SetDate(&sTime)
 	}
-
+	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
 
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardTime.Cmp(big.NewInt(0)) == 1 {
@@ -435,6 +435,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 			self.ReceiveVoteAward(value, &sTime)
 		}
 	}
+	//2019.8.29 inb by ghy end
 }
 
 func (self *stateObject) ResetNet(update *big.Int, nets *big.Int) {
@@ -656,6 +657,7 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
 	mortgageStateObject.SubBalance(value)
 
+	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
 
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardTime.Cmp(big.NewInt(0)) == 1 {
@@ -675,7 +677,7 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 			self.ReceiveVoteAward(value, sTime)
 		}
 	}
-
+	//2019.8.29 inb by ghy end
 
 	amount = value
 

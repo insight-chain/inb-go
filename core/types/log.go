@@ -55,10 +55,12 @@ type Log struct {
 	// You must pay attention to this field if you receive logs through a filter query.
 	Removed bool `json:"removed"`
 
+	//2019.8.29 inb by ghy begin
 	From   common.Address `json:"from"       gencodec:"required"`
 	To     common.Address `json:"to"       gencodec:"required"`
 	Amount *big.Int       `json:"value"    gencodec:"required"`
 	Types  TxType         `json:"txType" gencodec:"required"`
+	//2019.8.29 inb by ghy end
 }
 
 type logMarshaling struct {
@@ -66,22 +68,24 @@ type logMarshaling struct {
 	BlockNumber hexutil.Uint64
 	TxIndex     hexutil.Uint
 	Index       hexutil.Uint
-
+	//2019.8.29 inb by ghy begin
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
 	Types  TxType
+	//2019.8.29 inb by ghy end
 }
 
 type rlpLog struct {
 	Address common.Address
 	Topics  []common.Hash
 	Data    []byte
-
+	//2019.8.29 inb by ghy begin
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
 	Types  TxType
+	//2019.8.29 inb by ghy end
 }
 
 type rlpStorageLog struct {
@@ -93,16 +97,17 @@ type rlpStorageLog struct {
 	TxIndex     uint
 	BlockHash   common.Hash
 	Index       uint
-
+	//2019.8.29 inb by ghy begin
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
 	Types  TxType
+	//2019.8.29 inb by ghy end
 }
 
 // EncodeRLP implements rlp.Encoder.
 func (l *Log) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data, From: l.From, To: l.To, Amount: l.Amount, Types: l.Types})
+	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data, From: l.From, To: l.To, Amount: l.Amount, Types: l.Types}) //2019.8.28 inb by ghy
 }
 
 // DecodeRLP implements rlp.Decoder.
@@ -110,7 +115,7 @@ func (l *Log) DecodeRLP(s *rlp.Stream) error {
 	var dec rlpLog
 	err := s.Decode(&dec)
 	if err == nil {
-		l.Address, l.Topics, l.Data, l.From, l.To, l.Amount, l.Types = dec.Address, dec.Topics, dec.Data, dec.From, dec.To, dec.Amount, dec.Types
+		l.Address, l.Topics, l.Data, l.From, l.To, l.Amount, l.Types = dec.Address, dec.Topics, dec.Data, dec.From, dec.To, dec.Amount, dec.Types //2019.8.28 inb by ghy
 
 	}
 	return err
