@@ -92,7 +92,7 @@ type stEnvMarshaling struct {
 //go:generate gencodec -type stTransaction -field-override stTransactionMarshaling -out gen_sttransaction.go
 
 type stTransaction struct {
-	GasPrice   *big.Int `json:"gasPrice"`
+	//GasPrice   *big.Int `json:"gasPrice"`
 	Nonce      uint64   `json:"nonce"`
 	To         string   `json:"to"`
 	Data       []string `json:"data"`
@@ -102,7 +102,7 @@ type stTransaction struct {
 }
 
 type stTransactionMarshaling struct {
-	GasPrice   *math.HexOrDecimal256
+	//GasPrice   *math.HexOrDecimal256
 	Nonce      math.HexOrDecimal64
 	GasLimit   []math.HexOrDecimal64
 	PrivateKey hexutil.Bytes
@@ -140,7 +140,7 @@ func (t *StateTest) Run(subtest StateSubtest, vmconfig vm.Config) (*state.StateD
 	gaspool := new(core.GasPool)
 	gaspool.AddGas(block.GasLimit())
 	snapshot := statedb.Snapshot()
-	if _, _, _, err ,_:= core.ApplyMessage(evm, msg, gaspool); err != nil {
+	if _, _, _, err, _ := core.ApplyMessage(evm, msg, gaspool); err != nil {
 		statedb.RevertToSnapshot(snapshot)
 	}
 	// Commit block
@@ -190,7 +190,7 @@ func (t *StateTest) genesis(config *params.ChainConfig) *core.Genesis {
 		Config:     config,
 		Coinbase:   t.json.Env.Coinbase,
 		Difficulty: t.json.Env.Difficulty,
-		GasLimit:   t.json.Env.GasLimit,
+		NetLimit:   t.json.Env.GasLimit,
 		Number:     t.json.Env.Number,
 		Timestamp:  t.json.Env.Timestamp,
 		Alloc:      t.json.Pre,
@@ -243,7 +243,7 @@ func (tx *stTransaction) toMessage(ps stPostState) (core.Message, error) {
 		return nil, fmt.Errorf("invalid tx data %q", dataHex)
 	}
 
-	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, tx.GasPrice, data, true)
+	msg := types.NewMessage(from, to, tx.Nonce, value, gasLimit, data, true, types.Ordinary)
 	return msg, nil
 }
 
