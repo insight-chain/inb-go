@@ -72,11 +72,11 @@ func (c *StateDB) UnitConvertNet() *big.Int {
 		totalMortgageInb = c.GetMortgagePreviousStateObject().data.Balance
 	}
 	mortgage := totalMortgageInb.Div(totalMortgageInb, params.TxConfig.Wei)
-	weiToNet := big.NewInt(1)
 	if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {
 		totalMortgageInb = params.TxConfig.MortgageInbLimit
 	}
-	weiToNet = big.NewInt(1).Div(params.TxConfig.Net, totalMortgageInb)
+
+	weiToNet := big.NewInt(1).Div(params.TxConfig.Net, totalMortgageInb)
 	temp := big.NewInt(1).Div(params.TxConfig.Wei, params.TxConfig.WeiOfUseNet)
 	weiToNet.Div(weiToNet, temp)
 	return weiToNet
