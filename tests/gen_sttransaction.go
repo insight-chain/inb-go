@@ -4,8 +4,6 @@ package tests
 
 import (
 	"encoding/json"
-	"math/big"
-
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/common/math"
 )
@@ -23,7 +21,7 @@ func (s stTransaction) MarshalJSON() ([]byte, error) {
 		PrivateKey hexutil.Bytes         `json:"secretKey"`
 	}
 	var enc stTransaction
-	enc.GasPrice = (*math.HexOrDecimal256)(s.GasPrice)
+	//enc.GasPrice = (*math.HexOrDecimal256)(s.GasPrice)
 	enc.Nonce = math.HexOrDecimal64(s.Nonce)
 	enc.To = s.To
 	enc.Data = s.Data
@@ -40,7 +38,7 @@ func (s stTransaction) MarshalJSON() ([]byte, error) {
 
 func (s *stTransaction) UnmarshalJSON(input []byte) error {
 	type stTransaction struct {
-		GasPrice   *math.HexOrDecimal256 `json:"gasPrice"`
+		//GasPrice   *math.HexOrDecimal256 `json:"gasPrice"`
 		Nonce      *math.HexOrDecimal64  `json:"nonce"`
 		To         *string               `json:"to"`
 		Data       []string              `json:"data"`
@@ -52,9 +50,9 @@ func (s *stTransaction) UnmarshalJSON(input []byte) error {
 	if err := json.Unmarshal(input, &dec); err != nil {
 		return err
 	}
-	if dec.GasPrice != nil {
-		s.GasPrice = (*big.Int)(dec.GasPrice)
-	}
+	//if dec.GasPrice != nil {
+	//	s.GasPrice = (*big.Int)(dec.GasPrice)
+	//}
 	if dec.Nonce != nil {
 		s.Nonce = uint64(*dec.Nonce)
 	}
