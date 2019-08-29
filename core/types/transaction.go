@@ -716,6 +716,7 @@ func DecodeTransactionStruct(encodeTxs ITransactions) Transactions {
 
 //inb by ssh end
 
+//2019.8.29 inb by ghy begin
 func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	if len(txs) == 0 {
 		return nil
@@ -853,3 +854,5 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	}
 	return nil
 }
+
+//2019.8.29 inb by ghy end

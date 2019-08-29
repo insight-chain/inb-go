@@ -127,6 +127,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 
+	//2019.8.29 inb by ghy begin
 	if receive != nil && receive.Cmp(big.NewInt(0)) == 1 {
 		Votingaddress := common.Address{}
 		Onlineaddress := common.Address{}
@@ -150,6 +151,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		receipt.Logs = append(receipt.Logs, log)
 
 	}
+	//2019.8.29 inb by ghy end
 
 	receipt.Bloom = types.CreateBloom(types.Receipts{receipt})
 
