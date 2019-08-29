@@ -154,11 +154,11 @@ var (
 		UseCpu:           50,
 		CandidateSize:    30,
 		Wei:              big.NewInt(1e+18),
-		Circulation:      big.NewInt(15e+8),
-		Net:              big.NewInt(86400 * 1024 * 1024 * 125),
-		WeiOfUseNet:      big.NewInt(1e+14),
+		Circulation:      big.NewInt(5e+8),
+		Net:              big.NewInt(86400 * 1024 * 1024 * 12.5),
+		WeiOfUseNet:      big.NewInt(1e+16),
 		MortgageInbLimit: big.NewInt(5e+8),
-		NetUse:           big.NewInt(100),
+		NetRatio:         3,
 		RegularLimit:     5,
 		Days:             [4]uint{1, 30, 180, 360},
 		ResetDuration:    big.NewInt(24 * 60 * 60),
@@ -222,7 +222,7 @@ type CommonConfig struct {
 	Net              *big.Int //	bandwith in one day
 	WeiOfUseNet      *big.Int // calculating unit for using net
 	MortgageInbLimit *big.Int
-	NetUse           *big.Int // for net use
+	NetRatio         uint64 // for net use
 
 	ResetDuration  *big.Int // duration of resetting nets
 	RegularLimit   int      // max value for regular mortgaging
