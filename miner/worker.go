@@ -619,12 +619,15 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
+			// 2019.8.29 inb by ghy begin
 			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
 				if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
 					fmt.Println(err)
 					return
 				}
 			}
+			// 2019.8.29 inb by ghy end
+
 			// Commit block and state to database.
 			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
 			if err != nil {
@@ -1041,7 +1044,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		default:
 		}
 	}
-
 	//2019.8.29 inb by ghy end
 
 	if len(localTxs) > 0 {
@@ -1063,7 +1065,7 @@ func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transa
 		From:  from,
 		To:    to,
 		Value: new(big.Int),
-		Types: 11,
+		Types: types.SpecilaTx,
 		Nonce: 0,
 	}
 	if args.Gas == nil {
