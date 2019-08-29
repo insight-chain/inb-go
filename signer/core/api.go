@@ -416,14 +416,14 @@ func logDiff(original *SignTxRequest, new *SignTxResponse) bool {
 		log.Info("Recipient-account changed by UI", "was", t0, "is", t1)
 		modified = true
 	}
-	if g0, g1 := original.Transaction.Gas, new.Transaction.Gas; g0 != g1 {
+	if g0, g1 := original.Transaction.Net, new.Transaction.Net; g0 != g1 {
 		modified = true
 		log.Info("Gas changed by UI", "was", g0, "is", g1)
 	}
-	if g0, g1 := big.Int(original.Transaction.GasPrice), big.Int(new.Transaction.GasPrice); g0.Cmp(&g1) != 0 {
-		modified = true
-		log.Info("GasPrice changed by UI", "was", g0, "is", g1)
-	}
+	//if g0, g1 := big.Int(original.Transaction.GasPrice), big.Int(new.Transaction.GasPrice); g0.Cmp(&g1) != 0 {
+	//	modified = true
+	//	log.Info("GasPrice changed by UI", "was", g0, "is", g1)
+	//}
 	if v0, v1 := big.Int(original.Transaction.Value), big.Int(new.Transaction.Value); v0.Cmp(&v1) != 0 {
 		modified = true
 		log.Info("Value changed by UI", "was", v0, "is", v1)
