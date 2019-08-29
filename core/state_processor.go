@@ -144,6 +144,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 			log = &types.Log{From: Votingaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.ReceiveLockedAward:
 			log = &types.Log{From: Onlineaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+		case types.Mortgage:
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+		case types.Regular:
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+		case types.Receive:
+			log = &types.Log{From: common.HexToAddress(state.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
 		default:
 			break
 		}

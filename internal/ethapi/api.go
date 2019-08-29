@@ -419,6 +419,9 @@ func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs
 	if args.Types == 0 {
 		return nil, fmt.Errorf("txType not specified")
 	}
+	if !types.ValidateType(args.Types) {
+		return nil, fmt.Errorf(`invalid txType`)
+	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")
 	}
@@ -1561,6 +1564,9 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Types == 0 {
 		return errors.New(`txType not specified`)
 	}
+	if !types.ValidateType(args.Types) {
+		return errors.New(`invalid txType`)
+	}
 	if args.Value == nil {
 		args.Value = new(hexutil.Big)
 	}
@@ -1765,6 +1771,9 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 	//}
 	if args.Types == 0 {
 		return nil, fmt.Errorf("txType not specified")
+	}
+	if !types.ValidateType(args.Types) {
+		return nil, fmt.Errorf(`invalid txType`)
 	}
 	if args.Nonce == nil {
 		return nil, fmt.Errorf("nonce not specified")

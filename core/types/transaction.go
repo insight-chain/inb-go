@@ -22,7 +22,6 @@ import (
 	"fmt"
 	"io"
 	"math/big"
-	"strings"
 	"sync/atomic"
 
 	"github.com/insight-chain/inb-go/common"
@@ -56,6 +55,15 @@ const (
 	Repayment
 	Contract
 )
+
+func ValidateType(txType TxType) bool {
+	flag := true
+	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Repayment && txType != Contract {
+		flag = false
+	}
+	return flag
+}
 
 type Transaction struct {
 	data txdata
@@ -251,6 +259,22 @@ func (tx *Transaction) isContract() bool {
 	return flag
 }
 
+func (tx *Transaction) NoNeedUseNet() bool {
+	flag := false
+	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecilaTx) || tx.WhichTypes(Redeem)) {
+		flag = true
+	}
+	return flag
+}
+
+func (tx *Transaction) NoNeedUseBalance() bool {
+	flag := false
+	if !(tx.WhichTypes(Repayment) || tx.WhichTypes(Reset) || tx.WhichTypes(Receive)) {
+		flag = true
+	}
+	return flag
+}
+
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
 func (tx *Transaction) To() *common.Address {
@@ -375,32 +399,6 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 //	//}
 //	return true
 //}
-
-//type of transaction is mortgagenet
-func (tx *Transaction) IsMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if inputStr == string("mortgageNet") {
-		return true
-	}
-	return false
-}
-
-func (tx *Transaction) IsRegularMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if strings.HasPrefix(inputStr, "mortgageNet:") {
-		return true
-	}
-	return false
-}
-
-//type of transaction is um mortgagenet
-func (tx *Transaction) IsUnMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if inputStr == string("unmortgageNet") {
-		return true
-	}
-	return false
-}
 
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction

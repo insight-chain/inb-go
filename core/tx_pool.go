@@ -96,6 +96,7 @@ var (
 	//achilles0718 regular mortgagtion
 	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
 	ErrInvalidAddress = errors.New("invalid address without right prefix")
+	ErrTxType         = errors.New("invalid transaction type")
 )
 
 var (
@@ -587,6 +588,10 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
+	if !types.ValidateType(tx.Types()) {
+		return ErrTxType
+	}
+
 	if tx.Size() > 32*1024 {
 		return ErrOversizedData
 	}
@@ -707,8 +712,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrInsufficientFunds
 	//}
 
-	if !(tx.WhichTypes(types.Repayment) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Receive)) {
-
+	// No need to consume balance
+	if tx.NoNeedUseBalance() {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -767,8 +772,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-
-	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive) || tx.WhichTypes(types.SpecilaTx) || tx.WhichTypes(types.Redeem)) {
+	// No need to consume resources
+	if tx.NoNeedUseNet() {
 		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
 
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
