@@ -127,11 +127,13 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	// Set the receipt logs and create a bloom for filtering
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 
+	log := &types.Log{}
+	//switch msg.Types() {}
 	//2019.8.29 inb by ghy begin
 	if receive != nil && receive.Cmp(big.NewInt(0)) == 1 {
 		Votingaddress := common.Address{}
 		Onlineaddress := common.Address{}
-		log := &types.Log{}
+		//log := &types.Log{}
 		for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
 			if v.Name == "VotingReward" {
 				Votingaddress = v.TotalAddress

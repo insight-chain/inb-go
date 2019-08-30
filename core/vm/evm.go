@@ -39,7 +39,7 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int, *big.Int)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int) *big.Int
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
@@ -50,8 +50,8 @@ type (
 	CanRedeemFunc       func(StateDB, common.Address, *big.Int) error
 	CanReceiveFunc      func(StateDB, common.Address, *big.Int) error
 	RedeemTransferFunc  func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
-	ReceiveTransferFunc func(StateDB, common.Address, *big.Int, *big.Int)
-	ResetTransferFunc   func(StateDB, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc func(StateDB, common.Address, *big.Int) *big.Int
+	ResetTransferFunc   func(StateDB, common.Address, *big.Int) *big.Int
 
 	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address) //2019.7.22 inb by ghy begin
 	ReceiveLockedAwardFunc    func(StateDB, common.Address, int, *big.Int, bool, *big.Int, common.Address)                                 //2019.7.22 inb by ghy begin
@@ -324,9 +324,9 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	if txType == types.Redeem {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
 	} else if txType == types.Regular || txType == types.Mortgage {
-		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time, nets)
+		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
 	} else if txType == types.Reset {
-		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time, nets)
+		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else if txType == types.ReceiveVoteAward {
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, toAddress) //2019.7.24 inb by ghy
 	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
@@ -340,7 +340,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.Time, toAddress)
 		//} //2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
-		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time, nets)
+		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}

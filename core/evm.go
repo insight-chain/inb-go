@@ -114,15 +114,15 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) *big.Int {
 	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	db.MortgageNet(sender, amount, duration, sTime, nets)
+	return db.MortgageNet(sender, amount, duration, sTime)
 }
 
 //achilles0719 regular mortgagtion
-func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int, nets *big.Int) {
-	db.ResetNet(sender, update, nets)
+func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) *big.Int {
+	return db.ResetNet(sender, update)
 }
 
 //Resource by zc
@@ -156,8 +156,8 @@ func RedeemTransfer(db vm.StateDB, sender, recipient common.Address, amount *big
 	db.Redeem(sender, amount, sTime)
 }
 
-func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int, amount *big.Int) {
-	db.Receive(sender, sTime, amount)
+func ReceiveTransfer(db vm.StateDB, sender common.Address, sTime *big.Int) *big.Int {
+	return db.Receive(sender, sTime)
 }
 
 func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {

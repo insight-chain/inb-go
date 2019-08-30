@@ -540,18 +540,20 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int) *big.Int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.MortgageNet(amount, duration, sTime, nets)
+		return stateObject.MortgageNet(amount, duration, sTime)
 	}
+	return nil
 }
 
-func (self *StateDB) ResetNet(addr common.Address, update *big.Int, nets *big.Int) {
+func (self *StateDB) ResetNet(addr common.Address, update *big.Int) *big.Int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.ResetNet(update, nets)
+		return stateObject.ResetNet(update)
 	}
+	return nil
 }
 
 //2019.7.22 inb by ghy begin
@@ -620,11 +622,12 @@ func (self *StateDB) Vote(addr common.Address, time *big.Int) {
 
 //2019.7.22 inb by ghy end
 
-func (self *StateDB) Receive(addr common.Address, sTime *big.Int, amount *big.Int) {
+func (self *StateDB) Receive(addr common.Address, sTime *big.Int) *big.Int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.Receive(sTime, amount)
+		return stateObject.Receive(sTime)
 	}
+	return nil
 }
 
 //achilles0722 redeem t+3

@@ -386,12 +386,11 @@ func (self *stateObject) setVoteRecord(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int, nets *big.Int) {
+func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int) *big.Int {
 	if amount.Sign() == 0 {
-		return
+		return nil
 	}
 	netUse := self.db.ConvertToNets(amount)
-	nets = netUse
 	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
 
 	mortgageStateObject := self.db.GetMortgageStateObject()
@@ -422,7 +421,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 		timeNow := sTime
 		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime
 		if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
-			return
+			return nil
 		}
 		fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(&timeNow, lastReceiveVoteAwardTime)
 		cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSecondsForChange)
@@ -436,16 +435,17 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 		}
 	}
 	//2019.8.29 inb by ghy end
+	return netUse
 }
 
-func (self *stateObject) ResetNet(update *big.Int, nets *big.Int) {
+func (self *stateObject) ResetNet(update *big.Int) *big.Int {
 	//available := new(big.Int).Sub(self.MortgageOfNet(), self.GetRedeem())
 	netUse := self.db.ConvertToNets(self.MortgageOfNet())
-	nets = netUse
 	netUsed := big.NewInt(0)
 
 	self.SetNet(netUsed, netUse, self.MortgageOfINB())
 	self.SetDate(update)
+	return netUse
 }
 
 //2019.7.22 inb by ghy begin
@@ -639,7 +639,7 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	self.SetRedeems(self.data.Redeems)
 }
 
-func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
+func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 
 	value := self.GetRedeem()
 	redeem := Redeem{
@@ -652,7 +652,7 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 	self.AddBalance(value)
 	mortgageStateObject := self.db.GetMortgageStateObject()
 	if mortgageStateObject.Balance().Cmp(value) < 0 {
-		return
+		return nil
 	}
 	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
 	mortgageStateObject.SubBalance(value)
@@ -664,7 +664,7 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 		timeNow := sTime
 		lastReceiveVoteAwardTime := self.data.LastReceiveVoteAwardTime
 		if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
-			return
+			return nil
 		}
 		fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
 		cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSecondsForChange)
@@ -678,9 +678,7 @@ func (self *stateObject) Receive(sTime *big.Int, amount *big.Int) {
 		}
 	}
 	//2019.8.29 inb by ghy end
-
-	amount = value
-
+	return value
 }
 
 func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
