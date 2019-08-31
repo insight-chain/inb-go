@@ -105,12 +105,10 @@ func (self *StateDB) GetMortgagePreviousStateObject() (s *stateObject) {
 	addr := common.HexToAddress(MortgageAccount)
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 {
-		log.Error("Failed to tryGet state object", "addr", addr, "err", err)
 		return nil
 	}
 	var data Account
 	if err := rlp.DecodeBytes(enc, &data); err != nil {
-		log.Error("Failed to decode state object", "addr", addr, "err", err)
 		return nil
 	}
 	return newObject(self, addr, data)
