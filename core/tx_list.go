@@ -378,12 +378,13 @@ func (h priceHeap) Swap(i, j int) { h[i], h[j] = h[j], h[i] }
 
 func (h priceHeap) Less(i, j int) bool {
 	// Sort primarily by price, returning the cheaper one
-	switch h[i].GasPrice().Cmp(h[j].GasPrice()) {
-	case -1:
-		return true
-	case 1:
-		return false
-	}
+	//achilles190806 todo replace with net
+	//switch h[i].GasPrice().Cmp(h[j].GasPrice()) {
+	//case -1:
+	//	return true
+	//case 1:
+	//	return false
+	//}
 	// If the prices match, stabilize via nonces (high nonce is worse)
 	return h[i].Nonce() > h[j].Nonce()
 }
@@ -455,10 +456,11 @@ func (l *txPricedList) Cap(threshold *big.Int, local *accountSet) types.Transact
 			continue
 		}
 		// Stop the discards if we've reached the threshold
-		if tx.GasPrice().Cmp(threshold) >= 0 {
-			save = append(save, tx)
-			break
-		}
+		//achilles190806 todo replace with net
+		//if tx.GasPrice().Cmp(threshold) >= 0 {
+		//	save = append(save, tx)
+		//	break
+		//}
 		// Non stale transaction found, discard unless local
 		if local.containsTx(tx) {
 			save = append(save, tx)

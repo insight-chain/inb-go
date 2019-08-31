@@ -34,32 +34,38 @@ const (
 	/*
 	 *  inb:version:category:action/data
 	 */
-	inbPrefix             = "inb"
-	inbVersion            = "1"
-	inbCategoryEvent      = "event"
-	inbEventVote          = "vote"
-	inbEventDeclare       = "declare"
-	inbMinSplitLen        = 3
-	posPrefix             = 0
-	posVersion            = 1
-	posCategory           = 2
-	posEventVote          = 3
-	posEventDeclare       = 3
-	posEventConfirmNumber = 4
-	posEventDeclareInfo   = 4
+	InbPrefix              = "inb"
+	InbVersion             = "1"
+	InbCategoryEvent       = "event"
+	InbEventVote           = "vote"
+	InbEventVoteCandidates = "candidates"
+	InbEventConfirm        = "confirm"
+	InbEventDeclare        = "declare"
+	InbMinSplitLen         = 3
+	PosPrefix              = 0
+	PosVersion             = 1
+	PosCategory            = 2
+	PosEventVote           = 3
+	PosEventConfirm        = 3
+	PosEventDeclare        = 3
+	PosEventConfirmNumber  = 4
+	PosEventDeclareInfo    = 4
+	//achilles
+	posEventVoteCandidates       = 4
+	posEventVoteCandidatesNumber = 5
 
-	posEventDeclareInfoSplitLen = 3
-	posEventDeclareInfoId       = 0
-	posEventDeclareInfoIp       = 1
-	posEventDeclareInfoPort     = 2
+	PosEventDeclareInfoSplitLen = 3
+	PosEventDeclareInfoId       = 0
+	PosEventDeclareInfoIp       = 1
+	PosEventDeclareInfoPort     = 2
 	//inb by ghy begin
-	posEventDeclareInfoName    = 3
-	posEventDeclareInfoNation  = 4
-	posEventDeclareInfoCity    = 5
-	posEventDeclareInfoImage   = 6
-	posEventDeclareInfoWebsite = 7
-	posEventDeclareInfoEmail   = 8
-	posEventDeclareInfodata    = 9
+	PosEventDeclareInfoName    = 3
+	PosEventDeclareInfoNation  = 4
+	PosEventDeclareInfoCity    = 5
+	PosEventDeclareInfoImage   = 6
+	PosEventDeclareInfoWebsite = 7
+	PosEventDeclareInfoEmail   = 8
+	PosEventDeclareInfodata    = 9
 	//inb by ghy end
 )
 
@@ -142,122 +148,37 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		txData := string(tx.Data())
-		//achilles config
-		if strings.Contains(txData, "candidates") {
+		//2019.8.5 inb mod by ghy begin
+		if tx.WhichTypes(types.Vote) {
 			var candidates []common.Address
-			txDataInfo := strings.Split(txData, ":")
-			if txDataInfo[0] == "candidates" {
-				candidatesStr := strings.Split(txDataInfo[1], ",")
-				for _, value := range candidatesStr {
-					address := common.HexToAddress(value)
-					candidates = append(candidates, address)
-				}
-				if params.TxConfig.CandidateSize < uint64(len(candidates)) {
-					return headerExtra, errors.Errorf("candidates over size")
-				}
-				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates, vdposContext)
+			candidatesStr := strings.Split(txData, ",")
+			for _, value := range candidatesStr {
+				address := common.HexToAddress(value)
+				candidates = append(candidates, address)
 			}
+			if params.TxConfig.CandidateSize < uint64(len(candidates)) {
+				return headerExtra, errors.Errorf("candidates over size")
+			}
+			headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates, vdposContext)
+
 		}
 
-		if len(txData) >= len(inbPrefix) {
-			txDataInfo := strings.Split(txData, "|")
-			if len(txDataInfo) >= inbMinSplitLen {
-				if txDataInfo[posPrefix] == inbPrefix {
-					if txDataInfo[posVersion] == inbVersion {
-						// process vote event
-						if txDataInfo[posCategory] == inbCategoryEvent {
-							if len(txDataInfo) > inbMinSplitLen {
-								// check is vote or not
-								if txDataInfo[posEventVote] == inbEventVote {
+		if tx.WhichTypes(types.UpdateNodeInformation) {
 
-								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
-									account := state.GetAccountInfo(txSender)
-									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
-										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
-									} else {
-										return headerExtra, errors.Errorf("Account mortgageINB must be greater than 100000")
-									}
-								}
-							}
-						}
-					}
-				}
+			account := state.GetAccountInfo(txSender)
+			if account == nil {
+				return headerExtra, errors.Errorf("error of account")
 			}
-		}
-		// check each address
-		//if number > 1 {
-		//	headerExtra.ModifyPredecessorVotes = v.processPredecessorVoter(headerExtra.ModifyPredecessorVotes, state, tx, txSender, snap)
-		//}
 
+			if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
+				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender)
+			}
+
+		}
 	}
+	//2019.8.5 inb mod by ghy end
+
 	return headerExtra, nil
-}
-
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo []string, declarer common.Address) []common.EnodeInfo {
-
-	if len(txDataInfo) > posEventDeclareInfo {
-		midEnodeInfo := strings.Split(txDataInfo[posEventDeclareInfo], "~")
-		if len(midEnodeInfo) >= posEventDeclareInfoSplitLen {
-			enodeInfo := common.EnodeInfo{
-				Id:      midEnodeInfo[posEventDeclareInfoId],
-				Ip:      midEnodeInfo[posEventDeclareInfoIp],
-				Port:    midEnodeInfo[posEventDeclareInfoPort],
-				Address: declarer,
-			}
-			//inb by ghy begin
-			if len(midEnodeInfo) >= 4 {
-				enodeInfo.Name = midEnodeInfo[posEventDeclareInfoName]
-			}
-
-			if len(midEnodeInfo) >= 5 {
-				enodeInfo.Nation = midEnodeInfo[posEventDeclareInfoNation]
-			}
-
-			if len(midEnodeInfo) >= 6 {
-				enodeInfo.City = midEnodeInfo[posEventDeclareInfoCity]
-
-			}
-
-			if len(midEnodeInfo) >= 7 {
-				enodeInfo.Image = midEnodeInfo[posEventDeclareInfoImage]
-
-			}
-			if len(midEnodeInfo) >= 8 {
-				enodeInfo.Website = midEnodeInfo[posEventDeclareInfoWebsite]
-			}
-			if len(midEnodeInfo) >= 9 {
-				enodeInfo.Email = midEnodeInfo[posEventDeclareInfoEmail]
-			}
-
-			data := `{`
-			if len(midEnodeInfo) >= 10 {
-				enodeData := strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
-				for _, v := range enodeData {
-					split := strings.Split(v, "/")
-					if len(split) == 2 {
-						data += `"` + split[0] + `":"` + split[1] + `",`
-					}
-				}
-				data = strings.TrimRight(data, ",")
-			}
-			data += `}`
-			enodeInfo.Data = data
-
-			//inb by ghy end
-			flag := false
-			for i, enode := range currentEnodeInfos {
-				if enode.Address == declarer {
-					flag = true
-					currentEnodeInfos[i] = enodeInfo
-					break
-				}
-			}
-			if !flag {
-				currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
-			}
-		}
-	}
-	return currentEnodeInfos
 }
 
 func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) []Vote {
@@ -284,6 +205,70 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 	//state.AddVoteRecord(voter,stake)
 
 	return currentBlockVotes
+}
+
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address) []common.EnodeInfo {
+
+	midEnodeInfo := strings.Split(txDataInfo, "~")
+	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
+		enodeInfo := common.EnodeInfo{
+			Id:      midEnodeInfo[PosEventDeclareInfoId],
+			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+			Port:    midEnodeInfo[PosEventDeclareInfoPort],
+			Address: declarer,
+		}
+		//inb by ghy begin
+		if len(midEnodeInfo) >= 4 {
+			enodeInfo.Name = midEnodeInfo[PosEventDeclareInfoName]
+		}
+
+		if len(midEnodeInfo) >= 5 {
+			enodeInfo.Nation = midEnodeInfo[PosEventDeclareInfoNation]
+		}
+
+		if len(midEnodeInfo) >= 6 {
+			enodeInfo.City = midEnodeInfo[PosEventDeclareInfoCity]
+		}
+		if len(midEnodeInfo) >= 7 {
+			enodeInfo.Image = midEnodeInfo[PosEventDeclareInfoImage]
+
+		}
+		if len(midEnodeInfo) >= 8 {
+			enodeInfo.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
+		}
+		if len(midEnodeInfo) >= 9 {
+			enodeInfo.Email = midEnodeInfo[PosEventDeclareInfoEmail]
+		}
+
+		data := `{`
+		if len(midEnodeInfo) >= 10 {
+			enodeData := strings.Split(midEnodeInfo[PosEventDeclareInfodata], "-")
+			for _, v := range enodeData {
+				split := strings.Split(v, "/")
+				if len(split) == 2 {
+					data += `"` + split[0] + `":"` + split[1] + `",`
+				}
+			}
+			data = strings.TrimRight(data, ",")
+		}
+		data += `}`
+		enodeInfo.Data = data
+
+		//inb by ghy end
+		flag := false
+		for i, enode := range currentEnodeInfos {
+			if enode.Address == declarer {
+				flag = true
+				currentEnodeInfos[i] = enodeInfo
+				break
+			}
+		}
+		if !flag {
+			currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
+		}
+	}
+
+	return currentEnodeInfos
 }
 
 //func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address, snap *Snapshot) []Vote {

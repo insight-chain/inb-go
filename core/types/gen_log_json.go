@@ -5,6 +5,7 @@ package types
 import (
 	"encoding/json"
 	"errors"
+	"math/big"
 
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
@@ -12,6 +13,7 @@ import (
 
 var _ = (*logMarshaling)(nil)
 
+// MarshalJSON marshals as JSON.
 func (l Log) MarshalJSON() ([]byte, error) {
 	type Log struct {
 		Address     common.Address `json:"address" gencodec:"required"`
@@ -23,6 +25,10 @@ func (l Log) MarshalJSON() ([]byte, error) {
 		BlockHash   common.Hash    `json:"blockHash"`
 		Index       hexutil.Uint   `json:"logIndex" gencodec:"required"`
 		Removed     bool           `json:"removed"`
+		From        common.Address `json:"from"       gencodec:"required"`
+		To          common.Address `json:"to"       gencodec:"required"`
+		Amount      *big.Int       `json:"value"    gencodec:"required"`
+		Types       TxType         `json:"txType" gencodec:"required"`
 	}
 	var enc Log
 	enc.Address = l.Address
@@ -34,9 +40,14 @@ func (l Log) MarshalJSON() ([]byte, error) {
 	enc.BlockHash = l.BlockHash
 	enc.Index = hexutil.Uint(l.Index)
 	enc.Removed = l.Removed
+	enc.From = l.From
+	enc.To = l.To
+	enc.Amount = l.Amount
+	enc.Types = l.Types
 	return json.Marshal(&enc)
 }
 
+// UnmarshalJSON unmarshals from JSON.
 func (l *Log) UnmarshalJSON(input []byte) error {
 	type Log struct {
 		Address     *common.Address `json:"address" gencodec:"required"`
@@ -48,6 +59,10 @@ func (l *Log) UnmarshalJSON(input []byte) error {
 		BlockHash   *common.Hash    `json:"blockHash"`
 		Index       *hexutil.Uint   `json:"logIndex" gencodec:"required"`
 		Removed     *bool           `json:"removed"`
+		From        *common.Address `json:"from"       gencodec:"required"`
+		To          *common.Address `json:"to"       gencodec:"required"`
+		Amount      *big.Int        `json:"value"    gencodec:"required"`
+		Types       *TxType         `json:"txType" gencodec:"required"`
 	}
 	var dec Log
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -86,5 +101,21 @@ func (l *Log) UnmarshalJSON(input []byte) error {
 	if dec.Removed != nil {
 		l.Removed = *dec.Removed
 	}
+	if dec.From == nil {
+		return errors.New("missing required field 'from' for Log")
+	}
+	l.From = *dec.From
+	if dec.To == nil {
+		return errors.New("missing required field 'to' for Log")
+	}
+	l.To = *dec.To
+	if dec.Amount == nil {
+		return errors.New("missing required field 'value' for Log")
+	}
+	l.Amount = dec.Amount
+	if dec.Types == nil {
+		return errors.New("missing required field 'txType' for Log")
+	}
+	l.Types = *dec.Types
 	return nil
 }

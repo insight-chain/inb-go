@@ -80,8 +80,8 @@ type btHeader struct {
 	UncleHash        common.Hash
 	ExtraData        []byte
 	Difficulty       *big.Int
-	GasLimit         uint64
-	GasUsed          uint64
+	NetLimit         uint64
+	NetUsed          uint64
 	Timestamp        *big.Int
 }
 
@@ -89,8 +89,8 @@ type btHeaderMarshaling struct {
 	ExtraData  hexutil.Bytes
 	Number     *math.HexOrDecimal256
 	Difficulty *math.HexOrDecimal256
-	GasLimit   math.HexOrDecimal64
-	GasUsed    math.HexOrDecimal64
+	NetLimit   math.HexOrDecimal64
+	NetUsed    math.HexOrDecimal64
 	Timestamp  *math.HexOrDecimal256
 }
 
@@ -149,8 +149,8 @@ func (t *BlockTest) genesis(config *params.ChainConfig) *core.Genesis {
 		Timestamp:  t.json.Genesis.Timestamp.Uint64(),
 		ParentHash: t.json.Genesis.ParentHash,
 		ExtraData:  t.json.Genesis.ExtraData,
-		GasLimit:   t.json.Genesis.GasLimit,
-		GasUsed:    t.json.Genesis.GasUsed,
+		NetLimit:   t.json.Genesis.NetLimit,
+		NetUsed:    t.json.Genesis.NetUsed,
 		Difficulty: t.json.Genesis.Difficulty,
 		Mixhash:    t.json.Genesis.MixHash,
 		Coinbase:   t.json.Genesis.Coinbase,
@@ -242,11 +242,11 @@ func validateHeader(h *btHeader, h2 *types.Header) error {
 	if h.Difficulty.Cmp(h2.Difficulty) != 0 {
 		return fmt.Errorf("Difficulty: want: %v have: %v", h.Difficulty, h2.Difficulty)
 	}
-	if h.GasLimit != h2.GasLimit {
-		return fmt.Errorf("GasLimit: want: %d have: %d", h.GasLimit, h2.GasLimit)
+	if h.NetLimit != h2.NetLimit {
+		return fmt.Errorf("NetLimit: want: %d have: %d", h.NetLimit, h2.NetLimit)
 	}
-	if h.GasUsed != h2.GasUsed {
-		return fmt.Errorf("GasUsed: want: %d have: %d", h.GasUsed, h2.GasUsed)
+	if h.NetUsed != h2.NetUsed {
+		return fmt.Errorf("NetUsed: want: %d have: %d", h.NetUsed, h2.NetUsed)
 	}
 	if h.Timestamp.Cmp(h2.Time) != 0 {
 		return fmt.Errorf("Timestamp: want: %v have: %v", h.Timestamp, h2.Time)

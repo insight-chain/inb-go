@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"github.com/insight-chain/inb-go/crypto"
 	"math"
 	"math/big"
 	"sort"
@@ -93,7 +94,9 @@ var (
 	ErrParameterError              = errors.New("Parameter error")
 
 	//achilles0718 regular mortgagtion
-	ErrCountLimit = errors.New("exceeds mortgagtion count limit")
+	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
+	ErrInvalidAddress = errors.New("invalid address without right prefix")
+	ErrTxType         = errors.New("invalid transaction type")
 )
 
 var (
@@ -430,7 +433,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 	pool.currentState = statedb
 	pool.pendingState = state.ManageState(statedb)
-	pool.currentMaxGas = newHead.GasLimit
+	pool.currentMaxGas = newHead.NetLimit
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -585,6 +588,10 @@ func (pool *TxPool) local() map[common.Address]types.Transactions {
 // rules and adheres to some heuristic limits of the local node (price and size).
 func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	// Heuristic limit, reject transactions over 32KB to prevent DOS attacks
+	if !types.ValidateType(tx.Types()) {
+		return ErrTxType
+	}
+
 	if tx.Size() > 32*1024 {
 		return ErrOversizedData
 	}
@@ -602,6 +609,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrGasLimit
 	//}
 
+	for _, v := range pool.chain.CurrentBlock().SpecialConsensus().SpecialConsensusAddress {
+		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
+			return errors.New("can not transfer to special consensus address")
+		}
+	}
+
 	//achilles repayment
 	//v, r, s := tx.RawPaymentSignatureValues()
 	//if v != nil && r != nil && s != nil{
@@ -613,6 +626,28 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 	//achilles config validate candidates size
 
+	if tx.WhichTypes(types.UpdateNodeInformation) {
+		tx.Data()
+		if len(inputStr) >= len(vdpos.InbPrefix) {
+			txDataInfo := strings.Split(inputStr, "|")
+			if len(txDataInfo) >= vdpos.InbMinSplitLen {
+				if txDataInfo[vdpos.PosPrefix] == vdpos.InbPrefix {
+					if txDataInfo[vdpos.PosVersion] == vdpos.InbVersion {
+						// process vote event
+						if txDataInfo[vdpos.PosCategory] == vdpos.InbCategoryEvent {
+							if len(txDataInfo) > vdpos.InbMinSplitLen {
+								// check is vote or not
+								if txDataInfo[vdpos.PosEventVote] == vdpos.InbEventDeclare {
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+
+	}
+
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
 		var candidatesSlice []common.Address
@@ -621,7 +656,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		for _, value := range candidatesStr {
 			address := common.HexToAddress(value)
 			//2019.7.15 inb mod by ghy begin
-			if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			accountInfo := pool.currentState.GetAccountInfo(address)
+			if accountInfo == nil {
+				return errors.New("error of candidates address")
+			}
+			if accountInfo.Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -650,6 +689,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
+	if from[0] != crypto.PrefixToAddress[0] {
+		return ErrInvalidAddress
+	}
 	if !tx.WhichTypes(types.Repayment) {
 		netPayment = from
 	}
@@ -670,8 +712,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	return ErrInsufficientFunds
 	//}
 
-	if !(tx.WhichTypes(types.Repayment) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Receive)) {
-
+	// No need to consume balance
+	if tx.NoNeedUseBalance() {
 		if pool.currentState.GetBalance(from).Cmp(tx.Value()) < 0 {
 			return ErrInsufficientFunds
 		}
@@ -683,7 +725,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if strings.Contains(inputStr, "ReceiveLockedAward") {
+	if tx.WhichTypes(types.ReceiveLockedAward) {
 		receivebonus := strings.Split(inputStr, ":")
 		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveLockedAward" {
 			if err := pool.validateReceiveLockedAward(receivebonus, from); err != nil {
@@ -694,9 +736,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if strings.Contains(inputStr, "ReceiveLockedAward") {
+	if tx.WhichTypes(types.ReceiveVoteAward) {
 		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
+		} else {
+			return nil
 		}
 	}
 
@@ -728,8 +772,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	if !(tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Reset) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Receive)) {
-		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil, pool.homestead)
+	// No need to consume resources
+	if tx.NoNeedUseNet() {
+		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
+
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
@@ -755,10 +801,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		netUse := big.NewInt(1).Div(tx.Value(), params.TxConfig.WeiOfUseNet)
-		netUse = netUse.Mul(netUse, unit)
-		usableInb := pool.currentState.GetMortgageInbOfNet(netPayment)
-		if usableInb.Cmp(tx.Value()) < 0 {
+		mortgageInb := pool.currentState.GetMortgageInbOfNet(netPayment)
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRegular(netPayment))
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetRedeem(netPayment))
+		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
 	}
@@ -791,14 +837,16 @@ func (pool *TxPool) add(tx *types.Transaction, local bool) (bool, error) {
 	if uint64(pool.all.Count()) >= pool.config.GlobalSlots+pool.config.GlobalQueue {
 		// If the new transaction is underpriced, don't accept it
 		if !local && pool.priced.Underpriced(tx, pool.locals) {
-			log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			//log.Trace("Discarding underpriced transaction", "hash", hash, "price", tx.GasPrice())
+			log.Trace("Discarding underpriced transaction", "hash", hash)
 			underpricedTxCounter.Inc(1)
 			return false, ErrUnderpriced
 		}
 		// New transaction is better than our worse ones, make room for it
 		drop := pool.priced.Discard(pool.all.Count()-int(pool.config.GlobalSlots+pool.config.GlobalQueue-1), pool.locals)
 		for _, tx := range drop {
-			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			//log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash(), "price", tx.GasPrice())
+			log.Trace("Discarding freshly underpriced transaction", "hash", tx.Hash())
 			underpricedTxCounter.Inc(1)
 			pool.removeTx(tx.Hash(), false)
 		}
@@ -1454,70 +1502,151 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 //2019.7.22 inb by ghy begin
 func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
-	if account.Voted.Int64() > 0 {
-		for _, v := range account.Stores {
-			if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
-				timeNow := pool.chain.CurrentBlock().Time().Int64()
-				startTime := v.StartTime.Int64()
-				lastReceivedTime := v.LastReceivedTime.Int64()
+	if account == nil {
+		return errors.New("errors of address")
+	}
+	if account.Voted.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("can only receive locked rewards after voting")
+	}
+	if len(account.Stores) <= 0 {
+		return errors.New("no locked record")
+	}
 
-				daySeconds := int64(v.Days * 24 * 60 * 60)
-				endTimeSecond := startTime + daySeconds
+	LockedRewardCycleSeconds := new(big.Int)
+	LockedRewardCycleTimes := new(big.Int)
+	LockedDenominator := new(big.Int)
+	LockedHundred := new(big.Int)
+	LockedNumberOfDaysOneYear := new(big.Int)
+	for _, v := range account.Stores {
+		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
+			switch v.Days {
+			case 30:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
+				LockedDenominator = common.LockedDenominatorFor30days
+				LockedHundred = common.LockedHundredFor30days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor30days
+			case 90:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor90days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor90days
+				LockedDenominator = common.LockedDenominatorFor90days
+				LockedHundred = common.LockedHundredFor90days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
+			case 180:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor180days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
+				LockedDenominator = common.LockedDenominatorFor180days
+				LockedHundred = common.LockedHundredFor180days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
+			case 360:
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
+				LockedDenominator = common.LockedDenominatorFor360days
+				LockedHundred = common.LockedHundredFor360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+			default:
+				return errors.New("unknow times")
+			}
 
-				totalValue := &v.Value
-				receivedValue := &v.Received
+			timeNow := pool.chain.CurrentBlock().Time()
 
-				if timeNow > endTimeSecond {
-					timeNow = endTimeSecond
-				}
+			startTime := &v.StartTime
+			lastReceivedTime := v.LastReceivedTime
 
-				if lastReceivedTime < startTime {
-					lastReceivedTime = startTime
-				}
+			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
+			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
 
-				FromLastReceivedPassTimeSecond := timeNow - lastReceivedTime
-				FromLastReceivedPassDays := FromLastReceivedPassTimeSecond / common.RewardOneDaySecond
+			totalValue := &v.Value
+			receivedValue := &v.Received
 
-				FromStartPassTimeSecond := timeNow - startTime
-				FromStartPassDays := FromStartPassTimeSecond / common.RewardOneDaySecond
+			if lastReceivedTime.Cmp(endTimeSecond) == 1 {
+				return errors.New("all the rewards are received")
+			}
+			if startTime.Cmp(lastReceivedTime) == 1 {
+				return errors.New("last receipt time and start time error")
+			}
+			if lastReceivedTime.Cmp(timeNow) == 1 {
+				return errors.New("last receipt time error")
+			}
+			if timeNow.Cmp(endTimeSecond) == 1 {
+				timeNow = endTimeSecond
+			}
 
-				if lastReceivedTime < endTimeSecond && timeNow > lastReceivedTime {
+			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
 
-					if FromLastReceivedPassDays >= common.VoteRewardCycleDays {
-						totalValue1 := new(big.Int).Mul(totalValue, common.Denominator)
-						totalValue2 := new(big.Int).Div(totalValue1, common.Hundred)
-						totalValue3 := new(big.Int).Div(totalValue2, common.NumberOfDaysOneYear)
-						MaxReceivedValueNow := new(big.Int).Mul(totalValue3, big.NewInt(FromStartPassDays))
-						//MaxReceivedValueNow := float64(FromStartPassDays) * common.ResponseRate * float64(totalValue)
-						//subValue := MaxReceivedValueNow - float64(receivedValue)
-						subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
-						if subValue.Cmp(big.NewInt(0)) == 1 {
-							return nil
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, LockedRewardCycleSeconds)
+
+			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
+
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, LockedRewardCycleSeconds)
+
+			if FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
+				return errors.New("have no rewards to received")
+			}
+			totalValue1 := new(big.Int).Mul(totalValue, LockedDenominator)
+			totalValue2 := new(big.Int).Div(totalValue1, LockedHundred)
+			totalValue3 := new(big.Int).Div(totalValue2, LockedNumberOfDaysOneYear)
+			MaxReceivedValueNow := new(big.Int).Mul(totalValue3, FromStartPassDays)
+			subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
+
+			if subValue.Cmp(big.NewInt(0)) != 1 {
+				return errors.New("not receive vote award time")
+			} else {
+				consensus := pool.chain.CurrentBlock().SpecialConsensus()
+				for _, v := range consensus.SpecialConsensusAddress {
+					if v.Name == state.OnlineMarketing {
+						ToAddressInfo := pool.currentState.GetAccountInfo(v.ToAddress)
+						if ToAddressInfo.Balance.Cmp(subValue) != 1 {
+							return errors.New("there are not enough inb in the voting account")
 						}
+						return nil
 					}
 				}
-
+				return errors.New("have no online marketing account")
 			}
+
 		}
-		return errors.New("have no rewards to received")
-	} else {
-		return errors.New("Can only receive rewards after voting")
 	}
+	return errors.New("no such locked record")
 }
 
 func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
-	if account.Voted.Cmp(big.NewInt(0)) == 1 {
-		timeNow := pool.chain.CurrentBlock().Time().Int64()
-		lastVoteTime := account.LastReceiveVoteAwardTime.Int64()
-		if timeNow-lastVoteTime < common.VoteRewardCycleSeconds {
-			return errors.New("Not receiving voting time")
+	if account == nil {
+		return errors.New("errors of address")
+	}
+	if account.Voted.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("please receive vote award after voting")
+	}
+
+	timeNow := pool.chain.CurrentBlock().Time()
+	lastReceiveVoteAwardTime := account.LastReceiveVoteAwardTime
+	if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+		return errors.New("last receive vote award time error")
+	}
+
+	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
+	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
+	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
+		consensus := pool.chain.CurrentBlock().SpecialConsensus()
+		for _, v := range consensus.SpecialConsensusAddress {
+			if v.Name == state.VotingReward {
+				votes := account.Voted
+				votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
+				votes2 := new(big.Int).Div(votes1, common.VoteHundred)
+				votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYear)
+				value := new(big.Int).Mul(votes3, cycles)
+				ToAddressInfo := pool.currentState.GetAccountInfo(v.ToAddress)
+				if ToAddressInfo.Balance.Cmp(value) != 1 {
+					return errors.New("there are not enough inb in the voting account")
+				}
+			}
 		}
 
-	} else {
-		return errors.New("Can only receive rewards after voting")
+		return nil
 	}
-	return nil
+
+	return errors.New("not receive vote award time")
 }
 
 //2019.7.22 inb by ghy end

@@ -1,46 +1,63 @@
 package common
 
-import "math/big"
+import (
+	"math/big"
+)
+
+// 2019.7.22 inb by ghy begin
+var (
+	OneDaySecond = big.NewInt(24 * 60 * 60)
+
+	//vote
+	VoteRewardCycleSeconds  = big.NewInt(1)
+	VoteRewardCycleTimes    = big.NewInt(7)
+	VoteDenominator         = big.NewInt(12)
+	VoteHundred             = big.NewInt(100)
+	VoteNumberOfDaysOneYear = big.NewInt(365)
+
+	//Mortgage,unMortgage,change vote
+	VoteRewardCycleSecondsForChange  = big.NewInt(1)
+	VoteRewardCycleTimesForChange    = big.NewInt(1)
+	VoteDenominatorForChange         = big.NewInt(12)
+	VoteHundredForChange             = big.NewInt(100)
+	VoteNumberOfDaysOneYearForChange = big.NewInt(365)
+
+	//locked 30days
+	LockedRewardCycleSecondsFor30days  = big.NewInt(1)
+	LockedRewardCycleTimesFor30days    = big.NewInt(7)
+	LockedDenominatorFor30days         = big.NewInt(9)
+	LockedHundredFor30days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor30days = big.NewInt(365)
+
+	//locked 90days
+	LockedRewardCycleSecondsFor90days  = big.NewInt(1)
+	LockedRewardCycleTimesFor90days    = big.NewInt(7)
+	LockedDenominatorFor90days         = big.NewInt(10)
+	LockedHundredFor90days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor90days = big.NewInt(365)
+
+	//locked 180days
+	LockedRewardCycleSecondsFor180days  = big.NewInt(1)
+	LockedRewardCycleTimesFor180days    = big.NewInt(7)
+	LockedDenominatorFor180days         = big.NewInt(11)
+	LockedHundredFor180days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor180days = big.NewInt(365)
+
+	//locked 360days
+	LockedRewardCycleSecondsFor360days  = big.NewInt(1)
+	LockedRewardCycleTimesFor360days    = big.NewInt(7)
+	LockedDenominatorFor360days         = big.NewInt(12)
+	LockedHundredFor360days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearFor360days = big.NewInt(365)
+
+	// 2019.7.22 inb by ghy end
+	//
+
+)
 
 // Declare :
 // declare come from custom tx which data like "inb:1:event:declare:id~ip~port"
 // Sender of tx is Signer or Candidate
-
-var (
-	//inb by ghy begin
-
-	//vote
-
-	//VoteRewardCycleSeconds = int64(7 * 24 * 60 * 60)//
-	//VoteRewardOneDayRate = float64(0.12 / 365)
-	//VoteRewardOneDaySecond= int64(24 * 60 * 60)
-	////else
-	//ResponseRate        = float64(0.12/365)
-	//VoteRewardCycleDays = int64(7)
-	//RewardOneDaySecond  = int64(24 * 60 * 60)
-
-	//test
-	//vote
-
-	VoteRewardCycleSeconds = int64(60) //
-	VoteRewardOneDayRate   = float64(1)
-	VoteRewardOneDaySecond = int64(10)
-	//else
-	ResponseRate        = float64(1)
-	VoteRewardCycleDays = int64(7)
-	RewardOneDaySecond  = int64(10)
-
-	Denominator         = big.NewInt(12)
-	ReceivingCycleDays  = big.NewInt(7)
-	Hundred             = big.NewInt(100)
-	NumberOfDaysOneYear = big.NewInt(365)
-	OneCycleSeconds     = big.NewInt(24 * 60 * 60)
-	DefaultTotalAccount = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
-	BeVotedNeedINB      = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
-
-	//inb by ghy end
-
-)
 
 type EnodeInfo struct {
 	Address Address `json:"address"`

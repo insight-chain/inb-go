@@ -34,9 +34,9 @@ var (
 	emptyTx = NewTransaction(
 		0,
 		common.HexToAddress("095e7baea6a6c7c4c2dfeb977efac326af552d87"),
-		big.NewInt(0), 0, big.NewInt(0),
+		big.NewInt(0), 0,
 		nil,
-		Default,
+		Ordinary,
 	)
 
 	rightvrsTx, _ = NewTransaction(
@@ -44,9 +44,8 @@ var (
 		common.HexToAddress("b94f5374fce5edbc8e2a8697c15331677e6ebf0b"),
 		big.NewInt(10),
 		2000,
-		big.NewInt(1),
 		common.FromHex("5544"),
-		Default,
+		Ordinary,
 	).WithSignature(
 		HomesteadSigner{},
 		common.Hex2Bytes("98ff921201554726367d2be8c804a7ff89ccf285ebc57dff8ae4c44b9c19ac4a8887321be575c8095f789dd4c743dfe42c1820f9231f98a962b210e3ac2452a301"),
@@ -141,7 +140,7 @@ func TestTransactionPriceNonceSort(t *testing.T) {
 	for start, key := range keys {
 		addr := crypto.PubkeyToAddress(key.PublicKey)
 		for i := 0; i < 25; i++ {
-			tx, _ := SignTx(NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, big.NewInt(int64(start+i)), nil, Default), signer, key)
+			tx, _ := SignTx(NewTransaction(uint64(start+i), common.Address{}, big.NewInt(100), 100, nil, Ordinary), signer, key)
 			groups[addr] = append(groups[addr], tx)
 		}
 	}
@@ -172,8 +171,9 @@ func TestTransactionPriceNonceSort(t *testing.T) {
 		if i+1 < len(txs) {
 			next := txs[i+1]
 			fromNext, _ := Sender(signer, next)
-			if fromi != fromNext && txi.GasPrice().Cmp(next.GasPrice()) < 0 {
-				t.Errorf("invalid gasprice ordering: tx #%d (A=%x P=%v) < tx #%d (A=%x P=%v)", i, fromi[:4], txi.GasPrice(), i+1, fromNext[:4], next.GasPrice())
+			//if fromi != fromNext && txi.GasPrice().Cmp(next.GasPrice()) < 0 {
+			if fromi != fromNext {
+				//t.Errorf("invalid gasprice ordering: tx #%d (A=%x P=%v) < tx #%d (A=%x P=%v)", i, fromi[:4], txi.GasPrice(), i+1, fromNext[:4], next.GasPrice())
 			}
 		}
 	}
@@ -192,9 +192,9 @@ func TestTransactionJSON(t *testing.T) {
 		var tx *Transaction
 		switch i % 2 {
 		case 0:
-			tx = NewTransaction(i, common.Address{1}, common.Big0, 1, common.Big2, []byte("abcdef"), Default)
+			tx = NewTransaction(i, common.Address{1}, common.Big0, 1, []byte("abcdef"), Ordinary)
 		case 1:
-			tx = NewContractCreation(i, common.Big0, 1, common.Big2, []byte("abcdef"))
+			tx = NewContractCreation(i, common.Big0, 1, []byte("abcdef"))
 		}
 		transactions = append(transactions, tx)
 

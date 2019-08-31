@@ -19,9 +19,9 @@ package types
 import (
 	"container/heap"
 	"errors"
+	"fmt"
 	"io"
 	"math/big"
-	"strings"
 	"sync/atomic"
 
 	"github.com/insight-chain/inb-go/common"
@@ -39,8 +39,8 @@ var (
 type TxType uint8
 
 const (
-	Default TxType = iota
-	Repayment
+	_ TxType = iota
+	Ordinary
 	Mortgage
 	Regular
 	Redeem
@@ -49,7 +49,21 @@ const (
 	Receive
 	ReceiveLockedAward
 	ReceiveVoteAward
+	UpdateNodeInformation
+
+	SpecilaTx
+	Repayment
+	Contract
 )
+
+func ValidateType(txType TxType) bool {
+	flag := true
+	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Repayment && txType != Contract {
+		flag = false
+	}
+	return flag
+}
 
 type Transaction struct {
 	data txdata
@@ -60,12 +74,13 @@ type Transaction struct {
 }
 
 type txdata struct {
-	AccountNonce uint64          `json:"nonce"    gencodec:"required"`
-	Price        *big.Int        `json:"gasPrice" gencodec:"required"`
-	GasLimit     uint64          `json:"gas"      gencodec:"required"`
-	Recipient    *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
-	Amount       *big.Int        `json:"value"    gencodec:"required"`
-	Payload      []byte          `json:"input"    gencodec:"required"`
+	AccountNonce uint64 `json:"nonce"    gencodec:"required"`
+	//Price        *big.Int        `json:"gasPrice" gencodec:"required"`
+	//GasLimit  uint64          `json:"gas"      gencodec:"required"`
+	//Net  uint64          `json:"net"      gencodec:"required"`
+	Recipient *common.Address `json:"to"       rlp:"nil"` // nil means contract creation
+	Amount    *big.Int        `json:"value"    gencodec:"required"`
+	Payload   []byte          `json:"input"    gencodec:"required"`
 
 	// Signature values
 	V *big.Int `json:"v" gencodec:"required"`
@@ -97,29 +112,29 @@ type payment struct {
 
 type txdataMarshaling struct {
 	AccountNonce hexutil.Uint64
-	Price        *hexutil.Big
-	GasLimit     hexutil.Uint64
-	Amount       *hexutil.Big
-	Payload      hexutil.Bytes
-	V            *hexutil.Big
-	R            *hexutil.Big
-	S            *hexutil.Big
-	Types        hexutil.Uint64
+	//Price        *hexutil.Big
+	//Net          hexutil.Uint64
+	Amount  *hexutil.Big
+	Payload hexutil.Bytes
+	V       *hexutil.Big
+	R       *hexutil.Big
+	S       *hexutil.Big
+	Types   hexutil.Uint64
 }
 
-func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, txType)
+func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, data, txType)
 }
 
-//func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, payment *common.Address, txType TxType) *Transaction {
-//	return newTransaction(nonce, &to, amount, gasLimit, gasPrice, data, payment, txType)
+//func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, payment *common.Address, txType TxType) *Transaction {
+//	return newTransaction(Fnonce, &to, amount, gasLimit, data, payment, txType)
 //}
 
-func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, gasPrice, data, Default)
+func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, data []byte) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, data, Contract)
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, txType TxType) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -132,20 +147,20 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		Recipient:    to,
 		Payload:      data,
 		Amount:       new(big.Int),
-		GasLimit:     gasLimit,
-		Price:        new(big.Int),
-		V:            new(big.Int),
-		R:            new(big.Int),
-		S:            new(big.Int),
-		Types:        txType,
+		//Net:     gasLimit,
+		//Price:        new(big.Int),
+		V:     new(big.Int),
+		R:     new(big.Int),
+		S:     new(big.Int),
+		Types: txType,
 		//Repayment:    rePayment,
 	}
 	if amount != nil {
 		d.Amount.Set(amount)
 	}
-	if gasPrice != nil {
-		d.Price.Set(gasPrice)
-	}
+	//if gasPrice != nil {
+	//	d.Price.Set(gasPrice)
+	//}
 
 	return &Transaction{data: d}
 }
@@ -224,16 +239,41 @@ func (tx *Transaction) UnmarshalJSON(input []byte) error {
 	return nil
 }
 
-func (tx *Transaction) Data() []byte       { return common.CopyBytes(tx.data.Payload) }
-func (tx *Transaction) Gas() uint64        { return tx.data.GasLimit }
-func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
-func (tx *Transaction) Value() *big.Int    { return new(big.Int).Set(tx.data.Amount) }
-func (tx *Transaction) Nonce() uint64      { return tx.data.AccountNonce }
-func (tx *Transaction) CheckNonce() bool   { return true }
+func (tx *Transaction) Data() []byte { return common.CopyBytes(tx.data.Payload) }
+func (tx *Transaction) Gas() uint64  { return 0 }
+
+//func (tx *Transaction) GasPrice() *big.Int { return new(big.Int).Set(tx.data.Price) }
+func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amount) }
+func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }
+func (tx *Transaction) CheckNonce() bool { return true }
 
 //func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
 func (tx *Transaction) Types() TxType                { return tx.data.Types }
 func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
+
+func (tx *Transaction) isContract() bool {
+	flag := false
+	if tx.data.Types == Contract && tx.data.Recipient == nil {
+		flag = true
+	}
+	return flag
+}
+
+func (tx *Transaction) NoNeedUseNet() bool {
+	flag := false
+	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecilaTx) || tx.WhichTypes(Redeem)) {
+		flag = true
+	}
+	return flag
+}
+
+func (tx *Transaction) NoNeedUseBalance() bool {
+	flag := false
+	if !(tx.WhichTypes(Repayment) || tx.WhichTypes(Reset) || tx.WhichTypes(Receive)) {
+		flag = true
+	}
+	return flag
+}
 
 // To returns the recipient address of the transaction.
 // It returns nil if the transaction is a contract creation.
@@ -275,9 +315,9 @@ func (tx *Transaction) Size() common.StorageSize {
 // XXX Rename message to something less arbitrary?
 func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 	msg := Message{
-		nonce:      tx.data.AccountNonce,
-		gasLimit:   tx.data.GasLimit,
-		gasPrice:   new(big.Int).Set(tx.data.Price),
+		nonce: tx.data.AccountNonce,
+		//net: tx.data.Net,
+		//gasPrice:   new(big.Int).Set(tx.data.Price),
 		to:         tx.data.Recipient,
 		amount:     tx.data.Amount,
 		data:       tx.data.Payload,
@@ -360,32 +400,6 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 //	return true
 //}
 
-//type of transaction is mortgagenet
-func (tx *Transaction) IsMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if inputStr == string("mortgageNet") {
-		return true
-	}
-	return false
-}
-
-func (tx *Transaction) IsRegularMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if strings.HasPrefix(inputStr, "mortgageNet:") {
-		return true
-	}
-	return false
-}
-
-//type of transaction is um mortgagenet
-func (tx *Transaction) IsUnMortgageNet() bool {
-	inputStr := string(tx.Data())
-	if inputStr == string("unmortgageNet") {
-		return true
-	}
-	return false
-}
-
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction
 
@@ -432,8 +446,10 @@ func (s TxByNonce) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 // for all at once sorting as well as individually adding and removing elements.
 type TxByPrice Transactions
 
-func (s TxByPrice) Len() int           { return len(s) }
-func (s TxByPrice) Less(i, j int) bool { return s[i].data.Price.Cmp(s[j].data.Price) > 0 }
+func (s TxByPrice) Len() int { return len(s) }
+
+//achilles190806 remove unused column gasprice todo should return false
+func (s TxByPrice) Less(i, j int) bool { return false }
 func (s TxByPrice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
 
 func (s *TxByPrice) Push(x interface{}) {
@@ -514,27 +530,29 @@ func (t *TransactionsByPriceAndNonce) Pop() {
 //
 // NOTE: In a future PR this will be removed.
 type Message struct {
-	to         *common.Address
-	from       common.Address
-	nonce      uint64
-	amount     *big.Int
-	gasLimit   uint64
-	gasPrice   *big.Int
+	to     *common.Address
+	from   common.Address
+	nonce  uint64
+	amount *big.Int
+	//gasLimit   uint64
+	net uint64
+	//gasPrice   *big.Int
 	data       []byte
 	checkNonce bool
 	types      TxType
+	receive    *big.Int
 	//achilles repayment
 	//resourcePayer common.Address
 }
 
-func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, gasPrice *big.Int, data []byte, checkNonce bool, txType TxType) Message {
+func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, data []byte, checkNonce bool, txType TxType) Message {
 	return Message{
-		from:       from,
-		to:         to,
-		nonce:      nonce,
-		amount:     amount,
-		gasLimit:   gasLimit,
-		gasPrice:   gasPrice,
+		from:   from,
+		to:     to,
+		nonce:  nonce,
+		amount: amount,
+		net:    gasLimit,
+		//gasPrice:   gasPrice,
 		data:       data,
 		checkNonce: checkNonce,
 		types:      txType,
@@ -543,14 +561,15 @@ func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *b
 
 func (m Message) From() common.Address { return m.from }
 func (m Message) To() *common.Address  { return m.to }
-func (m Message) GasPrice() *big.Int   { return m.gasPrice }
-func (m Message) Value() *big.Int      { return m.amount }
-func (m Message) Gas() uint64          { return m.gasLimit }
-func (m Message) Nonce() uint64        { return m.nonce }
-func (m Message) Data() []byte         { return m.data }
-func (m Message) CheckNonce() bool     { return m.checkNonce }
-func (m Message) Types() TxType        { return m.types }
 
+//func (m Message) GasPrice() *big.Int   { return m.gasPrice }
+func (m Message) Value() *big.Int               { return m.amount }
+func (m Message) Gas() uint64                   { return m.net }
+func (m Message) Nonce() uint64                 { return m.nonce }
+func (m Message) Data() []byte                  { return m.data }
+func (m Message) CheckNonce() bool              { return m.checkNonce }
+func (m Message) Types() TxType                 { return m.types }
+func (m Message) Receive() *big.Int             { return m.receive }
 func (m Message) WhichTypes(txType TxType) bool { return m.types == txType }
 
 //achilles repayment add apis
@@ -694,3 +713,144 @@ func DecodeTransactionStruct(encodeTxs ITransactions) Transactions {
 }
 
 //inb by ssh end
+
+//2019.8.29 inb by ghy begin
+func ValidateTx(txs Transactions, header *Header, Period uint64) error {
+	if len(txs) == 0 {
+		return nil
+	}
+	SpecialConsensusAddress := header.SpecialConsensus.SpecialConsensusAddress
+	//rewardInt, _ := strconv.Atoi(header.Reward)
+	//reward := big.NewInt(int64(rewardInt))
+	blockNumberOneYear := int64(365*86400) / int64(Period)
+	reward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18)), big.NewInt(blockNumberOneYear))
+
+	SpecialConsensus := header.SpecialConsensus
+	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
+		for _, v := range SpecialConsensus.SpecialNumer {
+			if header.Number.Cmp(v.Number) == 1 {
+				mul := new(big.Int).Mul(reward, SpecialConsensus.Molecule)
+				reward = new(big.Int).Div(mul, SpecialConsensus.Denominator)
+			}
+
+		}
+
+	}
+	type SpecialConsensusInfo struct {
+		Name         string
+		totalAddress common.Address
+		toAddress    common.Address
+		num          int
+	}
+	specialConsensu := make(map[common.Address]*SpecialConsensusInfo)
+
+	for _, v := range SpecialConsensusAddress {
+		totalConsensus := new(SpecialConsensusInfo)
+		totalConsensus.Name = v.Name
+		totalConsensus.toAddress = v.ToAddress
+		totalConsensus.totalAddress = v.TotalAddress
+		totalConsensus.num = 1
+		specialConsensu[v.TotalAddress] = totalConsensus
+	}
+
+	for _, v := range txs {
+		//fmt.Println(k, "验证from", common.BytesToAddress(v.Data()).String())
+		//fmt.Println(k, "验证to", v.To().String())
+		//fmt.Println(k, "验证to", *v.To())
+		//fmt.Println(k, "验证to", *v.data.Recipient)
+		//fmt.Println(k, "验证value", v.Value())
+		//fmt.Println("区块value", reward)
+		//fmt.Println("区块高度", header.Number)
+		//fmt.Println("区块coinbase", header.Coinbase.String())
+		//if specialConsensu[common.BytesToAddress(v.Data())] !nil {
+		//	return errors.New("total address can not touch!")
+		//}
+		if specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil {
+			return errors.New("can not transfer to special consensus address")
+		}
+		info := specialConsensu[common.BytesToAddress(v.Data())]
+		if info != nil {
+			switch info.Name {
+			case "Foundation":
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("Foundation special tx is not allowed")
+				}
+				info.num++
+			case "MiningReward":
+				if *v.data.Recipient != header.Coinbase || v.Value().Cmp(reward) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "header.Coinbas", header.Coinbase.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("MiningReward special tx is not allowed")
+				}
+				info.num++
+			case "VerifyReward":
+				return errors.New("VerifyReward special tx is not allowed")
+			case "VotingReward":
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("VotingReward special tx is not allowed")
+				}
+				info.num++
+			case "Team":
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("team special tx is not allowed")
+				}
+				info.num++
+			case "OnlineMarketing":
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("OnlineMarketing special tx is not allowed")
+				}
+				info.num++
+			case "OfflineMarketing":
+				halfReword := new(big.Int).Div(reward, big.NewInt(2))
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(halfReword) != 0 {
+					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
+					fmt.Println(header.Number, "*v.To()", v.To().String())
+					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
+					fmt.Println(header.Number, "v.Value()", v.Value())
+					fmt.Println(header.Number, "reward", reward)
+					return errors.New("OfflineMarketing special tx is not allowed")
+				}
+				info.num++
+			default:
+
+			}
+			//specialConsensu[common.BytesToAddress(v.Data())]++
+			//if *v.To() != header.Coinbase || v.Value().Cmp(big.NewInt(int64(111))) != 0 {
+			//	return errors.New("special tx is not allowed")
+			//}
+		}
+
+	}
+
+	for _, v := range specialConsensu {
+		if v.num > 2 {
+			return errors.New("a block can only have one special tx ")
+		}
+	}
+	return nil
+}
+
+//2019.8.29 inb by ghy end

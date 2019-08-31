@@ -18,6 +18,10 @@ package miner
 
 import (
 	"errors"
+
+	"fmt"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
+
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -25,6 +29,7 @@ import (
 
 	"github.com/deckarep/golang-set"
 	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core"
 	"github.com/insight-chain/inb-go/core/state"
@@ -73,6 +78,22 @@ const (
 	// staleThreshold is the maximum depth of the acceptable stale block.
 	staleThreshold = 7
 )
+
+type SendTxArgs struct {
+	From     common.Address  `json:"from"`
+	To       common.Address  `json:"to"`
+	Gas      *hexutil.Uint64 `json:"gas"`
+	GasPrice *hexutil.Big    `json:"gasPrice"`
+	Value    *big.Int        `json:"value"`
+	Nonce    uint64          `json:"nonce"`
+	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
+	// newer name and should be preferred by clients.
+	Data          *hexutil.Bytes  `json:"data"`
+	Input         *hexutil.Bytes  `json:"input"`
+	Types         types.TxType    `json:"txType"`
+	ResourcePayer *common.Address `json:"resourcePayer"`
+	//Candidates []common.Address `json:"candidates"`
+}
 
 // environment is the worker's current environment and holds all of the current state information.
 type environment struct {
@@ -411,6 +432,7 @@ func (w *worker) mainLoop() {
 	//vdpos by ssh end
 
 	for {
+		//w.commitNewWork(nil, false, time.Now().Unix())
 		select {
 		case req := <-w.newWorkCh:
 			w.commitNewWork(req.interrupt, req.noempty, req.timestamp)
@@ -598,6 +620,15 @@ func (w *worker) resultLoop() {
 				}
 				logs = append(logs, receipt.Logs...)
 			}
+			// 2019.8.29 inb by ghy begin
+			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
+				if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
+					fmt.Println(err)
+					return
+				}
+			}
+			// 2019.8.29 inb by ghy end
+
 			// Commit block and state to database.
 			stat, err := w.chain.WriteBlockWithState(block, receipts, task.state)
 			if err != nil {
@@ -724,7 +755,8 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	// add by ssh 190829 begin
 	vdposSnap := w.current.vdposContext.Snapshot()
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.NetUsed, *w.chain.GetVMConfig())
+
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
 		w.current.vdposContext.RevertToSnapShot(vdposSnap)
@@ -744,7 +776,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	}
 
 	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.GasLimit)
+		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.NetLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -759,7 +791,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
-				ratio := float64(w.current.header.GasLimit-w.current.gasPool.Gas()) / float64(w.current.header.GasLimit)
+				ratio := float64(w.current.header.NetLimit-w.current.gasPool.Gas()) / float64(w.current.header.NetLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
@@ -795,7 +827,6 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		}
 		// Start executing the transaction
 		w.current.state.Prepare(tx.Hash(), common.Hash{}, w.current.tcount)
-
 		logs, err := w.commitTransaction(tx, coinbase)
 		switch err {
 		case core.ErrGasLimitReached:
@@ -847,6 +878,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	if interrupt != nil {
 		w.resubmitAdjustCh <- &intervalAdjust{inc: false}
 	}
+
 	return false
 }
 
@@ -872,7 +904,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		GasLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		NetLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
 	}
@@ -949,10 +981,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		log.Error("Failed to fetch pending transactions", "err", err)
 		return
 	}
-	// Short circuit if there is no available pending transactions
+	//Short circuit if there is no available pending transactions
 	if len(pending) == 0 {
 		w.updateSnapshot()
-		return
+		//return
 	}
 	// Split the pending transactions into locals and remotes
 	localTxs, remoteTxs := make(map[common.Address]types.Transactions), pending
@@ -962,6 +994,71 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			localTxs[account] = txs
 		}
 	}
+
+	//2019.8.29 inb by ghy begin
+	//blockNumberOneYear := vdpos.OneYearBySec / int64(v.config.Period)
+	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
+	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+
+	SpecialConsensus := header.SpecialConsensus
+	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
+		for _, v := range SpecialConsensus.SpecialNumer {
+			if header.Number.Cmp(v.Number) == 1 {
+				mul := new(big.Int).Mul(reward, SpecialConsensus.Molecule)
+				reward = new(big.Int).Div(mul, SpecialConsensus.Denominator)
+			}
+
+		}
+
+	}
+
+	vdpos.DefaultMinerReward = reward
+	for _, v := range w.chain.CurrentBlock().Header().SpecialConsensus.SpecialConsensusAddress {
+		switch v.Name {
+		case "Foundation":
+			from := v.TotalAddress
+			to := v.ToAddress
+			value := reward
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx)
+		case "MiningReward":
+			from := v.TotalAddress
+			to := header.Coinbase
+			value := reward
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx, newTx)
+		case "VerifyReward":
+
+		case "VotingReward":
+			from := v.TotalAddress
+			to := v.ToAddress
+			value := reward
+			//value := big.NewInt(int64(reward))
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx)
+		case "Team":
+			from := v.TotalAddress
+			to := v.ToAddress
+			value := reward
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx)
+		case "OnlineMarketing":
+			from := v.TotalAddress
+			to := v.ToAddress
+			value := reward
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx)
+		case "OfflineMarketing":
+			from := v.TotalAddress
+			to := v.ToAddress
+			value := new(big.Int).Div(reward, big.NewInt(2))
+			newTx := w.CreateTx(from, to, value)
+			localTxs[from] = append(localTxs[from], newTx)
+		default:
+		}
+	}
+	//2019.8.29 inb by ghy end
+
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
@@ -975,6 +1072,33 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 	}
 	w.commit(uncles, w.fullTaskHook, true, tstart)
+}
+func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transaction {
+	args := SendTxArgs{
+		From:  from,
+		To:    to,
+		Value: new(big.Int),
+		Types: types.SpecilaTx,
+		Nonce: 0,
+	}
+	if args.Gas == nil {
+		args.Gas = new(hexutil.Uint64)
+		*(*uint64)(args.Gas) = 0
+	}
+
+	db, _ := w.chain.State()
+	nonce := db.GetNonce(args.From)
+
+	args.Nonce = nonce
+	args.Value = value
+
+	var input []byte
+
+	input = args.From.Bytes()
+
+	newTransaction := types.NewTransaction(args.Nonce, args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+
+	return newTransaction
 }
 
 // commit runs any post-transaction state modifications, assembles the final block
@@ -1004,13 +1128,15 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			w.unconfirmed.Shift(block.NumberU64() - 1)
 
 			feesWei := new(big.Int)
-			for i, tx := range block.Transactions() {
-				feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
-			}
+
+			//for i, tx := range block.Transactions() {
+			//	feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
+			//}
+
 			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
-				"uncles", len(uncles), "txs", w.current.tcount, "gas", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
+				"uncles", len(uncles), "txs", w.current.tcount, "net", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))
 
 		case <-w.exitCh:
 			log.Info("Worker has exited")

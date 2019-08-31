@@ -45,21 +45,21 @@ const (
 )
 
 var (
-	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
-	oneYearBySec                     = int64(365 * 86400)
+	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
+	OneYearBySec                     = int64(365 * 86400)
 	defaultBlockPeriod               = uint64(2)  // Default minimum difference between two consecutive block's timestamps
 	defaultSignerPeriod              = uint64(2)  // Default minimum difference between two signer's timestamps
 	defaultSignerBlocks              = uint64(6)  // Default number of blocks every signer created
 	defaultMaxSignerCount            = uint64(21) // Default max signers
 	minVoterBalance                  = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e+18))
-	extraVanity                      = 32                       // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil) // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)            // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(50)               // Default loop count to recreate signers from top tally
-	DefaultMinerReward               = big.NewInt(4e+18)        // Default reward for miner in wei
-	DefaultTotalAccount              = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
-	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	extraVanity                      = 32                              // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                              // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)        // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                   // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(50)                      // Default loop count to recreate signers from top tally
+	DefaultMinerReward               = big.NewInt(6341958396752917300) // Default reward for miner in wei
+	//DefaultTotalAccount              = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
+	BeVotedNeedINB = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
 
@@ -398,8 +398,8 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				vote := &types.Votes{
 					Voter:     voter,
 					Candidate: candidates,
-					//Stake:     state.GetMortgageInbOfNet(voter),
-					Stake: big.NewInt(1),
+					Stake:     state.GetMortgageInbOfNet(voter),
+					//Stake: big.NewInt(1),
 				}
 				vdposContext.UpdateVotes(vote)
 				vdposContext.UpdateTallysByVotes(vote)
@@ -478,8 +478,6 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	//inb by ghy begin
 	header.Reward = DefaultMinerReward.String()
 	//inb by ghy end
-
-	// Assemble and return the final block for sealing
 	return types.NewBlock(header, txs, nil, receipts), nil
 }
 
@@ -623,8 +621,8 @@ func sigHash(header *types.Header) (hash common.Hash) {
 		header.Bloom,
 		header.Difficulty,
 		header.Number,
-		header.GasLimit,
-		header.GasUsed,
+		header.NetLimit,
+		header.NetUsed,
 		header.Time,
 		header.Extra[:len(header.Extra)-65], // Yes, this will panic if extra is too short
 		header.MixDigest,
@@ -657,7 +655,9 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 		return common.Address{}, err
 	}
 	var signer common.Address
-	copy(signer[:], crypto.Keccak256(pubkey[1:])[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pubkey[1:])[12:]...)
+	copy(signer[:], newAddrBytes)
 
 	sigcache.Add(hash, signer)
 	return signer, nil
@@ -747,52 +747,66 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
-
+	header.Reward = DefaultMinerReward.String()
 	//reward := new(big.Int).Set(DefaultMinerReward)
-	//reward := new(big.Int).Div(defaultInbIncreaseOneYear, new)
-
+	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
 	//inb by ssh 190627
-	blockNumberOneYear := oneYearBySec / int64(v.config.Period)
-	reward := new(big.Int).Div(defaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
-	DefaultMinerReward = reward
-	if reward.Cmp(big.NewInt(0)) > 0 {
+	//blockNumberOneYear := OneYearBySec / int64(v.config.Period)
+	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+	////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
+	////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
+	////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
+	////		reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
+	////		break
+	////	}
+	////}
+	//SpecialNumerSlice := header.SpecialConsensus.SpecialNumer
+	//if len(SpecialNumerSlice) > 1 {
+	//	for i := 1; i < len(SpecialNumerSlice); i++ {
+	//		if header.Number.Cmp(SpecialNumerSlice[i-1].Number) == 1 && header.Number.Cmp(SpecialNumerSlice[i].Number) == -1 {
+	//			mul := new(big.Int).Mul(reward, SpecialNumerSlice[i-1].Molecule)
+	//			reward = new(big.Int).Div(mul, SpecialNumerSlice[i-1].Denominator)
+	//			break
+	//		}
+	//	}
+	//}
+	//
+	//DefaultMinerReward = reward
+	//if reward.Cmp(big.NewInt(0)) > 0 {
+	//
+	//	//for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
+	//	//	switch SpecialConsensusAddress.Name {
+	//	//	case state.Foundation:
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+	//	//	case state.MiningReward:
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+	//	//		states.AddBalance(header.Coinbase, reward)
+	//	//	case state.VerifyReward:
+	//	//
+	//	//	case state.VotingReward:
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+	//	//	case state.Team:
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+	//	//	case state.OnlineMarketing:
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+	//	//	case state.OfflineMarketing:
+	//	//		halfReward := new(big.Int).Div(reward, big.NewInt(2))
+	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
+	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
+	//	//	default:
+	//	//
+	//	//	}
+	//	//}
+	//
+	//}
+	//if states.GetBalance(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748")).Cmp(big.NewInt(0)) == 0 {
+	//	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
+	//}
 
-		for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
-			if header.Number.Int64() < SpecialNumber.Number.Int64() {
-				mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
-				reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
-				break
-			}
-		}
-		for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
-			switch SpecialConsensusAddress.Name {
-			case state.Foundation:
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-			case state.MiningReward:
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-				states.AddBalance(header.Coinbase, reward)
-			case state.VerifyReward:
-
-			case state.VotingReward:
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-			case state.Team:
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-			case state.OnlineMarketing:
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-				states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-			case state.OfflineMarketing:
-				halfReward := new(big.Int).Div(reward, big.NewInt(2))
-				states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
-				states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
-			default:
-
-			}
-		}
-
-	}
 }
 
 // Get the signer missing from last signer till header.Coinbase

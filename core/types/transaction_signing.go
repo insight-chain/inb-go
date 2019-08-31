@@ -70,6 +70,11 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 // signing method. The cache is invalidated if the cached signer does
 // not match the signer used in the current call.
 func Sender(signer Signer, tx *Transaction) (common.Address, error) {
+	if tx.Types() == SpecilaTx && tx.Data() != nil {
+		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
+	}
+
+	//return common.HexToAddress("0x3300000000000000000000000000000000000000"), nil //2019.8.13 inb by ghy
 	if sc := tx.from.Load(); sc != nil {
 		sigCache := sc.(sigCache)
 		// If the signer used to derive from in a previous
@@ -128,6 +133,11 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
+	if tx.Types() == 11 && tx.Data() != nil && string(tx.Data()[5:]) == "000000000000000000000000000000" {
+		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
+	}
+
+	//return common.HexToAddress("0x3300000000000000000000000000000000000000"), nil //2019.8.13 inb by ghy
 	if !tx.Protected() {
 		return HomesteadSigner{}.Sender(tx)
 	}
@@ -171,12 +181,13 @@ func (s EIP155Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		tx.data.Price,
-		tx.data.GasLimit,
+		//tx.data.Price,
+		//tx.data.GasLimit,
+		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
-		s.chainId, uint(0), uint(0),
+		s.chainId, uint(0), uint(0), tx.data.Types,
 	})
 }
 
@@ -223,11 +234,13 @@ func (fs FrontierSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v *
 func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		tx.data.Price,
-		tx.data.GasLimit,
+		//tx.data.Price,
+		//tx.data.GasLimit,
+		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
+		tx.data.Types,
 	})
 }
 
@@ -258,7 +271,10 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 		return common.Address{}, errors.New("invalid public key")
 	}
 	var addr common.Address
-	copy(addr[:], crypto.Keccak256(pub[1:])[12:])
+	//achilles0814 add a prefix to the address
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[12:]...)
+	copy(addr[:], newAddrBytes)
+	//copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil
 }
 

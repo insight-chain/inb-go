@@ -93,16 +93,16 @@ func (v *ValidationMessages) getWarnings() error {
 
 // SendTxArgs represents the arguments to submit a transaction
 type SendTxArgs struct {
-	From     common.MixedcaseAddress  `json:"from"`
-	To       *common.MixedcaseAddress `json:"to"`
-	Gas      hexutil.Uint64           `json:"gas"`
-	GasPrice hexutil.Big              `json:"gasPrice"`
-	Value    hexutil.Big              `json:"value"`
-	Nonce    hexutil.Uint64           `json:"nonce"`
+	From common.MixedcaseAddress  `json:"from"`
+	To   *common.MixedcaseAddress `json:"to"`
+	Net  hexutil.Uint64           `json:"net"`
+	//GasPrice hexutil.Big              `json:"gasPrice"`
+	Value hexutil.Big    `json:"value"`
+	Nonce hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons.
 	Data  *hexutil.Bytes `json:"data"`
 	Input *hexutil.Bytes `json:"input"`
-	Types hexutil.Uint64 `json:"txType"`
+	Types types.TxType   `json:"txType"`
 }
 
 func (args SendTxArgs) String() string {
@@ -120,8 +120,17 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	} else if args.Input != nil {
 		input = *args.Input
 	}
-	if args.To == nil {
-		return types.NewContractCreation(uint64(args.Nonce), (*big.Int)(&args.Value), uint64(args.Gas), (*big.Int)(&args.GasPrice), input)
+	if args.To == nil && args.Types == types.Contract {
+		return types.NewContractCreation(uint64(args.Nonce), (*big.Int)(&args.Value), uint64(args.Net), input)
 	}
-	return types.NewTransaction(uint64(args.Nonce), args.To.Address(), (*big.Int)(&args.Value), (uint64)(args.Gas), (*big.Int)(&args.GasPrice), input, args.Types)
+
+	return types.NewTransaction(uint64(args.Nonce), args.To.Address(), (*big.Int)(&args.Value), (uint64)(args.Net), input, args.Types)
+}
+
+func (args *SendTxArgs) isContract() bool {
+	flag := false
+	if args.Types == types.Contract && args.To == nil {
+		flag = true
+	}
+	return flag
 }

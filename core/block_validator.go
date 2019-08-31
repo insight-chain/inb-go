@@ -18,7 +18,6 @@ package core
 
 import (
 	"fmt"
-
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
@@ -61,6 +60,11 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	if hash := types.CalcUncleHash(block.Uncles()); hash != header.UncleHash {
 		return fmt.Errorf("uncle root hash mismatch: have %x, want %x", hash, header.UncleHash)
 	}
+	// 2019.8.29 inb by ghy begin
+	if err := types.ValidateTx(block.Transactions(), header, v.config.Vdpos.Period); err != nil {
+		return err
+	}
+	// 2019.8.29 inb by ghy end
 	if hash := types.DeriveSha(block.Transactions()); hash != header.TxHash {
 		return fmt.Errorf("transaction root hash mismatch: have %x, want %x", hash, header.TxHash)
 	}
@@ -80,7 +84,7 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 func (v *BlockValidator) ValidateState(block, parent *types.Block, statedb *state.StateDB, receipts types.Receipts, usedGas uint64) error {
 	header := block.Header()
 	if block.GasUsed() != usedGas {
-		return fmt.Errorf("invalid gas used (remote: %d local: %d)", block.GasUsed(), usedGas)
+		return fmt.Errorf("invalid net used (remote: %d local: %d)", block.GasUsed(), usedGas)
 	}
 	// Validate the received block's bloom with the one derived from the generated receipts.
 	// For valid blocks this should always validate to true.

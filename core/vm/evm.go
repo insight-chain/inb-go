@@ -39,24 +39,25 @@ type (
 	// TransferFunc is the signature of a transfer function
 	TransferFunc func(StateDB, common.Address, common.Address, *big.Int)
 	//Resource by zc
-	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int)
+	MortgageTrasferFunc func(StateDB, common.Address, common.Address, *big.Int, uint, big.Int) *big.Int
 	//Resource by zc
 	// GetHashFunc returns the nth block hash in the blockchain
 	// and is used by the BLOCKHASH EVM op code.
 	GetHashFunc func(uint64) common.Hash
 
-	CanResetFunc              func(StateDB, common.Address, *big.Int) error
-	CanMortgageFunc           func(StateDB, common.Address, *big.Int, uint) error
-	CanRedeemFunc             func(StateDB, common.Address, *big.Int) error
-	CanReceiveFunc            func(StateDB, common.Address, *big.Int) error
-	RedeemTransferFunc        func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
-	ReceiveTransferFunc       func(StateDB, common.Address, *big.Int)
-	ResetTransferFunc         func(StateDB, common.Address, *big.Int)
-	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int) (error, *big.Int, bool)                 //2019.7.22 inb by ghy begin
-	ReceiveLockedAwardFunc    func(StateDB, common.Address, int, *big.Int, bool, *big.Int, types.SpecialConsensus) //2019.7.22 inb by ghy begin
-	CanReceiveVoteAwardFunc   func(StateDB, common.Address, *big.Int) (error, *big.Int)                            //2019.7.24 inb by ghy begin
-	ReceiveVoteAwardFunc      func(StateDB, common.Address, *big.Int, *big.Int, types.SpecialConsensus)            //2019.7.24 inb by ghy begin
-	VoteFunc                  func(StateDB, common.Address)
+	CanResetFunc        func(StateDB, common.Address, *big.Int) error
+	CanMortgageFunc     func(StateDB, common.Address, *big.Int, uint) error
+	CanRedeemFunc       func(StateDB, common.Address, *big.Int) error
+	CanReceiveFunc      func(StateDB, common.Address, *big.Int) error
+	RedeemTransferFunc  func(StateDB, common.Address, common.Address, *big.Int, *big.Int)
+	ReceiveTransferFunc func(StateDB, common.Address, *big.Int) *big.Int
+	ResetTransferFunc   func(StateDB, common.Address, *big.Int) *big.Int
+
+	CanReceiveLockedAwardFunc func(StateDB, common.Address, int, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address) //2019.7.22 inb by ghy begin
+	ReceiveLockedAwardFunc    func(StateDB, common.Address, int, *big.Int, bool, *big.Int, common.Address)                                 //2019.7.22 inb by ghy begin
+	CanReceiveVoteAwardFunc   func(StateDB, common.Address, *big.Int, types.SpecialConsensus) (error, *big.Int, common.Address)            //2019.7.24 inb by ghy begin
+	ReceiveVoteAwardFunc      func(StateDB, common.Address, *big.Int, *big.Int, common.Address)                                            //2019.7.24 inb by ghy begin
+	VoteFunc                  func(StateDB, common.Address, *big.Int)
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -209,89 +210,89 @@ func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error) {
-	return evm.NewCall(caller, addr, input, net, value, 0)
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
+	return evm.NewCall(caller, addr, input, net, value, types.Ordinary)
 }
 
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int, txType types.TxType) (ret []byte, leftOverGas uint64, err error) {
+func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int, txType types.TxType) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, net, nil
+		return nil, net, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, net, ErrDepth
+		return nil, net, ErrDepth, nil
 	}
-
 	// achilles improve mortgage
 	inputStr := string(input)
 	days := 0 // duration of mortgagtion,
 
 	//2019.7.22 inb by ghy begin
-	Award := big.NewInt(0)
+	LockedAward := big.NewInt(0)
 	VoteAward := big.NewInt(0)
+	nets := big.NewInt(0)
 	isAll := false
 	IntNonce := 0
-
+	toAddress := common.Address{}
 	if txType == types.ReceiveLockedAward {
 
 		inputSlice := strings.Split(inputStr, ":")
 		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
 			IntNonce, err = strconv.Atoi(inputSlice[1])
 			if err != nil {
-				return nil, net, err
+				return nil, net, err, nil
 			}
-			err, Award, isAll = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.Time)
+			err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.Time, evm.SpecialConsensus)
 			if err != nil {
-				return nil, net, err
+				return nil, net, err, nil
 			}
+		} else {
+			return nil, net, ErrParameter, nil
 		}
-
-	}
-	//2019.7.22 inb by ghy end
-
-	if txType == types.Regular {
+		//2019.7.22 inb by ghy end
+	} else if txType == types.Regular {
 		regulars := strings.Split(inputStr, ":")
 		if len(regulars) <= 1 {
-			return nil, net, ErrNotResolveInput
+			return nil, net, ErrNotResolveInput, big.NewInt(0)
 		}
 		convert, err := strconv.Atoi(regulars[1])
 
 		if err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 		}
 		days = convert
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 
 		}
 	} else if txType == types.Mortgage {
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, uint(days)); err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 		}
 	} else if txType == types.Redeem {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 		}
 	} else if txType == types.Reset {
 		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.Time); err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 		}
 	} else if txType == types.Receive {
 		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.Time); err != nil {
-			return nil, net, err
+			return nil, net, err, nil
 		}
 	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
-		if err, VoteAward = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time); err != nil {
-			return nil, net, err
+		if err, VoteAward, toAddress = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time, evm.SpecialConsensus); err != nil {
+
+			return nil, net, err, nil
 		}
 	} else {
 		// Fail if we're trying to transfer more than the available balance
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-			return nil, net, ErrInsufficientBalance
+			return nil, net, ErrInsufficientBalance, nil
 		}
 	}
 
@@ -310,7 +311,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, net, nil
+			return nil, net, nil, nil
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
@@ -318,30 +319,28 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	//Resource by zc
 
 	if txType == types.Vote {
-		evm.Vote(evm.StateDB, caller.Address())
+		evm.Vote(evm.StateDB, caller.Address(), evm.Time)
 	}
 	if txType == types.Redeem {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
 	} else if txType == types.Regular || txType == types.Mortgage {
-		evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
+		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
 	} else if txType == types.Reset {
-		evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
-
+		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else if txType == types.ReceiveVoteAward {
-		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, evm.SpecialConsensus) //2019.7.24 inb by ghy
+		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, toAddress) //2019.7.24 inb by ghy
 	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
-
 		// regular mortgagtion
-		inputSlice := strings.Split(inputStr, ":")
-		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
-			IntNonce, err = strconv.Atoi(inputSlice[1])
-			if err != nil {
-				return nil, net, err
-			}
-			evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, Award, isAll, evm.Time, evm.SpecialConsensus)
-		} //2019.7.22 inb by ghy end
+		//inputSlice := strings.Split(inputStr, ":")
+		//if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
+		//	IntNonce, err = strconv.Atoi(inputSlice[1])
+		//	if err != nil {
+		//		return nil, net, err, nil
+		//	}
+		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.Time, toAddress)
+		//} //2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
-		evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
+		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
@@ -373,7 +372,15 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 			contract.UseGas(contract.Gas)
 		}
 	}
-	return ret, contract.Gas, err
+
+	switch txType {
+	case types.ReceiveVoteAward:
+		return ret, contract.Gas, err, VoteAward
+	case types.ReceiveLockedAward:
+		return ret, contract.Gas, err, LockedAward
+	default:
+		return ret, contract.Gas, err, nets
+	}
 }
 
 // CallCode executes the contract associated with the addr with the given input
