@@ -501,15 +501,15 @@ func (hc *HeaderChain) SetGenesis(head *types.Header) {
 // SetDefaultGenesisTests sets a new genesis Test for the chain
 func SetDefaultGenesisTests(g *Genesiss) {
 	testGenesisAccount1 := GenesisAccount{}
-	testGenesisAccount1.Balance = bn256.Tnum1
+	testGenesisAccount1.Balance = bn256.XiToPMinusTnum1
 	testGenesisAccount2 := GenesisAccount{}
-	testGenesisAccount2.Balance = bn256.Tnum2
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc1))] = testGenesisAccount1
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc2))] = testGenesisAccount2
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc3))] = testGenesisAccount1
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc4))] = testGenesisAccount2
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc5))] = testGenesisAccount1
-	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc6))] = testGenesisAccount2
+	testGenesisAccount2.Balance = bn256.XiToPMinusTnum2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc1))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc2))] = testGenesisAccount2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc3))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc4))] = testGenesisAccount2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc5))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.XiTo2PMinusTacc6))] = testGenesisAccount2
 }
 
 // Config retrieves the header chain's chain configuration.
