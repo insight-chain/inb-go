@@ -42,17 +42,15 @@ import (
 const (
 	inMemorySnapshots  = 128  // Number of recent vote snapshots to keep in memory
 	inMemorySignatures = 4096 // Number of recent block signatures to keep in memory
-	checkpointInterval = 1024 // Number of blocks after which to save the vote snapshot to the database
 )
 
 var (
 	defaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	oneYearBySec                     = int64(365 * 86400)
-	defaultEpochLength               = uint64(201600) // Default number of blocks after which vote's period of validity, About one week if period is 3
-	defaultBlockPeriod               = uint64(3)      // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(5)      // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)      // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21)     // Default max signers
+	defaultBlockPeriod               = uint64(2)  // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)  // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)  // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21) // Default max signers
 	minVoterBalance                  = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e+18))
 	extraVanity                      = 32                       // Fixed number of extra-data prefix bytes reserved for signer vanity
 	extraSeal                        = 65                       // Fixed number of extra-data suffix bytes reserved for signer seal
@@ -118,9 +116,6 @@ var (
 
 	// errMissingGenesisLightConfig is returned only in light syncmode if light config missing
 	errMissingGenesisLightConfig = errors.New("light config in genesis is missing")
-
-	// errIncorrectTallyCount is used in snapshot.go
-	errIncorrectTallyCount = errors.New("incorrect tally count")
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -146,9 +141,6 @@ type Vdpos struct {
 func New(config *params.VdposConfig, db ethdb.Database) *Vdpos {
 	// Set any missing consensus parameters to their defaults
 	conf := *config
-	if conf.Epoch == 0 {
-		conf.Epoch = defaultEpochLength
-	}
 	if conf.Period == 0 {
 		conf.Period = defaultBlockPeriod
 	}
@@ -277,25 +269,25 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		return errUnknownBlock
 	}
 
-	// Retrieve the snapshot needed to verify this header and cache it
-	snap, err := v.snapshot(chain, number-1, header.ParentHash, parents, nil, defaultLoopCntRecalculateSigners)
-	if err != nil {
-		return err
-	}
-
 	// Resolve the authorization key and check against signers
 	signer, err := ecrecover(header, v.signatures)
 	if err != nil {
 		return err
 	}
 
+	var parent *types.Header
+	if len(parents) > 0 {
+		parent = parents[len(parents)-1]
+	} else {
+		parent = chain.GetHeader(header.ParentHash, number-1)
+	}
+	vdposContext, err := types.NewVdposContextFromProto(v.db, parent.VdposContext)
+	if err != nil {
+		return err
+	}
+	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
+
 	if number > v.config.MaxSignerCount*v.config.SignerBlocks {
-		var parent *types.Header
-		if len(parents) > 0 {
-			parent = parents[len(parents)-1]
-		} else {
-			parent = chain.GetHeader(header.ParentHash, number-1)
-		}
 		parentHeaderExtra := HeaderExtra{}
 		err = decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
 		if err != nil {
@@ -310,7 +302,8 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		}
 		// verify SignersPool
 		if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
-			err := snap.verifySignersPool(currentHeaderExtra.SignersPool)
+			snapContext.SignersPool = parentHeaderExtra.SignersPool
+			err := snapContext.verifySignersPool(currentHeaderExtra.SignersPool)
 			if err != nil {
 				return err
 			}
@@ -320,28 +313,10 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 					return errInvalidSignersPool
 				}
 			}
-			//if signer == parent.Coinbase && header.Time.Uint64()-parent.Time.Uint64() < chain.Config().Vdpos.Period {
-			//	return errInvalidNeighborSigner
-			//}
-		}
-
-		// verify missing signer for punish
-		newLoop := false
-		if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
-			newLoop = true
-		}
-		parentSignerMissing := v.getSignerMissing(parent.Coinbase, header.Coinbase, parentHeaderExtra, newLoop)
-		if len(parentSignerMissing) != len(currentHeaderExtra.SignerMissing) {
-			return errPunishedMissing
-		}
-		for i, signerMissing := range currentHeaderExtra.SignerMissing {
-			if parentSignerMissing[i] != signerMissing {
-				return errPunishedMissing
-			}
 		}
 	}
 
-	if !snap.inturn(signer, header.Time.Uint64()) {
+	if !snapContext.inturn(signer, header) {
 		return errUnauthorizedSigner
 	}
 	return nil
@@ -380,7 +355,7 @@ func (v *Vdpos) Prepare(chain consensus.ChainReader, header *types.Header) error
 
 // Finalize implements consensus.Engine, ensuring no uncles are set, nor block
 // rewards given, and returns the final block.
-func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt) (*types.Block, error) {
+func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, vdposContext *types.VdposContext) (*types.Block, error) {
 
 	number := header.Number.Uint64()
 
@@ -410,10 +385,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	}
 	header.Extra = header.Extra[:extraVanity]
 
-	// genesisVotes write direct into snapshot, which number is 1
-	var genesisVotes []*Vote
 	parentHeaderExtra := HeaderExtra{}
 	currentHeaderExtra := HeaderExtra{}
+	// when number is 1, we must update the voteTrie by config.SelfVoteSigners
 	if number == 1 {
 		alreadyVote := make(map[common.Address]struct{})
 		for _, unPrefixVoter := range v.config.SelfVoteSigners {
@@ -421,12 +395,14 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			//achilles vote
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
-				genesisVotes = append(genesisVotes, &Vote{
+				vote := &types.Votes{
 					Voter:     voter,
 					Candidate: candidates,
 					//Stake:     state.GetMortgageInbOfNet(voter),
 					Stake: big.NewInt(1),
-				})
+				}
+				vdposContext.UpdateVotes(vote)
+				vdposContext.UpdateTallysByVotes(vote)
 				alreadyVote[voter] = struct{}{}
 			}
 		}
@@ -442,26 +418,17 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.SignersPool = parentHeaderExtra.SignersPool
 		currentHeaderExtra.LoopStartTime = parentHeaderExtra.LoopStartTime
 		currentHeaderExtra.Enodes = parentHeaderExtra.Enodes
-		newLoop := false
-		if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
-			newLoop = true
-		}
-		currentHeaderExtra.SignerMissing = v.getSignerMissing(parent.Coinbase, header.Coinbase, parentHeaderExtra, newLoop)
 	}
 
-	// Assemble the voting snapshot to check which votes make sense
-	snap, err := v.snapshot(chain, number-1, header.ParentHash, nil, genesisVotes, defaultLoopCntRecalculateSigners)
-	if err != nil {
-		return nil, err
-	}
+	snapContext := v.snapContext(v.config, state, parent, vdposContext, parentHeaderExtra.SignersPool)
 
 	// calculate votes write into header.extra
-	midCurrentHeaderExtra, _, err := v.processCustomTx(currentHeaderExtra, chain, header, state, txs, receipts)
+	midCurrentHeaderExtra, err := v.processCustomTx(currentHeaderExtra, chain, header, state, txs, vdposContext)
 	if err != nil {
 		return nil, err
 	}
 	currentHeaderExtra = midCurrentHeaderExtra
-	currentHeaderExtra.ConfirmedBlockNumber = snap.getLastConfirmedBlockNumber(currentHeaderExtra.CurrentBlockConfirmations).Uint64()
+	currentHeaderExtra.ConfirmedBlockNumber = snapContext.getLastConfirmedBlockNumber().Uint64()
 	// write signersPool in first header, from self vote signers in genesis block
 	// we must decide the signers order here first
 	if number == 1 {
@@ -478,7 +445,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		// create random signersPool in currentHeaderExtra by snapshot.Tally
 		currentHeaderExtra.SignersPool = []common.Address{}
 
-		newSignersPool, err := snap.createSignersPool()
+		newSignersPool, err := snapContext.createSignersPool()
 
 		if err != nil {
 			return nil, err
@@ -505,6 +472,8 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 
 	// No uncle block
 	header.UncleHash = types.CalcUncleHash(nil)
+
+	header.VdposContext = vdposContext.ToProto()
 
 	//inb by ghy begin
 	header.Reward = DefaultMinerReward.String()
@@ -547,12 +516,15 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 	v.lock.RUnlock()
 
 	// Bail out if we're unauthorized to sign a block
-	snap, err := v.snapshot(chain, number-1, header.ParentHash, nil, nil, defaultLoopCntRecalculateSigners)
+	parent := chain.GetHeader(header.ParentHash, number-1)
+
+	vdposContext, err := types.NewVdposContextFromProto(v.db, parent.VdposContext)
 	if err != nil {
 		return err
 	}
+	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
 
-	if !snap.inturn(signer, header.Time.Uint64()) {
+	if !snapContext.inturn(signer, header) {
 		//<-stop
 		return errUnauthorizedSigner
 	}
@@ -691,89 +663,23 @@ func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, er
 	return signer, nil
 }
 
-// snapshot retrieves the authorization snapshot at a given point in time.
-func (v *Vdpos) snapshot(chain consensus.ChainReader, number uint64, hash common.Hash, parents []*types.Header, genesisVotes []*Vote, lcrs uint64) (*Snapshot, error) {
-	// Search for a snapshot in memory or on disk for checkpoints
-	var (
-		headers []*types.Header
-		snap    *Snapshot
-	)
-
-	for snap == nil {
-		// If an in-memory snapshot was found, use that
-		if s, ok := v.recents.Get(hash); ok {
-			snap = s.(*Snapshot)
-			break
-		}
-		// If an on-disk checkpoint snapshot can be found, use that
-		if number%checkpointInterval == 0 {
-			if s, err := loadSnapshot(v.config, v.signatures, v.db, hash); err == nil {
-				log.Trace("Loaded voting snapshot from disk", "number", number, "hash", hash)
-				snap = s
-				break
-			}
-		}
-
-		// If we're at an checkpoint block, make a snapshot if it's known
-		if number == 0 || (number%v.config.Epoch == 0 && chain.GetHeaderByNumber(number-1) == nil) {
-			checkpoint := chain.GetHeaderByNumber(number)
-			if checkpoint != nil {
-				if err := v.VerifyHeader(chain, checkpoint, false); err != nil {
-					return nil, err
-				}
-				hash := checkpoint.Hash()
-				v.config.Period = chain.Config().Vdpos.Period
-				snap = newSnapshot(v.config, v.signatures, hash, genesisVotes, lcrs)
-				if err := snap.store(v.db); err != nil {
-					return nil, err
-				}
-				log.Trace("Stored checkpoint snapshot to disk", "number", number, "hash", hash)
-				break
-			}
-		}
-
-		// No snapshot for this header, gather the header and move backward
-		var header *types.Header
-		if len(parents) > 0 {
-			// If we have explicit parents, pick from there (enforced)
-			header = parents[len(parents)-1]
-			if header.Hash() != hash || header.Number.Uint64() != number {
-				return nil, consensus.ErrUnknownAncestor
-			}
-			parents = parents[:len(parents)-1]
-		} else {
-			// No explicit parents (or no more left), reach out to the database
-			header = chain.GetHeader(hash, number)
-			if header == nil {
-				return nil, consensus.ErrUnknownAncestor
-			}
-		}
-		headers = append(headers, header)
-		number, hash = number-1, header.ParentHash
+func (v *Vdpos) snapContext(config *params.VdposConfig, db *state.StateDB, header *types.Header, vdposContext *types.VdposContext, signersPool []common.Address) *SnapContext {
+	number := header.Number.Uint64()
+	parentHash := header.ParentHash
+	timeStamp := header.Time.Int64()
+	var dbSnap *state.StateDB
+	if db != nil {
+		dbSnap = db
 	}
-	// Previous snapshot found, apply any pending headers on top of it
-	for i := 0; i < len(headers)/2; i++ {
-		headers[i], headers[len(headers)-1-i] = headers[len(headers)-1-i], headers[i]
+	return &SnapContext{
+		config:       config,
+		statedb:      dbSnap,
+		Number:       number,
+		ParentHash:   parentHash,
+		TimeStamp:    timeStamp,
+		VdposContext: vdposContext,
+		SignersPool:  signersPool,
 	}
-
-	snap, err := snap.apply(headers)
-	if err != nil {
-		return nil, err
-	}
-
-	v.recents.Add(snap.Hash, snap)
-
-	// If we've generated a new checkpoint snapshot, save to disk
-	if snap.Number%checkpointInterval == 0 && len(headers) > 0 {
-		if err = snap.store(v.db); err != nil {
-			return nil, err
-		}
-		log.Trace("Stored voting snapshot to disk", "number", snap.Number, "hash", snap.Hash)
-	}
-	//inb by ghy begin 2019.6.28
-	//snap.Reward=DefaultMinerReward.Uint64()
-	//inb by ghy end 2019.6.28
-	return snap, err
 }
 
 // verifyCascadingFields verifies all the header fields that are not standalone,
@@ -808,12 +714,6 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 		return ErrInvalidTimestamp
 	}
 
-	// Retrieve the snapshot needed to verify this header and cache it
-	_, err := v.snapshot(chain, number-1, header.ParentHash, parents, nil, defaultLoopCntRecalculateSigners)
-	if err != nil {
-		return err
-	}
-
 	// All basic checks passed, verify the seal and return
 	return v.verifySeal(chain, header, parents)
 }
@@ -837,10 +737,9 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 				}
 			}
 		}
-		// Assemble the voting snapshot to check which votes make sense
-		if _, err := v.snapshot(chain, 0, genesisHash, nil, genesisVotes, defaultLoopCntRecalculateSigners); err != nil {
-			return err
-		}
+
+		//TODO light node how to use vdposContext
+
 		return nil
 	}
 	return errMissingGenesisLightConfig

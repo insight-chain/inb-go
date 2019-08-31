@@ -19,10 +19,22 @@ package vdpos
 
 import (
 	"bytes"
+	"encoding/binary"
+	"fmt"
 	"github.com/insight-chain/inb-go/common"
+	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
+	"github.com/insight-chain/inb-go/rlp"
+	"github.com/insight-chain/inb-go/trie"
 	"math/big"
+	"math/rand"
 	"sort"
+)
+
+const (
+	candidateMaxLen   = 50
+	defaultFullCredit = 1
 )
 
 type TallyItem struct {
@@ -44,20 +56,8 @@ func (s TallySlice) Less(i, j int) bool {
 	return bytes.Compare(s[i].addr.Bytes(), s[j].addr.Bytes()) > 0
 }
 
-type SignerItem struct {
-	addr common.Address
-	hash common.Hash
-}
-type SignerSlice []SignerItem
-
-func (s SignerSlice) Len() int      { return len(s) }
-func (s SignerSlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
-func (s SignerSlice) Less(i, j int) bool {
-	return bytes.Compare(s[i].hash.Bytes(), s[j].hash.Bytes()) > 0
-}
-
 // verify the SignersPool base on block hash
-func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
+func (s *SnapContext) verifySignersPool(signersPool []common.Address) error {
 
 	if len(signersPool) > int(s.config.MaxSignerCount) {
 		return errInvalidSignersPool
@@ -74,33 +74,54 @@ func (s *Snapshot) verifySignersPool(signersPool []common.Address) error {
 			return errInvalidSignersPool
 		}
 	}
-
 	return nil
 }
 
-func (s *Snapshot) buildTallySlice() TallySlice {
+func (s *SnapContext) buildTallySlice() TallySlice {
 	var tallySlice TallySlice
-	for address, stake := range s.Tally {
-		tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+	tallTrie := s.VdposContext.TallyTrie()
+	tallyIterator := trie.NewIterator(tallTrie.PrefixIterator(nil))
+
+	existTally := tallyIterator.Next()
+	if !existTally {
+		return nil
 	}
+	for existTally {
+		tallyRLP := tallyIterator.Value
+		tally := new(types.Tally)
+		if err := rlp.DecodeBytes(tallyRLP, tally); err != nil {
+			log.Error("Failed to decode tally")
+			return nil
+		}
+		address := tally.Address
+		stake := tally.Stake
+		tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+		existTally = tallyIterator.Next()
+	}
+
 	return tallySlice
 }
 
-func (s *Snapshot) createSignersPool() ([]common.Address, error) {
+func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 
-	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks) != 0 || s.Hash != s.HistoryHash[len(s.HistoryHash)-1] {
+	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks) != 0 {
 		return nil, errCreateSignersPoolNotAllowed
 	}
 
-	var signerSlice SignerSlice
 	var topStakeAddress []common.Address
+	var tallySliceOrder TallySlice
 
-	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*s.LCRS) == 0 {
-		// before recalculate the signers, clear the candidate is not in snap.Candidates
-		// only recalculate signers from to tally per 10 loop,
-		// other loop end just reset the order of signers by block hash (nearly random)
+	seed := int64(binary.LittleEndian.Uint32(crypto.Keccak512(s.ParentHash.Bytes())))
+
+	// only recalculate signers from to tally per defaultLoopCntRecalculateSigners loop,
+	// other loop end just random the order of signers base on parent block hash
+	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*defaultLoopCntRecalculateSigners) == 0 {
 		tallySlice := s.buildTallySlice()
 		sort.Sort(TallySlice(tallySlice))
+
+		// remove minimum tickets tally beyond candidateMaxLen
+		s.removeExtraCandidate(&tallySlice)
+
 		for _, item := range tallySlice {
 			log.Debug(item.addr.Hex())
 		}
@@ -109,27 +130,90 @@ func (s *Snapshot) createSignersPool() ([]common.Address, error) {
 		if poolLength > len(tallySlice) {
 			poolLength = len(tallySlice)
 		}
-		for i, tallyItem := range tallySlice[:poolLength] {
-				signerSlice = append(signerSlice, SignerItem{tallyItem.addr, s.HistoryHash[len(s.HistoryHash)-1-i]})
-		}
-		for _, itemx := range signerSlice {
+		tallySliceOrder = tallySlice[:poolLength]
+		s.random(tallySliceOrder, seed)
+
+		for _, itemx := range tallySliceOrder {
 			log.Debug(itemx.addr.Hex())
 		}
 	} else {
-		for i, signer := range s.Signers {
-				signerSlice = append(signerSlice, SignerItem{*signer, s.HistoryHash[len(s.HistoryHash)-1-i]})
+		if s.SignersPool == nil {
+			return nil, errCreateSignersPoolNotAllowed
+		}
+		tallTrie := s.VdposContext.TallyTrie()
+		for _, signer := range s.SignersPool {
+			tallyRLP := tallTrie.Get(signer[:])
+			if tallyRLP != nil {
+				tally := new(types.Tally)
+				if err := rlp.DecodeBytes(tallyRLP, tally); err != nil {
+					return nil, fmt.Errorf("failed to decode tally: %s", err)
+				}
+				tallyItem := TallyItem{
+					addr:  tally.Address,
+					stake: tally.Stake,
+				}
+				tallySliceOrder = append(tallySliceOrder, tallyItem)
+			}
+		}
+		s.random(tallySliceOrder, seed)
+		for _, itemx := range tallySliceOrder {
+			log.Debug(itemx.addr.Hex())
 		}
 	}
 
-	sort.Sort(SignerSlice(signerSlice))
-	// Set the top candidates in random order base on block hash
-	if len(signerSlice) == 0 {
+	// Set the top signers in random order base on parent block hash
+	if len(tallySliceOrder) == 0 {
 		return nil, errSignersPoolEmpty
 	}
 	for i := 0; i < int(s.config.MaxSignerCount); i++ {
-		topStakeAddress = append(topStakeAddress, signerSlice[i%len(signerSlice)].addr)
+		topStakeAddress = append(topStakeAddress, tallySliceOrder[i%len(tallySliceOrder)].addr)
 	}
 
 	return topStakeAddress, nil
 
+}
+
+func (s *SnapContext) random(arr TallySlice, seed int64) {
+	if len(arr) <= 0 {
+		return
+	}
+	rand.Seed(seed)
+	for i := len(arr) - 1; i >= 0; i-- {
+		num := rand.Intn(len(arr))
+		arr[i], arr[num] = arr[num], arr[i]
+	}
+	return
+}
+
+// inturn returns if a signer at a given block height is in-turn or not.
+func (s *SnapContext) inturn(signer common.Address, header *types.Header) bool {
+	headerExtra := HeaderExtra{}
+	err := decodeHeaderExtra(header.Extra[extraVanity:len(header.Extra)-extraSeal], &headerExtra)
+	if err != nil {
+		log.Info("Fail to decode header", "err", err)
+		return false
+	}
+	headerTime := header.Time.Uint64()
+	loopStartTime := headerExtra.LoopStartTime
+	signers := headerExtra.SignersPool
+	if signersCount := len(signers); signersCount > 0 {
+		//config.Period != config.SignerPeriod
+		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
+		//	return true
+		//}
+		if loopIndex := ((headerTime - loopStartTime) / (s.config.Period*(s.config.SignerBlocks-1) + s.config.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
+			return true
+		}
+	}
+	return false
+}
+
+func (s *SnapContext) removeExtraCandidate(tally *TallySlice) {
+	tallySlice := *tally
+	if len(tallySlice) > candidateMaxLen {
+		needRemoveTally := tallySlice[candidateMaxLen:]
+		for _, tallySlice := range needRemoveTally {
+			s.VdposContext.TallyTrie().Delete(tallySlice.addr[:])
+		}
+	}
 }

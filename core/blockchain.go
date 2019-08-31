@@ -27,6 +27,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/mclock"
 	"github.com/insight-chain/inb-go/common/prque"
@@ -43,7 +44,6 @@ import (
 	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/trie"
-	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -346,6 +346,11 @@ func (bc *BlockChain) FastSyncCommitHead(hash common.Hash) error {
 
 	log.Info("Committed new head block", "number", block.Number(), "hash", hash)
 	return nil
+}
+
+// add by ssh 190829
+func (bc *BlockChain) GetDb() ethdb.Database {
+	return bc.db
 }
 
 // GasLimit returns the gas limit of the current HEAD block.
@@ -1003,6 +1008,12 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	batch := bc.db.NewBatch()
 	rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receipts)
 
+	//add by ssh 190815 begin
+	if _, err := block.VdposContext.Commit(); err != nil {
+		return NonStatTy, err
+	}
+	//add by ssh 190815 end
+
 	// If the total difficulty is higher than our known, add it to the canonical chain
 	// Second clause in the if statement reduces the vulnerability to selfish mining.
 	// Please refer to http://www.cs.cornell.edu/~ie53/publications/btcProcFC.pdf
@@ -1191,6 +1202,14 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 		if parent == nil {
 			parent = bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
 		}
+
+		//add by ssh 190815 begin
+		block.VdposContext, err = types.NewVdposContextFromProto(bc.db, parent.Header().VdposContext)
+		if err != nil {
+			return it.index, events, coalescedLogs, err
+		}
+		//add by ssh 190815 end
+
 		state, err := state.New(parent.Root(), bc.stateCache)
 		if err != nil {
 			return it.index, events, coalescedLogs, err
@@ -1208,6 +1227,16 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 			bc.reportBlock(block, receipts, err)
 			return it.index, events, coalescedLogs, err
 		}
+
+		// add by ssh 190815 begin
+		// Validate the dpos state using the default validator
+		err = bc.Validator().ValidateVdposState(block)
+		if err != nil {
+			bc.reportBlock(block, receipts, err)
+			return it.index, events, coalescedLogs, err
+		}
+		// add by ssh 190815 end
+
 		t2 := time.Now()
 		proctime := time.Since(start)
 

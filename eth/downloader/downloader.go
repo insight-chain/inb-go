@@ -1643,12 +1643,35 @@ func (d *Downloader) commitPivotBlock(result *fetchResult) error {
 	if _, err := d.blockchain.InsertReceiptChain([]*types.Block{block}, []types.Receipts{result.Receipts}); err != nil {
 		return err
 	}
+
+	// add by ssh 190816 begin
+	if err := d.syncDposContextState(block.Header().VdposContext); err != nil {
+		return err
+	}
+	// add by ssh 190816 end
+
 	if err := d.blockchain.FastSyncCommitHead(block.Hash()); err != nil {
 		return err
 	}
 	atomic.StoreInt32(&d.committed, 1)
 	return nil
 }
+
+// add by ssh 190816 begin
+func (d *Downloader) syncDposContextState(context *types.VdposContextProto) error {
+	roots := []common.Hash{
+		context.VoteHash,
+		context.TallyHash,
+	}
+	for _, root := range roots {
+		if err := d.syncState(root).Wait(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// add by ssh 190816 end
 
 // DeliverHeaders injects a new batch of block headers received from a remote
 // node into the download schedule.

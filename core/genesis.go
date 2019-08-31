@@ -65,6 +65,15 @@ type Genesis struct {
 // GenesisAlloc specifies the initial state that is part of the genesis block.
 type GenesisAlloc map[common.Address]GenesisAccount
 
+// UnmarshalJSON implements json.Unmarshal.
+func Unmarshal(data []byte, g *Genesiss) error {
+	if err := json.Unmarshal(data, g); err != nil {
+		return err
+	}
+	SetDefaultGenesisTests(g)
+	return nil
+}
+
 func (ga *GenesisAlloc) UnmarshalJSON(data []byte) error {
 	m := make(map[common.UnprefixedAddress]GenesisAccount)
 	if err := json.Unmarshal(data, &m); err != nil {
@@ -240,6 +249,11 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		}
 	}
 	root := statedb.IntermediateRoot(false)
+
+	// add by ssh 190815 begin
+	vdposContext := initGenesisVdposContext(g, db)
+	vdposContextProto := vdposContext.ToProto()
+
 	head := &types.Header{
 		Number:           new(big.Int).SetUint64(g.Number),
 		Nonce:            types.EncodeNonce(g.Nonce),
@@ -255,6 +269,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		DataRoot:         [32]byte{},                        //inb by ssh 190627
 		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
 		SpecialConsensus: g.SpecialConsensus,                //2019.7.23 inb by ghy
+		VdposContext:     vdposContextProto,                 //add by ssh 190805
 	}
 
 	// inb by ssh 190724
@@ -289,7 +304,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	statedb.Commit(false)
 	statedb.Database().TrieDB().Commit(root, true)
 
-	return types.NewBlock(head, nil, nil, nil)
+	//return types.NewBlock(head, nil, nil, nil)
+	block := types.NewBlock(head, nil, nil, nil)
+	block.VdposContext = vdposContext
+	return block
+
+	// add by ssh 190815 end
 }
 
 // Commit writes the block and state of a genesis specification to the database.
@@ -299,6 +319,14 @@ func (g *Genesis) Commit(db ethdb.Database) (*types.Block, error) {
 	if block.Number().Sign() != 0 {
 		return nil, fmt.Errorf("can't commit genesis block with number > 0")
 	}
+
+	// add by ssh 190815 begin
+	// add dposcontext
+	if _, err := block.VdposContext.Commit(); err != nil {
+		return nil, err
+	}
+	// add by ssh 190815 end
+
 	rawdb.WriteTd(db, block.Hash(), block.NumberU64(), g.Difficulty)
 	rawdb.WriteBlock(db, block)
 	rawdb.WriteReceipts(db, block.Hash(), block.NumberU64(), nil)
@@ -415,4 +443,30 @@ func decodePrealloc(data string) GenesisAlloc {
 		ga[common.BigToAddress(account.Addr)] = GenesisAccount{Balance: account.Balance}
 	}
 	return ga
+}
+
+func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext {
+	dc, err := types.NewVdposContext(db)
+	if err != nil {
+		return nil
+	}
+	if g.Config != nil && g.Config.Vdpos != nil && g.Config.Vdpos.SelfVoteSigners != nil {
+		alreadyVote := make(map[common.Address]struct{})
+		for _, unPrefixVoter := range g.Config.Vdpos.SelfVoteSigners {
+			voter := common.Address(unPrefixVoter)
+			candidates := []common.Address{voter}
+			if _, ok := alreadyVote[voter]; !ok {
+				vote := &types.Votes{
+					Voter:     voter,
+					Candidate: candidates,
+					//Stake:     state.GetMortgageInbOfNet(voter),
+					Stake: big.NewInt(1),
+				}
+				dc.UpdateVotes(vote)
+				dc.UpdateTallysByVotes(vote)
+				alreadyVote[voter] = struct{}{}
+			}
+		}
+	}
+	return dc
 }

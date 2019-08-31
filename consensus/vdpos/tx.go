@@ -27,7 +27,6 @@ import (
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
-	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/rlp"
 )
 
@@ -35,53 +34,34 @@ const (
 	/*
 	 *  inb:version:category:action/data
 	 */
-	inbPrefix              = "inb"
-	inbVersion             = "1"
-	inbCategoryEvent       = "event"
-	inbEventVote           = "vote"
-	inbEventVoteCandidates = "candidates"
-	inbEventConfirm        = "confirm"
-	inbEventDeclare        = "declare"
-	inbMinSplitLen         = 3
-	posPrefix              = 0
-	posVersion             = 1
-	posCategory            = 2
-	posEventVote           = 3
-	posEventConfirm        = 3
-	posEventDeclare        = 3
-	posEventConfirmNumber  = 4
-	posEventDeclareInfo    = 4
-	//achilles
-	posEventVoteCandidates       = 4
-	posEventVoteCandidatesNumber = 5
+	inbPrefix             = "inb"
+	inbVersion            = "1"
+	inbCategoryEvent      = "event"
+	inbEventVote          = "vote"
+	inbEventDeclare       = "declare"
+	inbMinSplitLen        = 3
+	posPrefix             = 0
+	posVersion            = 1
+	posCategory           = 2
+	posEventVote          = 3
+	posEventDeclare       = 3
+	posEventConfirmNumber = 4
+	posEventDeclareInfo   = 4
 
 	posEventDeclareInfoSplitLen = 3
 	posEventDeclareInfoId       = 0
 	posEventDeclareInfoIp       = 1
 	posEventDeclareInfoPort     = 2
 	//inb by ghy begin
-	posEventDeclareInfoName     = 3
-	posEventDeclareInfoNation   = 4
-	posEventDeclareInfoCity     = 5
-	posEventDeclareInfoImage    = 6
-	posEventDeclareInfoWebsite  = 7
-	posEventDeclareInfoEmail    = 8
-	posEventDeclareInfodata     = 9
+	posEventDeclareInfoName    = 3
+	posEventDeclareInfoNation  = 4
+	posEventDeclareInfoCity    = 5
+	posEventDeclareInfoImage   = 6
+	posEventDeclareInfoWebsite = 7
+	posEventDeclareInfoEmail   = 8
+	posEventDeclareInfodata    = 9
 	//inb by ghy end
 )
-
-// RefundGas :
-// refund gas to tx sender
-type RefundGas map[common.Address]*big.Int
-
-// RefundPair :
-type RefundPair struct {
-	Sender   common.Address
-	GasPrice *big.Int
-}
-
-// RefundHash :
-type RefundHash map[common.Hash]RefundPair
 
 // Vote :
 // vote come from custom tx which data like "inb:1:event:vote"
@@ -94,27 +74,15 @@ type Vote struct {
 	Stake     *big.Int
 }
 
-// Confirmation :
-// confirmation come from custom tx which data like "inb:1:event:confirm:123"
-// 123 is the block number be confirmed
-// Sender of tx is Signer only if the signer in the SignersPool for block number 123
-type Confirmation struct {
-	Signer      common.Address
-	BlockNumber *big.Int
-}
-
-
-
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
-	CurrentBlockConfirmations []Confirmation
-	CurrentBlockVotes         []Vote
-	ModifyPredecessorVotes    []Vote
-	LoopStartTime             uint64
-	SignersPool               []common.Address
-	SignerMissing             []common.Address
-	ConfirmedBlockNumber      uint64
+	CurrentBlockVotes      []Vote
+	ModifyPredecessorVotes []Vote
+	LoopStartTime          uint64
+	SignersPool            []common.Address
+	SignerMissing          []common.Address
+	ConfirmedBlockNumber   uint64
 
 	//inb by ssh begin
 	Enodes []common.EnodeInfo
@@ -164,25 +132,7 @@ func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 }
 
 // Calculate Votes from transaction in this block, write into header.Extra
-func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, receipts []*types.Receipt) (HeaderExtra, RefundGas, error) {
-	// if predecessor voter make transaction and vote in this block,
-	// just process as vote, do it in snapshot.apply
-	var (
-		snap       *Snapshot
-		err        error
-		number     uint64
-		refundGas  RefundGas
-		refundHash RefundHash
-	)
-	refundGas = make(map[common.Address]*big.Int)
-	refundHash = make(map[common.Hash]RefundPair)
-	number = header.Number.Uint64()
-	if number > 1 {
-		snap, err = v.snapshot(chain, number-1, header.ParentHash, nil, nil, defaultLoopCntRecalculateSigners)
-		if err != nil {
-			return headerExtra, nil, err
-		}
-	}
+func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) (HeaderExtra, error) {
 
 	for _, tx := range txs {
 
@@ -203,9 +153,9 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 					candidates = append(candidates, address)
 				}
 				if params.TxConfig.CandidateSize < uint64(len(candidates)) {
-					return headerExtra, nil, errors.Errorf("candidates over size")
+					return headerExtra, errors.Errorf("candidates over size")
 				}
-				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
+				headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates, vdposContext)
 			}
 		}
 
@@ -219,31 +169,15 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 							if len(txDataInfo) > inbMinSplitLen {
 								// check is vote or not
 								if txDataInfo[posEventVote] == inbEventVote {
-									//var candidates []common.Address
-									////achilles vote
-									//if txDataInfo[posEventVoteCandidates] == inbEventVoteCandidates {
-									//	candidatesStr := strings.Split(txDataInfo[posEventVoteCandidatesNumber], ",")
-									//	for _, value := range candidatesStr {
-									//		address := common.HexToAddress(value)
-									//		candidates = append(candidates, address)
-									//	}
-									//	if core.DefaultTxPoolConfig.CandidateSize < uint64(len(candidates)) {
-									//		return headerExtra,nil,errors.Errorf("candidates of vote length over size")
-									//	}
-									//}
-									//headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates)
-								} else if txDataInfo[posEventConfirm] == inbEventConfirm && snap.isCandidate(txSender) {
-									headerExtra.CurrentBlockConfirmations, refundHash = v.processEventConfirm(headerExtra.CurrentBlockConfirmations, chain, txDataInfo, number, tx, txSender, refundHash)
+
 								} else if txDataInfo[posEventDeclare] == inbEventDeclare {
 									account := state.GetAccountInfo(txSender)
-									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB)==1{
+									if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
 										headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txDataInfo, txSender)
-									}else {
-										return headerExtra, nil, errors.Errorf("Account mortgageINB must be greater than 100000")
+									} else {
+										return headerExtra, errors.Errorf("Account mortgageINB must be greater than 100000")
 									}
 								}
-							} else {
-								// todo : leave this transaction to process as normal transaction
 							}
 						}
 					}
@@ -256,24 +190,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		//}
 
 	}
-
-	for _, receipt := range receipts {
-		if pair, ok := refundHash[receipt.TxHash]; ok && receipt.Status == 1 {
-			pair.GasPrice.Mul(pair.GasPrice, big.NewInt(int64(receipt.GasUsed)))
-			refundGas = v.refundAddGas(refundGas, pair.Sender, pair.GasPrice)
-		}
-	}
-	return headerExtra, refundGas, nil
-}
-
-func (v *Vdpos) refundAddGas(refundGas RefundGas, address common.Address, value *big.Int) RefundGas {
-	if _, ok := refundGas[address]; ok {
-		refundGas[address].Add(refundGas[address], value)
-	} else {
-		refundGas[address] = value
-	}
-
-	return refundGas
+	return headerExtra, nil
 }
 
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo []string, declarer common.Address) []common.EnodeInfo {
@@ -287,44 +204,44 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 				Port:    midEnodeInfo[posEventDeclareInfoPort],
 				Address: declarer,
 			}
-//inb by ghy begin
-			if len(midEnodeInfo) >=4{
-				enodeInfo.Name=midEnodeInfo[posEventDeclareInfoName]
+			//inb by ghy begin
+			if len(midEnodeInfo) >= 4 {
+				enodeInfo.Name = midEnodeInfo[posEventDeclareInfoName]
 			}
 
-			if len(midEnodeInfo) >=5{
-				enodeInfo.Nation=midEnodeInfo[posEventDeclareInfoNation]
+			if len(midEnodeInfo) >= 5 {
+				enodeInfo.Nation = midEnodeInfo[posEventDeclareInfoNation]
 			}
 
-			if len(midEnodeInfo) >=6{
-				enodeInfo.City=midEnodeInfo[posEventDeclareInfoCity]
+			if len(midEnodeInfo) >= 6 {
+				enodeInfo.City = midEnodeInfo[posEventDeclareInfoCity]
 
 			}
 
-			if len(midEnodeInfo) >=7{
-				enodeInfo.Image=midEnodeInfo[posEventDeclareInfoImage]
+			if len(midEnodeInfo) >= 7 {
+				enodeInfo.Image = midEnodeInfo[posEventDeclareInfoImage]
 
 			}
-			if len(midEnodeInfo) >=8{
-				enodeInfo.Website=midEnodeInfo[posEventDeclareInfoWebsite]
+			if len(midEnodeInfo) >= 8 {
+				enodeInfo.Website = midEnodeInfo[posEventDeclareInfoWebsite]
 			}
-			if len(midEnodeInfo) >=9{
-				enodeInfo.Email=midEnodeInfo[posEventDeclareInfoEmail]
+			if len(midEnodeInfo) >= 9 {
+				enodeInfo.Email = midEnodeInfo[posEventDeclareInfoEmail]
 			}
 
-			data:=`{`
-			if len(midEnodeInfo) >=10{
-				enodeData:=strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
-				for _,v:=range enodeData{
+			data := `{`
+			if len(midEnodeInfo) >= 10 {
+				enodeData := strings.Split(midEnodeInfo[posEventDeclareInfodata], "-")
+				for _, v := range enodeData {
 					split := strings.Split(v, "/")
-					if len(split)==2{
-						data+=`"`+split[0]+`":"`+split[1]+`",`
+					if len(split) == 2 {
+						data += `"` + split[0] + `":"` + split[1] + `",`
 					}
 				}
-						data=strings.TrimRight(data,",")
+				data = strings.TrimRight(data, ",")
 			}
-			data+=`}`
-			enodeInfo.Data=data
+			data += `}`
+			enodeInfo.Data = data
 
 			//inb by ghy end
 			flag := false
@@ -343,83 +260,56 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	return currentEnodeInfos
 }
 
-func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address) []Vote {
+func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) []Vote {
 	//if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
 	v.lock.RLock()
 	stake := state.GetMortgageInbOfNet(voter)
 	v.lock.RUnlock()
+
+	vote := &types.Votes{
+		Voter:     voter,
+		Candidate: candidates,
+		Stake:     stake,
+	}
 
 	currentBlockVotes = append(currentBlockVotes, Vote{
 		Voter:     voter,
 		Candidate: candidates,
 		Stake:     stake,
 	})
+	vdposContext.UpdateVotes(vote)
+	vdposContext.UpdateTallysByVotes(vote)
+
 	//}
 	//state.AddVoteRecord(voter,stake)
 
 	return currentBlockVotes
 }
 
-func (v *Vdpos) processEventConfirm(currentBlockConfirmations []Confirmation, chain consensus.ChainReader, txDataInfo []string, number uint64, tx *types.Transaction, confirm common.Address, refundHash RefundHash) ([]Confirmation, RefundHash) {
-	if len(txDataInfo) > posEventConfirmNumber {
-		confirmedBlockNumber := new(big.Int)
-		err := confirmedBlockNumber.UnmarshalText([]byte(txDataInfo[posEventConfirmNumber]))
-		if err != nil || number-confirmedBlockNumber.Uint64() > v.config.MaxSignerCount*v.config.SignerBlocks || number-confirmedBlockNumber.Uint64() < 0 {
-			return currentBlockConfirmations, refundHash
-		}
-		// check if the voter is in block
-		confirmedHeader := chain.GetHeaderByNumber(confirmedBlockNumber.Uint64())
-		if confirmedHeader == nil {
-			return currentBlockConfirmations, refundHash
-		}
-		confirmedHeaderExtra := HeaderExtra{}
-		if extraVanity+extraSeal > len(confirmedHeader.Extra) {
-			return currentBlockConfirmations, refundHash
-		}
-		err = decodeHeaderExtra(confirmedHeader.Extra[extraVanity:len(confirmedHeader.Extra)-extraSeal], &confirmedHeaderExtra)
-		if err != nil {
-			log.Info("Fail to decode parent header", "err", err)
-			return currentBlockConfirmations, refundHash
-		}
-		for _, s := range confirmedHeaderExtra.SignersPool {
-			if s == confirm {
-				currentBlockConfirmations = append(currentBlockConfirmations, Confirmation{
-					Signer:      confirm,
-					BlockNumber: new(big.Int).Set(confirmedBlockNumber),
-				})
-				refundHash[tx.Hash()] = RefundPair{confirm, tx.GasPrice()}
-				break
-			}
-		}
-	}
-
-	return currentBlockConfirmations, refundHash
-}
-
-func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address, snap *Snapshot) []Vote {
-	// process normal transaction which relate to voter
-	if tx.Value().Cmp(big.NewInt(0)) > 0 {
-		if snap.isVoter(voter) {
-			v.lock.RLock()
-			stake := state.GetMortgageInbOfNet(voter)
-			v.lock.RUnlock()
-			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-				Voter:     voter,
-				Candidate: []common.Address{voter},
-				Stake:     stake,
-			})
-		}
-		if snap.isVoter(*tx.To()) {
-			v.lock.RLock()
-			stake := state.GetMortgageInbOfNet(*tx.To())
-			v.lock.RUnlock()
-			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-				Voter:     *tx.To(),
-				Candidate: []common.Address{voter},
-				Stake:     stake,
-			})
-		}
-
-	}
-	return modifyPredecessorVotes
-}
+//func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address, snap *Snapshot) []Vote {
+//	// process normal transaction which relate to voter
+//	if tx.Value().Cmp(big.NewInt(0)) > 0 {
+//		if snap.isVoter(voter) {
+//			v.lock.RLock()
+//			stake := state.GetMortgageInbOfNet(voter)
+//			v.lock.RUnlock()
+//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
+//				Voter:     voter,
+//				Candidate: []common.Address{voter},
+//				Stake:     stake,
+//			})
+//		}
+//		if snap.isVoter(*tx.To()) {
+//			v.lock.RLock()
+//			stake := state.GetMortgageInbOfNet(*tx.To())
+//			v.lock.RUnlock()
+//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
+//				Voter:     *tx.To(),
+//				Candidate: []common.Address{voter},
+//				Stake:     stake,
+//			})
+//		}
+//
+//	}
+//	return modifyPredecessorVotes
+//}
