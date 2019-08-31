@@ -1059,10 +1059,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	//2019.8.29 inb by ghy end
-	fmt.Println(header.Number)
-	if header.Number.Cmp(big.NewInt(1)) == 0 {
-		fmt.Println(localTxs)
-	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
