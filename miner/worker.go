@@ -621,12 +621,12 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// 2019.8.29 inb by ghy begin
-			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
-				if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
-					fmt.Println(err)
-					return
-				}
+			//if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
+			if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
+				fmt.Println(err)
+				return
 			}
+			//}
 			// 2019.8.29 inb by ghy end
 
 			// Commit block and state to database.
@@ -1013,7 +1013,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	vdpos.DefaultMinerReward = reward
-	for _, v := range w.chain.CurrentBlock().Header().SpecialConsensus.SpecialConsensusAddress {
+	for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
 		switch v.Name {
 		case "Foundation":
 			from := v.TotalAddress
@@ -1057,8 +1057,12 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		default:
 		}
 	}
-	//2019.8.29 inb by ghy end
 
+	//2019.8.29 inb by ghy end
+	fmt.Println(header.Number)
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		fmt.Println(localTxs)
+	}
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
 		if w.commitTransactions(txs, w.coinbase, interrupt) {
