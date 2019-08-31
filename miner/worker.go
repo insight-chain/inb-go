@@ -78,12 +78,13 @@ const (
 type environment struct {
 	signer types.Signer
 
-	state     *state.StateDB // apply state changes here
-	ancestors mapset.Set     // ancestor set (used for checking uncle parent validity)
-	family    mapset.Set     // family set (used for checking uncle invalidity)
-	uncles    mapset.Set     // uncle set
-	tcount    int            // tx count in cycle
-	gasPool   *core.GasPool  // available gas used to pack transactions
+	state        *state.StateDB      // apply state changes here
+	vdposContext *types.VdposContext //add by ssh 190829
+	ancestors    mapset.Set          // ancestor set (used for checking uncle parent validity)
+	family       mapset.Set          // family set (used for checking uncle invalidity)
+	uncles       mapset.Set          // uncle set
+	tcount       int                 // tx count in cycle
+	gasPool      *core.GasPool       // available gas used to pack transactions
 
 	header   *types.Header
 	txs      []*types.Transaction
@@ -634,13 +635,21 @@ func (w *worker) makeCurrent(parent *types.Block, header *types.Header) error {
 	if err != nil {
 		return err
 	}
+
+	// add by ssh 190829
+	vdposContext, err := types.NewVdposContextFromProto(w.chain.GetDb(), parent.Header().VdposContext)
+	if err != nil {
+		return err
+	}
+
 	env := &environment{
-		signer:    types.NewEIP155Signer(w.config.ChainID),
-		state:     state,
-		ancestors: mapset.NewSet(),
-		family:    mapset.NewSet(),
-		uncles:    mapset.NewSet(),
-		header:    header,
+		signer:       types.NewEIP155Signer(w.config.ChainID),
+		state:        state,
+		vdposContext: vdposContext,
+		ancestors:    mapset.NewSet(),
+		family:       mapset.NewSet(),
+		uncles:       mapset.NewSet(),
+		header:       header,
 	}
 
 	// when 08 is processed ancestors contain 07 (quick block)
@@ -713,11 +722,15 @@ func (w *worker) updateSnapshot() {
 func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Address) ([]*types.Log, error) {
 	snap := w.current.state.Snapshot()
 
+	// add by ssh 190829 begin
+	vdposSnap := w.current.vdposContext.Snapshot()
 	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.GasUsed, *w.chain.GetVMConfig())
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
+		w.current.vdposContext.RevertToSnapShot(vdposSnap)
 		return nil, err
 	}
+	// add by ssh 190829 end
 	w.current.txs = append(w.current.txs, tx)
 	w.current.receipts = append(w.current.receipts, receipt)
 
@@ -974,10 +987,14 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		*receipts[i] = *l
 	}
 	s := w.current.state.Copy()
-	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts)
+	// add by ssh 190829 begin
+	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts, w.current.vdposContext)
 	if err != nil {
 		return err
 	}
+	block.VdposContext = w.current.vdposContext
+	// add by ssh 190829 end
+
 	if w.isRunning() {
 		if interval != nil {
 			interval()

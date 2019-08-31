@@ -42,10 +42,9 @@ var (
 		ConstantinopleBlock: big.NewInt(7080000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           3,
-			SignerPeriod:     3,
+			Period:           2,
+			SignerPeriod:     2,
 			SignerBlocks:     6,
-			Epoch:            201600,
 			MaxSignerCount:   21,
 			MinVoterBalance:  new(big.Int).Mul(big.NewInt(100), big.NewInt(1e+18)),
 			GenesisTimestamp: 1554004800,
@@ -78,10 +77,9 @@ var (
 		ConstantinopleBlock: big.NewInt(4230000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           3,
-			SignerPeriod:     3,
+			Period:           2,
+			SignerPeriod:     2,
 			SignerBlocks:     6,
-			Epoch:            201600,
 			MaxSignerCount:   21,
 			MinVoterBalance:  new(big.Int).Mul(big.NewInt(100), big.NewInt(1e+18)),
 			GenesisTimestamp: 1554004800,
@@ -143,7 +141,7 @@ var (
 
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, Epoch: 30000, MaxSignerCount: 21, MinVoterBalance: new(big.Int).Mul(big.NewInt(10000), big.NewInt(1000000000000000000)), GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
+	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, MaxSignerCount: 21, MinVoterBalance: new(big.Int).Mul(big.NewInt(10000), big.NewInt(1000000000000000000)), GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
@@ -260,16 +258,13 @@ type VdposConfig struct {
 	Period           uint64                     `json:"period"`           // Number of seconds between blocks to enforce
 	SignerPeriod     uint64                     `json:"signerPeriod"`     // Number of seconds between two consecutive signers
 	SignerBlocks     uint64                     `json:"signerBlocks"`     // Number of blocks every signer created
-	Epoch            uint64                     `json:"epoch"`            // Epoch length to reset votes and checkpoint
 	MaxSignerCount   uint64                     `json:"maxSignersCount"`  // Max count of signers
 	MinVoterBalance  *big.Int                   `json:"minVoterBalance"`  // Min voter balance to valid this vote
 	GenesisTimestamp uint64                     `json:"genesisTimestamp"` // The LoopStartTime of first Block
 	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
 	PBFTEnable       bool                       `json:"pbft"`
-	//inb by ghy begin
-	Enode  []string           `json:"enode"` //Parameter of admin.addPeer like "enode://5aa80bf09c71dd8c7d3bc161d7dd007c024c8c897d31764b4732596243fa6c18cfe852ece686b156619e7c459e3d4af4bb19fd930a315a9dcd8c03d616e653e4@127.0.0.1:30001?discport=0"
-	Enodes []common.EnodeInfo `json:"enodes"`
-	//inb by ghy end
+	Enodes           []common.EnodeInfo         `json:"enodes"` //inb by ghy
+
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
 }
 

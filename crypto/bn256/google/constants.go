@@ -22,6 +22,30 @@ var P = bigFromBase10("218882428718392752222464057452572750886963111572978236626
 // Order is the number of elements in both G₁ and G₂: 36u⁴+36u³+18u²+6u+1.
 var Order = bigFromBase10("21888242871839275222246405745257275088548364400416034343698204186575808495617")
 
+// Tnum1 is a prime over which we form a basic field.
+var Tnum1 = new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+18))
+
+// Tnum2 is a prime over which we form a basic field.
+var Tnum2 = new(big.Int).Mul(big.NewInt(1e+9), big.NewInt(1e+18))
+
+//Tacc1 is Tacc, represented as little-endian 64-bit words.
+var Tacc1 = []byte{177, 13, 44, 174, 190, 224, 6, 17, 87, 245, 41, 39, 6, 175, 223, 43, 200, 109, 175, 46}
+
+//Tacc2 is Tacc, represented as little-endian 64-bit words.
+var Tacc2 = []byte{106, 15, 250, 110, 121, 175, 219, 223, 7, 111, 71, 181, 89, 177, 54, 19, 110, 86, 135, 72}
+
+//Tacc3 is Tacc, represented as little-endian 64-bit words.
+var Tacc3 = []byte{182, 31, 2, 230, 106, 195, 122, 27, 185, 199, 42, 214, 47, 57, 102, 183, 227, 42, 10, 210}
+
+//Tacc4 is Tacc, represented as little-endian 64-bit words.
+var Tacc4 = []byte{40, 113, 158, 149, 169, 204, 131, 166, 129, 70, 147, 163, 184, 95, 189, 84, 221, 154, 106, 9}
+
+//Tacc5 is Tacc, represented as little-endian 64-bit words.
+var Tacc5 = []byte{204, 110, 217, 95, 9, 41, 232, 9, 23, 21, 108, 0, 36, 159, 145, 15, 78, 35, 216, 94}
+
+//Tacc6 is Tacc, represented as little-endian 64-bit words.
+var Tacc6 = []byte{244, 76, 11, 238, 160, 255, 109, 75, 161, 204, 89, 26, 237, 144, 33, 46, 224, 117, 102, 88}
+
 // xiToPMinus1Over6 is ξ^((p-1)/6) where ξ = i+9.
 var xiToPMinus1Over6 = &gfP2{bigFromBase10("16469823323077808223889137241176536799009286646108169935659301613961712198316"), bigFromBase10("8376118865763821496583973867626364092589906065868298776909617916018768340080")}
 

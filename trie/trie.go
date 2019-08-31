@@ -20,7 +20,6 @@ package trie
 import (
 	"bytes"
 	"fmt"
-
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
@@ -65,8 +64,9 @@ type LeafCallback func(leaf []byte, parent common.Hash) error
 //
 // Trie is not safe for concurrent use.
 type Trie struct {
-	db   *Database
-	root node
+	db     *Database
+	root   node
+	prefix []byte //add by ssh 20190813
 
 	// Cache generation values.
 	// cachegen increases by one with each commit operation.
@@ -109,9 +109,35 @@ func New(root common.Hash, db *Database) (*Trie, error) {
 	return trie, nil
 }
 
+//add by ssh 20190813 begin
+func NewTrieWithPrefix(root common.Hash, prefix []byte, db *Database) (*Trie, error) {
+	trie, err := New(root, db)
+	if err != nil {
+		return nil, err
+	}
+	trie.prefix = prefix
+	return trie, nil
+}
+
+// PrefixIterator returns an iterator that returns nodes of the trie which has the prefix path specificed
+// Iteration starts at the key after the given start key.
+func (t *Trie) PrefixIterator(prefix []byte) NodeIterator {
+	if t.prefix != nil {
+		prefix = append(t.prefix, prefix...)
+	}
+	return newPrefixIterator(t, prefix)
+}
+
+//add by ssh 20190813 end
+
 // NodeIterator returns an iterator that returns nodes of the trie. Iteration starts at
 // the key after the given start key.
 func (t *Trie) NodeIterator(start []byte) NodeIterator {
+	//add by ssh 20190813 begin
+	if t.prefix != nil {
+		start = append(t.prefix, start...)
+	}
+	//add by ssh 20190813 end
 	return newNodeIterator(t, start)
 }
 
@@ -129,6 +155,11 @@ func (t *Trie) Get(key []byte) []byte {
 // The value bytes must not be modified by the caller.
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *Trie) TryGet(key []byte) ([]byte, error) {
+	//add by ssh 20190813 begin
+	if t.prefix != nil {
+		key = append(t.prefix, key...)
+	}
+	//add by ssh 20190813 end
 	key = keybytesToHex(key)
 	value, newroot, didResolve, err := t.tryGet(t.root, key, 0)
 	if err == nil && didResolve {
@@ -196,6 +227,11 @@ func (t *Trie) Update(key, value []byte) {
 //
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *Trie) TryUpdate(key, value []byte) error {
+	//add by ssh 20190813 begin
+	if t.prefix != nil {
+		key = append(t.prefix, key...)
+	}
+	//add by ssh 20190813 end
 	k := keybytesToHex(key)
 	if len(value) != 0 {
 		_, n, err := t.insert(t.root, nil, k, valueNode(value))
@@ -292,6 +328,11 @@ func (t *Trie) Delete(key []byte) {
 // TryDelete removes any existing value for key from the trie.
 // If a node was not found in the database, a MissingNodeError is returned.
 func (t *Trie) TryDelete(key []byte) error {
+	//add by ssh 20190813 begin
+	if t.prefix != nil {
+		key = append(t.prefix, key...)
+	}
+	//add by ssh 20190813 end
 	k := keybytesToHex(key)
 	_, n, err := t.delete(t.root, nil, k)
 	if err != nil {

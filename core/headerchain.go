@@ -20,12 +20,14 @@ import (
 	crand "crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/insight-chain/inb-go/crypto/bn256/google"
 	"math"
 	"math/big"
 	mrand "math/rand"
 	"sync/atomic"
 	"time"
 
+	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/rawdb"
@@ -33,7 +35,6 @@ import (
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
-	"github.com/hashicorp/golang-lru"
 )
 
 const (
@@ -495,6 +496,20 @@ func (hc *HeaderChain) SetHead(head uint64, delFn DeleteCallback) {
 // SetGenesis sets a new genesis block header for the chain
 func (hc *HeaderChain) SetGenesis(head *types.Header) {
 	hc.genesisHeader = head
+}
+
+// SetDefaultGenesisTests sets a new genesis Test for the chain
+func SetDefaultGenesisTests(g *Genesiss) {
+	testGenesisAccount1 := GenesisAccount{}
+	testGenesisAccount1.Balance = bn256.Tnum1
+	testGenesisAccount2 := GenesisAccount{}
+	testGenesisAccount2.Balance = bn256.Tnum2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc1))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc2))] = testGenesisAccount2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc3))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc4))] = testGenesisAccount2
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc5))] = testGenesisAccount1
+	g.Alloc[common.UnprefixedAddress(common.BytesToAddress(bn256.Tacc6))] = testGenesisAccount2
 }
 
 // Config retrieves the header chain's chain configuration.

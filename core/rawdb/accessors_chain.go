@@ -21,6 +21,7 @@ import (
 	"encoding/binary"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/rlp"
 	"math/big"
@@ -375,8 +376,29 @@ func ReadBlock(db DatabaseReader, hash common.Hash, number uint64) *types.Block 
 	if body == nil {
 		return nil
 	}
-	return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+
+	// add by ssh 190815 begin
+	//return types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+	block := types.NewBlockWithHeader(header).WithBody(body.Transactions, body.Uncles)
+	block.VdposContext = getVdposContextTrie(db.(ethdb.Database), header)
+	return block
+	// add by ssh 190815 end
 }
+
+// add by ssh 190815 begin
+func getVdposContextTrie(db ethdb.Database, header *types.Header) *types.VdposContext {
+	vdposContestProto := header.VdposContext
+	if vdposContestProto != nil {
+		vdposContext, err := types.NewVdposContextFromProto(db, vdposContestProto)
+		if err != nil {
+			return nil
+		}
+		return vdposContext
+	}
+	return nil
+}
+
+// add by ssh 190815 end
 
 // WriteBlock serializes a block into the database, header and body separately.
 func WriteBlock(db DatabaseWriter, block *types.Block) {
