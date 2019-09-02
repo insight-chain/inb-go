@@ -244,41 +244,39 @@ func (n *Node) Start() error {
 func ConnectAllSuperNodes(n *Node) {
 	//Get first block's supernodeecodes
 	//AddedNode := make(map[string]bool)
+	if len(n.rpcAPIs) >= 6 {
+		BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
+		GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(0)
+		for _, v := range GenesisSuperNodeEcodes {
+			url := ParsePeerUrl(v)
+			if !n.server.Self().Equals(url) && len(v.Id) == 128 {
+				superNode, _ := enode.ParseV4(url)
+				n.server.AddPeer(superNode)
+			}
 
-	BlockChainApi := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI)
-
-	GenesisSuperNodeEcodes := BlockChainApi.GetBlockEnodeByBlockNumber(0)
-	for _, v := range GenesisSuperNodeEcodes {
-		//fmt.Println("lasttttttttttttttttttt",v.Data)
-		url := ParsePeerUrl(v)
-		if !n.server.Self().Equals(url) && len(v.Id) == 128 {
-			superNode, _ := enode.ParseV4(url)
-			//Add node to p2p net
-			n.server.AddPeer(superNode)
-			//AddedNode[v] = true
 		}
 
-	}
+		for {
+			LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
 
-	for {
-		LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+			if len(LatesSuperNodeEcodes.SignersPool) > 0 {
+				for _, signer := range LatesSuperNodeEcodes.SignersPool {
+					if len(LatesSuperNodeEcodes.Enodes) > 0 {
+						for _, enodes := range LatesSuperNodeEcodes.Enodes {
+							if signer == enodes.Address && !n.server.Self().Equals(ParsePeerUrl(enodes)) && len(enodes.Id) == 128 {
 
-		if len(LatesSuperNodeEcodes.SignersPool) > 0 {
-			for _, signer := range LatesSuperNodeEcodes.SignersPool {
-				if len(LatesSuperNodeEcodes.Enodes) > 0 {
-					for _, enodes := range LatesSuperNodeEcodes.Enodes {
-						if signer == enodes.Address && !n.server.Self().Equals(ParsePeerUrl(enodes)) && len(enodes.Id) == 128 {
+								latessuperNode, _ := enode.ParseV4(ParsePeerUrl(enodes))
+								n.server.AddPeer(latessuperNode)
 
-							latessuperNode, _ := enode.ParseV4(ParsePeerUrl(enodes))
-							n.server.AddPeer(latessuperNode)
-
+							}
 						}
 					}
 				}
 			}
+			time.Sleep(50 * 60 * 3 * time.Second)
 		}
-		time.Sleep(50 * 60 * 3 * time.Second)
 	}
+
 }
 
 func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
