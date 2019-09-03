@@ -134,6 +134,10 @@ func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, data []
 	return newTransaction(nonce, nil, amount, gasLimit, data, Contract)
 }
 
+func NewNilToTransaction(nonce uint64, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
+	return newTransaction(nonce, nil, amount, gasLimit, data, txType)
+}
+
 func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
@@ -765,7 +769,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 		//if specialConsensu[common.BytesToAddress(v.Data())] !nil {
 		//	return errors.New("total address can not touch!")
 		//}
-		if specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil {
+		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
 			return errors.New("can not transfer to special consensus address")
 		}
 		info := specialConsensu[common.BytesToAddress(v.Data())]
