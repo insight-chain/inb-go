@@ -317,7 +317,7 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		}
 	}
 
-	if !snapContext.inturn(signer, header) {
+	if !snapContext.inturn(signer, header, parent) {
 		return errUnauthorizedSigner
 	}
 	return nil
@@ -412,7 +412,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		// decode extra from last header.extra
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
 		if err != nil {
-			log.Info("Fail to decode parent header", "err", err)
+			log.Error("Fail to decode parent header", "err", err)
 			return nil, err
 		}
 		currentHeaderExtra.ConfirmedBlockNumber = parentHeaderExtra.ConfirmedBlockNumber
@@ -525,7 +525,7 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 	}
 	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
 
-	if !snapContext.inturn(signer, header) {
+	if !snapContext.inturn(signer, header, parent) {
 		//<-stop
 		return errUnauthorizedSigner
 	}
@@ -721,33 +721,6 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 	return v.verifySeal(chain, header, parents)
 }
 
-func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Hash) error {
-	if v.config.LightConfig != nil {
-		var genesisVotes []*Vote
-		alreadyVote := make(map[common.Address]struct{})
-		for _, unPrefixVoter := range v.config.SelfVoteSigners {
-			voter := common.Address(unPrefixVoter)
-			if genesisAccount, ok := v.config.LightConfig.Alloc[unPrefixVoter]; ok {
-				if _, ok := alreadyVote[voter]; !ok {
-					stake := new(big.Int)
-					stake.UnmarshalText([]byte(genesisAccount.Balance))
-					genesisVotes = append(genesisVotes, &Vote{
-						Voter:     voter,
-						Candidate: []common.Address{voter},
-						Stake:     stake,
-					})
-					alreadyVote[voter] = struct{}{}
-				}
-			}
-		}
-
-		//TODO light node how to use vdposContext
-
-		return nil
-	}
-	return errMissingGenesisLightConfig
-}
-
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
 	//header.Reward = DefaultMinerReward.String()
@@ -843,4 +816,16 @@ func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common
 	}
 
 	return signerMissing
+}
+
+// Get the signers from header
+func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {
+	// decode header.extra
+	headerExtra := HeaderExtra{}
+	err := decodeHeaderExtra(header.Extra[extraVanity:len(header.Extra)-extraSeal], &headerExtra)
+	if err != nil {
+		log.Error("Fail to decode parent header", "err", err)
+		return nil, err
+	}
+	return headerExtra.SignersPool, nil
 }

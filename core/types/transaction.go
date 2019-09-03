@@ -289,6 +289,16 @@ func (tx *Transaction) To() *common.Address {
 	return &to
 }
 
+// vdpos by ssh 190902 begin
+// From return the account who send the transaction.
+func (tx *Transaction) From() common.Address {
+	signer := NewEIP155Signer(tx.ChainId())
+	from, _ := signer.Sender(tx)
+	return from
+}
+
+// vdpos by ssh 190902 end
+
 // Hash hashes the RLP encoding of tx.
 // It uniquely identifies the transaction.
 func (tx *Transaction) Hash() common.Hash {
@@ -587,134 +597,127 @@ func (m Message) WhichTypes(txType TxType) bool { return m.types == txType }
 //}
 
 //inb by ssh begin
-type ITransaction struct {
-	Id             common.Hash
-	TimeLimit      uint64
-	RefBlockNum    uint64
-	RefBlockPrefix string
-	delayTimeSec   uint64
-	MaxCpuUsage    *big.Int
-	MaxNetUsage    *big.Int
-	Actions        []*action
-	Signatures     []*signature
-	PaySignatures  []*payment
-
-	// caches
-	Hash atomic.Value
-	Size atomic.Value
-	From atomic.Value
-}
-
-type action struct {
-	Name    string
-	Nonce   uint64
-	Account common.Address
-	Data    []byte
-	hexData []byte
-}
-
-type signature struct {
-	V *big.Int
-	R *big.Int
-	S *big.Int
-}
-
-type ITransactions []*ITransaction
-
-// From return the account who send the transaction.
-func (tx *Transaction) From() common.Address {
-	signer := NewEIP155Signer(tx.ChainId())
-	v, _ := signer.Sender(tx)
-	return v
-}
-
-// EncodeTransactionStruct change normal Transaction to ITransaction.
-func EncodeTransactionStruct(txs Transactions) ITransactions {
-	rlpTxs := make(ITransactions, 0)
-	for _, tx := range txs {
-		id := tx.Hash()
-
-		data, _ := tx.MarshalJSON()
-		actionx := &action{
-			Name:    "transfer",
-			Nonce:   tx.Nonce(),
-			Account: tx.From(),
-			Data:    data,
-			hexData: []byte{},
-		}
-		actions := []*action{actionx}
-
-		signaturex := &signature{
-			V: tx.data.V,
-			R: tx.data.R,
-			S: tx.data.S,
-		}
-		signatures := []*signature{signaturex}
-
-		var paySignatures []*payment
-		//if tx.data.Repayment != nil {
-		//	paySignature := &payment{
-		//		ResourcePayer: tx.data.Repayment.ResourcePayer,
-		//		Vp:            tx.data.Repayment.Vp,
-		//		Rp:            tx.data.Repayment.Rp,
-		//		Sp:            tx.data.Repayment.Sp,
-		//	}
-		//	paySignatures = append(paySignatures, paySignature)
-		//}
-
-		rlpTx := &ITransaction{
-			Id:             id,
-			TimeLimit:      0,
-			RefBlockNum:    0,
-			RefBlockPrefix: "",
-			delayTimeSec:   0,
-			MaxCpuUsage:    nil,
-			MaxNetUsage:    nil,
-			Actions:        actions,
-			Signatures:     signatures,
-			PaySignatures:  paySignatures,
-		}
-		if hash := tx.hash.Load(); hash != nil {
-			rlpTx.Hash.Store(hash)
-		}
-		if size := tx.size.Load(); size != nil {
-			rlpTx.Size.Store(size)
-		}
-		if from := tx.from.Load(); from != nil {
-			rlpTx.From.Store(from)
-		}
-		rlpTxs = append(rlpTxs, rlpTx)
-	}
-	return rlpTxs
-}
-
-// DecodeTransactionStruct change ITransaction to normal Transaction.
-func DecodeTransactionStruct(encodeTxs ITransactions) Transactions {
-	var dec txdata
-	txs := make(Transactions, 0)
-	for _, encodeTx := range encodeTxs {
-		if len(encodeTx.Actions) == 1 {
-			if err := dec.UnmarshalJSON(encodeTx.Actions[0].Data); err != nil {
-				continue
-			} else {
-				tx := &Transaction{data: dec}
-				if hash := encodeTx.Hash.Load(); hash != nil {
-					tx.hash.Store(hash)
-				}
-				if size := encodeTx.Size.Load(); size != nil {
-					tx.size.Store(size)
-				}
-				if from := encodeTx.From.Load(); from != nil {
-					tx.from.Store(from)
-				}
-				txs = append(txs, tx)
-			}
-		} else {
-			continue
-		}
-	}
-	return txs
-}
+//type ITransaction struct {
+//	Id             common.Hash
+//	TimeLimit      uint64
+//	RefBlockNum    uint64
+//	RefBlockPrefix string
+//	delayTimeSec   uint64
+//	MaxCpuUsage    *big.Int
+//	MaxNetUsage    *big.Int
+//	Actions        []*action
+//	Signatures     []*signature
+//	PaySignatures  []*payment
+//
+//	// caches
+//	Hash atomic.Value
+//	Size atomic.Value
+//	From atomic.Value
+//}
+//
+//type action struct {
+//	Name    string
+//	Nonce   uint64
+//	Account common.Address
+//	Data    []byte
+//	hexData []byte
+//}
+//
+//type signature struct {
+//	V *big.Int
+//	R *big.Int
+//	S *big.Int
+//}
+//
+//type ITransactions []*ITransaction
+//
+//// EncodeTransactionStruct change normal Transaction to ITransaction.
+//func EncodeTransactionStruct(txs Transactions) ITransactions {
+//	rlpTxs := make(ITransactions, 0)
+//	for _, tx := range txs {
+//		id := tx.Hash()
+//
+//		data, _ := tx.MarshalJSON()
+//		actionx := &action{
+//			Name:    "transfer",
+//			Nonce:   tx.Nonce(),
+//			Account: tx.From(),
+//			Data:    data,
+//			hexData: []byte{},
+//		}
+//		actions := []*action{actionx}
+//
+//		signaturex := &signature{
+//			V: tx.data.V,
+//			R: tx.data.R,
+//			S: tx.data.S,
+//		}
+//		signatures := []*signature{signaturex}
+//
+//		var paySignatures []*payment
+//		//if tx.data.Repayment != nil {
+//		//	paySignature := &payment{
+//		//		ResourcePayer: tx.data.Repayment.ResourcePayer,
+//		//		Vp:            tx.data.Repayment.Vp,
+//		//		Rp:            tx.data.Repayment.Rp,
+//		//		Sp:            tx.data.Repayment.Sp,
+//		//	}
+//		//	paySignatures = append(paySignatures, paySignature)
+//		//}
+//
+//		rlpTx := &ITransaction{
+//			Id:             id,
+//			TimeLimit:      0,
+//			RefBlockNum:    0,
+//			RefBlockPrefix: "",
+//			delayTimeSec:   0,
+//			MaxCpuUsage:    nil,
+//			MaxNetUsage:    nil,
+//			Actions:        actions,
+//			Signatures:     signatures,
+//			PaySignatures:  paySignatures,
+//		}
+//		if hash := tx.hash.Load(); hash != nil {
+//			rlpTx.Hash.Store(hash)
+//		}
+//		if size := tx.size.Load(); size != nil {
+//			rlpTx.Size.Store(size)
+//		}
+//		if from := tx.from.Load(); from != nil {
+//			rlpTx.From.Store(from)
+//		}
+//		rlpTxs = append(rlpTxs, rlpTx)
+//	}
+//	return rlpTxs
+//}
+//
+//// DecodeTransactionStruct change ITransaction to normal Transaction.
+//func DecodeTransactionStruct(encodeTxs ITransactions) Transactions {
+//	var dec txdata
+//	txs := make(Transactions, 0)
+//	for _, encodeTx := range encodeTxs {
+//		if len(encodeTx.Actions) == 1 {
+//			if err := dec.UnmarshalJSON(encodeTx.Actions[0].Data); err != nil {
+//				continue
+//			} else {
+//				tx := &Transaction{data: dec}
+//				if hash := encodeTx.Hash.Load(); hash != nil {
+//					tx.hash.Store(hash)
+//				}
+//				if size := encodeTx.Size.Load(); size != nil {
+//					tx.size.Store(size)
+//				}
+//				if from := encodeTx.From.Load(); from != nil {
+//					tx.from.Store(from)
+//				}
+//				txs = append(txs, tx)
+//			}
+//		} else {
+//			continue
+//		}
+//	}
+//	return txs
+//}
 
 //inb by ssh end
 
