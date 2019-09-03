@@ -186,6 +186,9 @@ func (s *SnapContext) random(arr TallySlice, seed int64) {
 
 // inturn returns if a signer at a given block height is in-turn or not.
 func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent *types.Header) bool {
+	if header.Number.Uint64() == 1 {
+		parent = header
+	}
 	parentExtra := HeaderExtra{}
 	err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentExtra)
 	if err != nil {
