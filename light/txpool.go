@@ -402,7 +402,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//}
 
 	for _, v := range pool.chain.CurrentHeader().SpecialConsensus.SpecialConsensusAddress {
-		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
+		if nil != tx.To() && (v.TotalAddress == *tx.To() || v.TotalAddress == tx.From()) {
 			return errors.New("can not transfer to special consensus address")
 		}
 	}
