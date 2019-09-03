@@ -1114,6 +1114,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	// add by ssh 190829 begin
 	block, err := w.engine.Finalize(w.chain, w.current.header, s, w.current.txs, uncles, w.current.receipts, w.current.vdposContext)
 	if err != nil {
+		log.Error("Finalize err", err)
 		return err
 	}
 	block.VdposContext = w.current.vdposContext
