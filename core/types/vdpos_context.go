@@ -35,15 +35,32 @@ type VdposContext struct {
 }
 
 type Tally struct {
-	Address common.Address
-	Stake   *big.Int
-	Test    uint64
+	Address  common.Address
+	Stake    *big.Int
+	NodeInfo NodeInfo
 }
 
 type Votes struct {
 	Voter     common.Address
 	Candidate []common.Address
 	Stake     *big.Int
+}
+
+type NodeInfo struct {
+	Address common.Address `json:"address"`
+	Id      string         `json:"id"`
+	Ip      string         `json:"ip"`
+	Port    string         `json:"port"`
+	//inb by ghy begin
+	Name    string `json:"name"`
+	Nation  string `json:"nation"`
+	City    string `json:"city"`
+	Image   string `json:"image"`
+	Website string `json:"website"`
+	Email   string `json:"email"`
+	Data    string `json:"data"`
+	Vote    uint64 `json:"vote"`
+	//inb by ghy end
 }
 
 var (
@@ -249,7 +266,6 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 			tally = &Tally{
 				Address: candidate,
 				Stake:   vote.Stake,
-				Test:    0,
 			}
 		}
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
@@ -257,6 +273,26 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
 		}
 		vc.tallyTrie.Update(candidate[:], newTallyRLP)
+	}
+	return nil
+}
+
+func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo *NodeInfo) error {
+	Addr := nodeInfo.Address
+	tallyRLP := vc.tallyTrie.Get(Addr[:])
+	if tallyRLP != nil {
+		Tally := new(Tally)
+		if err := rlp.DecodeBytes(tallyRLP, Tally); err != nil {
+			return fmt.Errorf("failed to decode tally: %s", err)
+		}
+		Tally.NodeInfo = *nodeInfo
+
+		newTallyRLP, err := rlp.EncodeToBytes(Tally)
+		if err != nil {
+			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+		}
+
+		vc.tallyTrie.Update(Addr[:], newTallyRLP)
 	}
 	return nil
 }

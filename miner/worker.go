@@ -1013,6 +1013,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 
 	vdpos.DefaultMinerReward = reward
+	header.Reward = reward.String()
 	for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
 		switch v.Name {
 		case "Foundation":
@@ -1057,7 +1058,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		default:
 		}
 	}
-
 	//2019.8.29 inb by ghy end
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)

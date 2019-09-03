@@ -198,9 +198,14 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 		Candidate: candidates,
 		Stake:     stake,
 	})
-	vdposContext.UpdateVotes(vote)
-	vdposContext.UpdateTallysByVotes(vote)
-
+	err := vdposContext.UpdateVotes(vote)
+	if err != nil {
+		return nil
+	}
+	err = vdposContext.UpdateTallysByVotes(vote)
+	if err != nil {
+		return nil
+	}
 	//}
 	//state.AddVoteRecord(voter,stake)
 
@@ -217,27 +222,34 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 			Port:    midEnodeInfo[PosEventDeclareInfoPort],
 			Address: declarer,
 		}
+
+		enodeInfoTrie := &types.NodeInfo{
+			Id:      midEnodeInfo[PosEventDeclareInfoId],
+			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+			Port:    midEnodeInfo[PosEventDeclareInfoPort],
+			Address: declarer,
+		}
 		//inb by ghy begin
 		if len(midEnodeInfo) >= 4 {
-			enodeInfo.Name = midEnodeInfo[PosEventDeclareInfoName]
+			enodeInfoTrie.Name = midEnodeInfo[PosEventDeclareInfoName]
 		}
 
 		if len(midEnodeInfo) >= 5 {
-			enodeInfo.Nation = midEnodeInfo[PosEventDeclareInfoNation]
+			enodeInfoTrie.Nation = midEnodeInfo[PosEventDeclareInfoNation]
 		}
 
 		if len(midEnodeInfo) >= 6 {
-			enodeInfo.City = midEnodeInfo[PosEventDeclareInfoCity]
+			enodeInfoTrie.City = midEnodeInfo[PosEventDeclareInfoCity]
 		}
 		if len(midEnodeInfo) >= 7 {
-			enodeInfo.Image = midEnodeInfo[PosEventDeclareInfoImage]
+			enodeInfoTrie.Image = midEnodeInfo[PosEventDeclareInfoImage]
 
 		}
 		if len(midEnodeInfo) >= 8 {
-			enodeInfo.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
+			enodeInfoTrie.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
 		}
 		if len(midEnodeInfo) >= 9 {
-			enodeInfo.Email = midEnodeInfo[PosEventDeclareInfoEmail]
+			enodeInfoTrie.Email = midEnodeInfo[PosEventDeclareInfoEmail]
 		}
 
 		data := `{`
@@ -252,8 +264,13 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 			data = strings.TrimRight(data, ",")
 		}
 		data += `}`
-		enodeInfo.Data = data
-
+		enodeInfoTrie.Data = data
+		vdposContext, err := types.NewVdposContext(v.db)
+		err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+		if err != nil {
+			return nil
+		}
+		//vdposContext.TallyTrie().NodeIterator(vdposContext.TallyTrie().PrefixIterator(nil))
 		//inb by ghy end
 		flag := false
 		for i, enode := range currentEnodeInfos {

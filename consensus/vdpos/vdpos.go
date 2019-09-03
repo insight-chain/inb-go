@@ -20,6 +20,7 @@ package vdpos
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -446,8 +447,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.SignersPool = []common.Address{}
 
 		newSignersPool, err := snapContext.createSignersPool()
-
 		if err != nil {
+			fmt.Println(err)
+			log.Error("err", err)
 			return nil, err
 		}
 		currentHeaderExtra.SignersPool = newSignersPool
@@ -459,6 +461,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	// encode header.extra
 	currentHeaderExtraEnc, err := encodeHeaderExtra(currentHeaderExtra)
 	if err != nil {
+
 		return nil, err
 	}
 
@@ -747,7 +750,7 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
-	header.Reward = DefaultMinerReward.String()
+	//header.Reward = DefaultMinerReward.String()
 	//reward := new(big.Int).Set(DefaultMinerReward)
 	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
 	//inb by ssh 190627

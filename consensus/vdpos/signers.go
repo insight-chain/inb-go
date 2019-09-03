@@ -103,7 +103,6 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 }
 
 func (s *SnapContext) createSignersPool() ([]common.Address, error) {
-
 	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks) != 0 {
 		return nil, errCreateSignersPoolNotAllowed
 	}

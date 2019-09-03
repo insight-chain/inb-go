@@ -462,8 +462,14 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext 
 					//Stake:     state.GetMortgageInbOfNet(voter),
 					Stake: big.NewInt(1),
 				}
-				dc.UpdateVotes(vote)
-				dc.UpdateTallysByVotes(vote)
+				err = dc.UpdateVotes(vote)
+				if err != nil {
+					return nil
+				}
+				err = dc.UpdateTallysByVotes(vote)
+				if err != nil {
+					return nil
+				}
 				alreadyVote[voter] = struct{}{}
 			}
 		}
