@@ -200,16 +200,6 @@ func (vc *VdposContext) SetDB(db ethdb.Database)   { vc.db = db }
 func (vc *VdposContext) SetVote(vote *trie.Trie)   { vc.voteTrie = vote }
 func (vc *VdposContext) SetTally(tally *trie.Trie) { vc.tallyTrie = tally }
 
-//func (vc *VdposContext) GetTallys() (*Tally, error) {
-//	tally := new(Tally)
-//	key := []byte("tally")
-//	tallyRLP := vc.tallyTrie.Get(key)
-//	if err := rlp.DecodeBytes(tallyRLP, tally); err != nil {
-//		return nil, fmt.Errorf("failed to decode tally: %s", err)
-//	}
-//	return tally, nil
-//}
-
 func (vc *VdposContext) UpdateTallys(tally *Tally) error {
 	addr := tally.Address
 	tallyRLP, err := rlp.EncodeToBytes(tally)
@@ -245,7 +235,11 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 					return fmt.Errorf("failed to decode tally: %s", err)
 				}
-				tally.Stake = tally.Stake.Sub(tally.Stake, vote.Stake)
+				if tally.Stake.Cmp(vote.Stake) == -1 {
+					tally.Stake = big.NewInt(0)
+				} else {
+					tally.Stake = tally.Stake.Sub(tally.Stake, vote.Stake)
+				}
 				newTallyRLP, err := rlp.EncodeToBytes(tally)
 				if err != nil {
 					return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -304,4 +298,46 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error
 	return nil
 }
 
+
 //2019.9.4 inb by ghy end
+
+func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
+	voteRLP := vc.voteTrie.Get(voter[:])
+	if voteRLP != nil {
+		oldVote := new(Votes)
+		if err := rlp.DecodeBytes(voteRLP, oldVote); err != nil {
+			return fmt.Errorf("failed to decode votes: %s", err)
+		}
+		for _, candidate := range oldVote.Candidate {
+			oldTallyRLP := vc.tallyTrie.Get(candidate[:])
+			if oldTallyRLP != nil {
+				tally := new(Tally)
+				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
+					return fmt.Errorf("failed to decode tally: %s", err)
+				}
+				if tally.Stake.Cmp(oldVote.Stake) == -1 {
+					tally.Stake = big.NewInt(0)
+				} else {
+					tally.Stake = tally.Stake.Sub(tally.Stake, oldVote.Stake)
+				}
+				tally.Stake = tally.Stake.Add(tally.Stake, stake)
+				newTallyRLP, err := rlp.EncodeToBytes(tally)
+				if err != nil {
+					return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+				}
+				vc.tallyTrie.Update(candidate[:], newTallyRLP)
+			}
+		}
+		newVote := &Votes{
+			Voter:     voter,
+			Candidate: oldVote.Candidate,
+			Stake:     stake,
+		}
+		err := vc.UpdateVotes(newVote)
+		if err != nil {
+			return fmt.Errorf("failed to update votes %s", err)
+		}
+	}
+	return nil
+}
+

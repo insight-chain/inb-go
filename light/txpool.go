@@ -412,29 +412,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//	}
 	//	fmt.Println(payment)
 	//}
-	//achilles config validate candidates size
-
-	if tx.WhichTypes(types.UpdateNodeInformation) {
-		tx.Data()
-		if len(inputStr) >= len(vdpos.InbPrefix) {
-			txDataInfo := strings.Split(inputStr, "|")
-			if len(txDataInfo) >= vdpos.InbMinSplitLen {
-				if txDataInfo[vdpos.PosPrefix] == vdpos.InbPrefix {
-					if txDataInfo[vdpos.PosVersion] == vdpos.InbVersion {
-						// process vote event
-						if txDataInfo[vdpos.PosCategory] == vdpos.InbCategoryEvent {
-							if len(txDataInfo) > vdpos.InbMinSplitLen {
-								// check is vote or not
-								if txDataInfo[vdpos.PosEventVote] == vdpos.InbEventDeclare {
-								}
-							}
-						}
-					}
-				}
-			}
-		}
-
-	}
 
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {

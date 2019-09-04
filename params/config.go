@@ -46,7 +46,6 @@ var (
 			SignerPeriod:     2,
 			SignerBlocks:     6,
 			MaxSignerCount:   21,
-			MinVoterBalance:  new(big.Int).Mul(big.NewInt(100), big.NewInt(1e+18)),
 			GenesisTimestamp: 1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
@@ -81,7 +80,6 @@ var (
 			SignerPeriod:     2,
 			SignerBlocks:     6,
 			MaxSignerCount:   21,
-			MinVoterBalance:  new(big.Int).Mul(big.NewInt(100), big.NewInt(1e+18)),
 			GenesisTimestamp: 1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
@@ -141,7 +139,7 @@ var (
 
 	// This configuration is intentionally not using keyed fields to force anyone
 	// adding flags to the config to also have to set these fields.
-	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, MaxSignerCount: 21, MinVoterBalance: new(big.Int).Mul(big.NewInt(10000), big.NewInt(1000000000000000000)), GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
+	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, MaxSignerCount: 21, GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
 
 	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
 	TestRules       = TestChainConfig.Rules(new(big.Int))
@@ -259,7 +257,6 @@ type VdposConfig struct {
 	SignerPeriod     uint64                     `json:"signerPeriod"`     // Number of seconds between two consecutive signers
 	SignerBlocks     uint64                     `json:"signerBlocks"`     // Number of blocks every signer created
 	MaxSignerCount   uint64                     `json:"maxSignersCount"`  // Max count of signers
-	MinVoterBalance  *big.Int                   `json:"minVoterBalance"`  // Min voter balance to valid this vote
 	GenesisTimestamp uint64                     `json:"genesisTimestamp"` // The LoopStartTime of first Block
 	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
 	PBFTEnable       bool                       `json:"pbft"`
