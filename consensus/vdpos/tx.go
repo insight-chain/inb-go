@@ -83,7 +83,6 @@ type Vote struct {
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
-	CurrentBlockVotes      []Vote
 	ModifyPredecessorVotes []Vote
 	LoopStartTime          uint64
 	SignersPool            []common.Address
@@ -159,7 +158,10 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			if params.TxConfig.CandidateSize < uint64(len(candidates)) {
 				return headerExtra, errors.Errorf("candidates over size")
 			}
-			headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates, vdposContext)
+			err = v.processEventVote(state, txSender, candidates, vdposContext)
+			if err != nil {
+				return headerExtra, err
+			}
 
 		}
 
@@ -175,14 +177,22 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 
 		}
+		// check each address
+		number := header.Number.Uint64()
+		if number > 1 {
+			err = v.processPredecessorVoter(state, tx, txSender, vdposContext)
+			if err != nil {
+				return headerExtra, err
+			}
+		}
+
 	}
 	//2019.8.5 inb mod by ghy end
 
 	return headerExtra, nil
 }
 
-func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) []Vote {
-	//if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
+func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
 	stake := state.GetMortgageInbOfNet(voter)
 	v.lock.RUnlock()
@@ -193,23 +203,16 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 		Stake:     stake,
 	}
 
-	currentBlockVotes = append(currentBlockVotes, Vote{
-		Voter:     voter,
-		Candidate: candidates,
-		Stake:     stake,
-	})
 	err := vdposContext.UpdateVotes(vote)
 	if err != nil {
-		return nil
+		return err
 	}
 	err = vdposContext.UpdateTallysByVotes(vote)
 	if err != nil {
-		return nil
+		return err
 	}
-	//}
-	//state.AddVoteRecord(voter,stake)
 
-	return currentBlockVotes
+	return nil
 }
 
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address) []common.EnodeInfo {
@@ -288,30 +291,18 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	return currentEnodeInfos
 }
 
-//func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address, snap *Snapshot) []Vote {
-//	// process normal transaction which relate to voter
-//	if tx.Value().Cmp(big.NewInt(0)) > 0 {
-//		if snap.isVoter(voter) {
-//			v.lock.RLock()
-//			stake := state.GetMortgageInbOfNet(voter)
-//			v.lock.RUnlock()
-//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-//				Voter:     voter,
-//				Candidate: []common.Address{voter},
-//				Stake:     stake,
-//			})
-//		}
-//		if snap.isVoter(*tx.To()) {
-//			v.lock.RLock()
-//			stake := state.GetMortgageInbOfNet(*tx.To())
-//			v.lock.RUnlock()
-//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-//				Voter:     *tx.To(),
-//				Candidate: []common.Address{voter},
-//				Stake:     stake,
-//			})
-//		}
-//
-//	}
-//	return modifyPredecessorVotes
-//}
+func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transaction, txSender common.Address, vdposContext *types.VdposContext) error {
+	// process 3 kinds of transactions which relate to voter
+	if tx.Value().Cmp(big.NewInt(0)) > 0 {
+		if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Redeem) {
+			v.lock.RLock()
+			stake := state.GetMortgageInbOfNet(txSender)
+			v.lock.RUnlock()
+			err := vdposContext.UpdateTallysAndVotesByMPV(txSender, stake)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
