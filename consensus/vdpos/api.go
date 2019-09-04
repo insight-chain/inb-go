@@ -18,8 +18,12 @@
 package vdpos
 
 import (
-	"github.com/insight-chain/inb-go/common"
+	"fmt"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/log"
+	"github.com/insight-chain/inb-go/rlp"
+	"github.com/insight-chain/inb-go/trie"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -29,22 +33,55 @@ type API struct {
 	vdpos *Vdpos
 }
 
-func (api *API) GetSigners(number uint64) ([]common.Address, error) {
+// GetSnapshot retrieves the state snapshot at a given block.
+//func (api *API) GetSnapshot(number uint64) (*Snapshot, error) {
+//	header := api.chain.GetHeaderByNumber(number)
+//	if header == nil {
+//		return nil, errUnknownBlock
+//	}
+//	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+//}
+func (api *API) GetSnapshot(number uint64) error {
 	header := api.chain.GetHeaderByNumber(number)
 	if header == nil {
-		return nil, errUnknownBlock
+		return errUnknownBlock
 	}
-	return api.vdpos.getSigners(header)
+	return nil
 }
 
-//GetSignersAtHash retrieves the list of authorized signers at the specified block.
-func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
-	header := api.chain.GetHeaderByHash(hash)
-	if header == nil {
-		return nil, errUnknownBlock
-	}
-	return api.vdpos.getSigners(header)
-}
+// GetSnapshotAtHash retrieves the state snapshot at a given block.
+//func (api *API) GetSnapshotAtHash(hash common.Hash) (*Snapshot, error) {
+//	header := api.chain.GetHeaderByHash(hash)
+//	if header == nil {
+//		return nil, errUnknownBlock
+//	}
+//	return api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+//}
+
+//func (api *API) GetSigners(number uint64) ([]common.Address, error) {
+//	header := api.chain.GetHeaderByNumber(number)
+//	if header == nil {
+//		return nil, errUnknownBlock
+//	}
+//	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return snap.signers(), nil
+//}
+
+// GetSignersAtHash retrieves the list of authorized signers at the specified block.
+//func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
+//	header := api.chain.GetHeaderByHash(hash)
+//	if header == nil {
+//		return nil, errUnknownBlock
+//	}
+//	snap, err := api.vdpos.snapshot(api.chain, header.Number.Uint64(), header.Hash(), nil, nil, defaultLoopCntRecalculateSigners)
+//	if err != nil {
+//		return nil, err
+//	}
+//	return snap.signers(), nil
+//}
 
 //inb by ghy begin
 //func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
@@ -122,3 +159,77 @@ func (api *API) GetSignersAtHash(hash common.Hash) ([]common.Address, error) {
 //	}
 //}
 //inb by ghy end
+
+func (api *API) GetCandidateNodesInfo() []*types.Tally {
+	tallySlice := []*types.Tally{}
+	var err error
+	header := api.chain.CurrentHeader()
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+
+	//vdposContext, err := types.NewVdposContext(api.vdpos.db)
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+
+	if err != nil {
+		return nil
+	}
+	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+	TallyTrie := vdposContext.TallyTrie()
+
+	tallyIterator := trie.NewIterator(TallyTrie.PrefixIterator(nil))
+
+	existTally := tallyIterator.Next()
+	if !existTally {
+		return nil
+	}
+	for existTally {
+		tallyRLP := tallyIterator.Value
+		tally := new(types.Tally)
+		if err := rlp.DecodeBytes(tallyRLP, tally); err != nil {
+			log.Error("Failed to decode tally")
+			return nil
+		}
+
+		tallySlice = append(tallySlice, tally)
+		existTally = tallyIterator.Next()
+	}
+	return tallySlice
+
+}
+
+func (api *API) GetSuperNodesInfo() []*types.Tally {
+	var err error
+	header := api.chain.CurrentHeader()
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+
+	//vdposContext, err := types.NewVdposContext(api.vdpos.db)
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+
+	if err != nil {
+		return nil
+	}
+	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+	TallyTrie := vdposContext.TallyTrie()
+
+	nodesInfo := []*types.Tally{}
+	for _, addr := range val.SignersPool {
+		TallyRLP := TallyTrie.Get(addr[:])
+		tally := new(types.Tally)
+		if TallyRLP != nil {
+			if err := rlp.DecodeBytes(TallyRLP, tally); err != nil {
+				fmt.Println(err)
+				continue
+			}
+		} else {
+		}
+		nodesInfo = append(nodesInfo, tally)
+	}
+	return nodesInfo
+}

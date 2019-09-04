@@ -1606,9 +1606,6 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 		//return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(*args.Gas), input)
 		return types.NewContractCreation(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input)
 	}
-	if args.To == nil && args.Types != types.Contract {
-		return types.NewNilToTransaction(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input, args.Types)
-	}
 	// 	if args.ResourcePayer != nil {
 	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
 	// 	}

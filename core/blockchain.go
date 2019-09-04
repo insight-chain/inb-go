@@ -1009,6 +1009,18 @@ func (bc *BlockChain) WriteBlockWithState(block *types.Block, receipts []*types.
 	rawdb.WriteReceipts(batch, block.Hash(), block.NumberU64(), receipts)
 
 	//add by ssh 190815 begin
+	//he := new(types.Tally)
+	//rlp1 := block.VdposContext.TallyTrie().Get(common.Hex2Bytes("0x95492f5b2c9485edc7df250683e8fa6c2a3effc0a1"))
+	//err = rlp.DecodeBytes(rlp1, &he)
+	//fmt.Println(err)
+	//fmt.Println("呵呵", he.NodeInfo.Data)
+
+	//he := new(types.Votes)
+	//rlp1 := block.VdposContext.VoteTrie().Get(common.Hex2Bytes("0x95492f5b2c9485edc7df250683e8fa6c2a3effc0a1"))
+	//err = rlp.DecodeBytes(rlp1, &he)
+	//fmt.Println(err)
+	//fmt.Println("呵呵", he.Stake)
+
 	if _, err := block.VdposContext.Commit(); err != nil {
 		return NonStatTy, err
 	}

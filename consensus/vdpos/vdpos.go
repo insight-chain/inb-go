@@ -302,7 +302,7 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		}
 	}
 
-	if !snapContext.inturn(signer, header, parent) {
+	if !snapContext.inturn(signer, header) {
 		return errUnauthorizedSigner
 	}
 	return nil
@@ -392,12 +392,20 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				alreadyVote[voter] = struct{}{}
 			}
 		}
-		currentHeaderExtra.Enodes = v.config.Enodes
+		for _, v := range v.config.Enodes {
+			enode := new(common.EnodeInfo)
+			enode.Address = v.Address
+			enode.Port = v.Port
+			enode.Ip = v.Ip
+			enode.Id = v.Id
+			currentHeaderExtra.Enodes = append(currentHeaderExtra.Enodes, *enode)
+		}
+		//currentHeaderExtra.Enodes = v.config.Enodes
 	} else {
 		// decode extra from last header.extra
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
 		if err != nil {
-			log.Error("Fail to decode parent header", "err", err)
+			log.Info("Fail to decode parent header", "err", err)
 			return nil, err
 		}
 		currentHeaderExtra.ConfirmedBlockNumber = parentHeaderExtra.ConfirmedBlockNumber
@@ -509,7 +517,7 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 	}
 	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
 
-	if !snapContext.inturn(signer, header, parent) {
+	if !snapContext.inturn(signer, header) {
 		//<-stop
 		return errUnauthorizedSigner
 	}
@@ -703,6 +711,33 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 
 	// All basic checks passed, verify the seal and return
 	return v.verifySeal(chain, header, parents)
+}
+
+func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Hash) error {
+	if v.config.LightConfig != nil {
+		var genesisVotes []*Vote
+		alreadyVote := make(map[common.Address]struct{})
+		for _, unPrefixVoter := range v.config.SelfVoteSigners {
+			voter := common.Address(unPrefixVoter)
+			if genesisAccount, ok := v.config.LightConfig.Alloc[unPrefixVoter]; ok {
+				if _, ok := alreadyVote[voter]; !ok {
+					stake := new(big.Int)
+					stake.UnmarshalText([]byte(genesisAccount.Balance))
+					genesisVotes = append(genesisVotes, &Vote{
+						Voter:     voter,
+						Candidate: []common.Address{voter},
+						Stake:     stake,
+					})
+					alreadyVote[voter] = struct{}{}
+				}
+			}
+		}
+
+		//TODO light node how to use vdposContext
+
+		return nil
+	}
+	return errMissingGenesisLightConfig
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.

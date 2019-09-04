@@ -75,3 +75,20 @@ type EnodeInfo struct {
 	//Vote    uint64 `json:"vote"`
 	//inb by ghy end
 }
+
+type EnodesInfo struct {
+	Address Address `json:"address"`
+	Id      string  `json:"id"`
+	Ip      string  `json:"ip"`
+	Port    string  `json:"port"`
+	//inb by ghy begin
+	Name    string `json:"name"`
+	Nation  string `json:"nation"`
+	City    string `json:"city"`
+	Image   string `json:"image"`
+	Website string `json:"website"`
+	Email   string `json:"email"`
+	Data    string `json:"data"`
+	Vote    uint64 `json:"vote"`
+	//inb by ghy end
+}
