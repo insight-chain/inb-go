@@ -835,7 +835,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 				}
 				info.num++
 			default:
-
+				return errors.New("other tx can not allowed")
 			}
 			//specialConsensu[common.BytesToAddress(v.Data())]++
 			//if *v.To() != header.Coinbase || v.Value().Cmp(big.NewInt(int64(111))) != 0 {

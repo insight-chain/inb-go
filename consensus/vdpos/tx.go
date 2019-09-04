@@ -164,20 +164,26 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
-
-			account := state.GetAccountInfo(txSender)
-			if account == nil {
-				return headerExtra, errors.Errorf("error of account")
-			}
-
-			if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
+			if state.GetMortgageInbOfNet(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
 			} else {
 				return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
 			}
 
 		}
+		//account := state.GetAccountInfo(txSender)
+		//if account == nil {
+		//	return headerExtra, errors.Errorf("error of account")
+		//}
+		//
+		//if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
+		//	headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
+		//} else {
+		//	return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
+		//}
+
 	}
+
 	//2019.8.5 inb mod by ghy end
 
 	return headerExtra, nil
