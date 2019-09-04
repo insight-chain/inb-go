@@ -211,7 +211,6 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 
 	nodesInfo := []*types.Tally{}
 	for _, addr := range val.SignersPool {
-		fmt.Println(addr.String())
 		TallyRLP := TallyTrie.Get(addr[:])
 		tally := new(types.Tally)
 		if TallyRLP != nil {
