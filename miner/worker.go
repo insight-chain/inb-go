@@ -21,7 +21,6 @@ import (
 
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
-
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -1117,6 +1116,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		return err
 	}
 	block.VdposContext = w.current.vdposContext
+
 	// add by ssh 190829 end
 
 	if w.isRunning() {

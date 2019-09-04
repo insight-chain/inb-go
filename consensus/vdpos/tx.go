@@ -171,7 +171,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 
 			if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
-				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender)
+				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
 			}
 
 		}
@@ -212,7 +212,7 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 	return currentBlockVotes
 }
 
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address) []common.EnodeInfo {
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
@@ -223,7 +223,7 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 			Address: declarer,
 		}
 
-		enodeInfoTrie := &types.NodeInfo{
+		enodeInfoTrie := &common.EnodesInfo{
 			Id:      midEnodeInfo[PosEventDeclareInfoId],
 			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
 			Port:    midEnodeInfo[PosEventDeclareInfoPort],
@@ -265,12 +265,14 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 		}
 		data += `}`
 		enodeInfoTrie.Data = data
-		vdposContext, err := types.NewVdposContext(v.db)
-		err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+		//vdposContext, err := types.NewVdposContext(v.db)
+
+		//2019.9.4 mod by ghy
+		err := vdposContext.UpdateTallysByNodeInfo(*enodeInfoTrie)
+
 		if err != nil {
 			return nil
 		}
-		//vdposContext.TallyTrie().NodeIterator(vdposContext.TallyTrie().PrefixIterator(nil))
 		//inb by ghy end
 		flag := false
 		for i, enode := range currentEnodeInfos {

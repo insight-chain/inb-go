@@ -20,7 +20,6 @@ package vdpos
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -407,7 +406,15 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				alreadyVote[voter] = struct{}{}
 			}
 		}
-		currentHeaderExtra.Enodes = v.config.Enodes
+		for _, v := range v.config.Enodes {
+			enode := new(common.EnodeInfo)
+			enode.Address = v.Address
+			enode.Port = v.Port
+			enode.Ip = v.Ip
+			enode.Id = v.Id
+			currentHeaderExtra.Enodes = append(currentHeaderExtra.Enodes, *enode)
+		}
+		//currentHeaderExtra.Enodes = v.config.Enodes
 	} else {
 		// decode extra from last header.extra
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
@@ -448,7 +455,6 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 
 		newSignersPool, err := snapContext.createSignersPool()
 		if err != nil {
-			fmt.Println(err)
 			log.Error("err", err)
 			return nil, err
 		}

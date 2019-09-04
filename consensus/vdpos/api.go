@@ -18,7 +18,10 @@
 package vdpos
 
 import (
+	"fmt"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/rlp"
 )
 
 // API is a user facing RPC API to allow controlling the signer and voting
@@ -154,3 +157,71 @@ func (api *API) GetSnapshot(number uint64) error {
 //	}
 //}
 //inb by ghy end
+
+//func (api *API) GetCandidateNodesInfo() []common.EnodeInfo {
+//	var err error
+//	header := api.chain.CurrentHeader()
+//
+//	b := header.Extra[32 : len(header.Extra)-65]
+//	headerExtra := HeaderExtra{}
+//	val := &headerExtra
+//	err = rlp.DecodeBytes(b, val)
+//
+//	newval := HeaderExtra{}
+//
+//	for k, v := range val.Enodes {
+//		flag := true
+//		for add, vote := range snapshot.Tally {
+//			if add == v.Address && vote.Uint64() > 0 {
+//				val.Enodes[k].Vote = vote.Uint64()
+//				newval.Enodes = append(newval.Enodes, val.Enodes[k])
+//				flag = false
+//			}
+//		}
+//		if flag {
+//			newval.Enodes = append(newval.Enodes, val.Enodes[k])
+//		}
+//	}
+//
+//	if err == nil {
+//		return newval.Enodes
+//	} else {
+//		return nil
+//	}
+//
+//}
+
+func (api *API) GetSuperNodesInfo() []*types.Tally {
+	var err error
+	header := api.chain.CurrentHeader()
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+
+	//vdposContext, err := types.NewVdposContext(api.vdpos.db)
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+
+	if err != nil {
+		return nil
+	}
+	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+	TallyTrie := vdposContext.TallyTrie()
+
+	nodesInfo := []*types.Tally{}
+	for _, addr := range val.SignersPool {
+		fmt.Println(addr.String())
+		TallyRLP := TallyTrie.Get(addr[:])
+		tally := new(types.Tally)
+		if TallyRLP != nil {
+			if err := rlp.DecodeBytes(TallyRLP, tally); err != nil {
+				fmt.Println(err)
+				continue
+			}
+		} else {
+		}
+		nodesInfo = append(nodesInfo, tally)
+	}
+	return nodesInfo
+}
