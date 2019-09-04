@@ -27,6 +27,7 @@ import (
 	"github.com/hashicorp/golang-lru"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core"
 	"github.com/insight-chain/inb-go/core/rawdb"
 	"github.com/insight-chain/inb-go/core/state"
@@ -96,6 +97,11 @@ func NewLightChain(odr OdrBackend, config *params.ChainConfig, engine consensus.
 	if err != nil {
 		return nil, err
 	}
+	//vdpos by ssh begin
+	if vdpos, ok := bc.hc.Engine().(*vdpos.Vdpos); ok {
+		vdpos.ApplyGenesis(bc.hc, bc.hc.CurrentHeader().Root)
+	}
+	//vdpos by ssh end
 	bc.genesisBlock, _ = bc.GetBlockByNumber(NoOdr, 0)
 	if bc.genesisBlock == nil {
 		return nil, core.ErrNoGenesis

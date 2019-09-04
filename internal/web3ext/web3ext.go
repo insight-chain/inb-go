@@ -72,6 +72,17 @@ web3._extend({
 	property: 'vdpos',
 	methods: [
 		new web3._extend.Method({
+			name: 'getSnapshot',
+			call: 'vdpos_getSnapshot',
+			params: 1,
+			inputFormatter: [null]
+		}),
+		new web3._extend.Method({
+			name: 'getSnapshotAtHash',
+			call: 'vdpos_getSnapshotAtHash',
+			params: 1
+		}),
+		new web3._extend.Method({
 			name: 'getSigners',
 			call: 'vdpos_getSigners',
 			params: 1
@@ -81,6 +92,7 @@ web3._extend({
 			call: 'vdpos_getSignersAtHash',
 			params: 1
 		}),
+		
 		new web3._extend.Method({
 			name: 'getSuperNodesInfo',
 			call: 'vdpos_getSuperNodesInfo',

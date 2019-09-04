@@ -352,10 +352,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		err  error
 	)
 	var netPayment common.Address
-
-	if !types.ValidateType(tx.Types()) {
-		return core.ErrTxType
-	}
 	//if tx.IsRepayment() {
 	//	payment, err := types.Sender(pool.signer, tx)
 	//	if err != nil {

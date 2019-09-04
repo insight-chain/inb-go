@@ -251,9 +251,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	root := statedb.IntermediateRoot(false)
 
 	// add by ssh 190815 begin
-	vdposContext := initGenesisVdposContext(g, db)
+	vdposContext, headE := initGenesisVdposContext(g, db)
 	vdposContextProto := vdposContext.ToProto()
-
 	head := &types.Header{
 		Number:           new(big.Int).SetUint64(g.Number),
 		Nonce:            types.EncodeNonce(g.Nonce),
@@ -277,12 +276,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		//inb by ghy begin
 		//headE:=new(vdpos.HeaderExtra)
 		//headE.Enode=g.Config.Vdpos.Enode
-		headE := new(vdpos.HeaderExtra)
+
 		//for i,v:=range g.Config.Vdpos.Enodes{
 		//	marshal, _:= json.Marshal(v.Data)
 		//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
-		//}
-		headE.Enodes = g.Config.Vdpos.Enodes
+
+		//headE.Enodes = g.Config.Vdpos.Enodes
 
 		if len(head.Extra) < 32 {
 			head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
@@ -445,11 +444,12 @@ func decodePrealloc(data string) GenesisAlloc {
 	return ga
 }
 
-func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext {
+func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext, *vdpos.HeaderExtra) {
 	dc, err := types.NewVdposContext(db)
 	if err != nil {
-		return nil
+		return nil, nil
 	}
+	headE := new(vdpos.HeaderExtra)
 	if g.Config != nil && g.Config.Vdpos != nil && g.Config.Vdpos.SelfVoteSigners != nil {
 		alreadyVote := make(map[common.Address]struct{})
 		for _, unPrefixVoter := range g.Config.Vdpos.SelfVoteSigners {
@@ -464,15 +464,29 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext 
 				}
 				err = dc.UpdateVotes(vote)
 				if err != nil {
-					return nil
+					return nil, nil
 				}
 				err = dc.UpdateTallysByVotes(vote)
 				if err != nil {
-					return nil
+					return nil, nil
 				}
 				alreadyVote[voter] = struct{}{}
 			}
 		}
+		//2019.9.4 inb by ghy begin
+		for _, v := range g.Config.Vdpos.Enodes {
+			enode := new(common.EnodeInfo)
+			enode.Address = v.Address
+			enode.Id = v.Id
+			enode.Ip = v.Ip
+			enode.Port = v.Port
+			headE.Enodes = append(headE.Enodes, *enode)
+
+			//vdposContext, _ := types.NewVdposContext(db)
+			dc.UpdateTallysByNodeInfo(v)
+		}
+		//2019.9.4 inb by ghy end
 	}
-	return dc
+
+	return dc, headE
 }
