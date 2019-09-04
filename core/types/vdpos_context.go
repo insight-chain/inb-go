@@ -200,16 +200,6 @@ func (vc *VdposContext) SetDB(db ethdb.Database)   { vc.db = db }
 func (vc *VdposContext) SetVote(vote *trie.Trie)   { vc.voteTrie = vote }
 func (vc *VdposContext) SetTally(tally *trie.Trie) { vc.tallyTrie = tally }
 
-//func (vc *VdposContext) GetTallys() (*Tally, error) {
-//	tally := new(Tally)
-//	key := []byte("tally")
-//	tallyRLP := vc.tallyTrie.Get(key)
-//	if err := rlp.DecodeBytes(tallyRLP, tally); err != nil {
-//		return nil, fmt.Errorf("failed to decode tally: %s", err)
-//	}
-//	return tally, nil
-//}
-
 func (vc *VdposContext) UpdateTallys(tally *Tally) error {
 	addr := tally.Address
 	tallyRLP, err := rlp.EncodeToBytes(tally)
