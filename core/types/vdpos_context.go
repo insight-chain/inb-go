@@ -46,23 +46,6 @@ type Votes struct {
 	Stake     *big.Int
 }
 
-//type NodeInfo struct {
-//	Address common.Address `json:"address"`
-//	Id      string         `json:"id"`
-//	Ip      string         `json:"ip"`
-//	Port    string         `json:"port"`
-//	//inb by ghy begin
-//	Name    string `json:"name"`
-//	Nation  string `json:"nation"`
-//	City    string `json:"city"`
-//	Image   string `json:"image"`
-//	Website string `json:"website"`
-//	Email   string `json:"email"`
-//	Data    string `json:"data"`
-//	Vote    uint64 `json:"vote"`
-//	//inb by ghy end
-//}
-
 var (
 	votePrefix  = []byte("vote-")
 	tallyPrefix = []byte("tally-")
@@ -297,6 +280,9 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error
 
 	return nil
 }
+
+//2019.9.4 inb by ghy end
+
 func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
 	voteRLP := vc.voteTrie.Get(voter[:])
 	if voteRLP != nil {
