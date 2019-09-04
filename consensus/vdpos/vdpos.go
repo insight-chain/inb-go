@@ -20,7 +20,6 @@ package vdpos
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"math/big"
 	"sync"
 	"time"
@@ -91,15 +90,8 @@ var (
 	// the previous block's timestamp + the minimum block period.
 	ErrInvalidTimestamp = errors.New("invalid timestamp")
 
-	// errInvalidVotingChain is returned if an authorization list is attempted to
-	// be modified via out-of-range or non-contiguous headers.
-	errInvalidVotingChain = errors.New("invalid voting chain")
-
 	// errUnauthorizedSigner is returned if a header is signed by a non-authorized entity.
 	errUnauthorizedSigner = errors.New("unauthorized signer")
-
-	// errPunishedMissing is returned if a header calculate punished signer is wrong.
-	errPunishedMissing = errors.New("punished signer missing")
 
 	// errUnclesNotAllowed is returned if uncles exists
 	errUnclesNotAllowed = errors.New("uncles not allowed")
@@ -113,8 +105,6 @@ var (
 	// errSignersPoolEmpty is returned if no signer when calculate
 	errSignersPoolEmpty = errors.New("signers pool is empty")
 
-	// errMissingGenesisLightConfig is returned only in light syncmode if light config missing
-	errMissingGenesisLightConfig = errors.New("light config in genesis is missing")
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -443,7 +433,6 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 
 		newSignersPool, err := snapContext.createSignersPool()
 		if err != nil {
-			fmt.Println(err)
 			log.Error("err", err)
 			return nil, err
 		}
@@ -451,7 +440,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	}
 
 	// Accumulate any block rewards and commit the final state root
-	v.accumulateRewards(chain.Config(), state, header)
+	//v.accumulateRewards(chain.Config(), state, header)
 
 	// encode header.extra
 	currentHeaderExtraEnc, err := encodeHeaderExtra(currentHeaderExtra)
@@ -717,7 +706,7 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
-func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
+//func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
 	//header.Reward = DefaultMinerReward.String()
 	//reward := new(big.Int).Set(DefaultMinerReward)
 	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
@@ -778,40 +767,40 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	//	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
 	//}
 
-}
+//}
 
 // Get the signer missing from last signer till header.Coinbase
-func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common.Address, extra HeaderExtra, newLoop bool) []common.Address {
-
-	var signerMissing []common.Address
-
-	if newLoop {
-		for i, qlen := 0, len(extra.SignersPool); i < len(extra.SignersPool); i++ {
-			if lastSigner == extra.SignersPool[qlen-1-i] {
-				break
-			} else {
-				signerMissing = append(signerMissing, extra.SignersPool[qlen-1-i])
-			}
-		}
-	} else {
-		recordMissing := false
-		for _, signer := range extra.SignersPool {
-			if signer == lastSigner {
-				recordMissing = true
-				continue
-			}
-			if signer == currentSigner {
-				break
-			}
-			if recordMissing {
-				signerMissing = append(signerMissing, signer)
-			}
-		}
-
-	}
-
-	return signerMissing
-}
+//func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common.Address, extra HeaderExtra, newLoop bool) []common.Address {
+//
+//	var signerMissing []common.Address
+//
+//	if newLoop {
+//		for i, qlen := 0, len(extra.SignersPool); i < len(extra.SignersPool); i++ {
+//			if lastSigner == extra.SignersPool[qlen-1-i] {
+//				break
+//			} else {
+//				signerMissing = append(signerMissing, extra.SignersPool[qlen-1-i])
+//			}
+//		}
+//	} else {
+//		recordMissing := false
+//		for _, signer := range extra.SignersPool {
+//			if signer == lastSigner {
+//				recordMissing = true
+//				continue
+//			}
+//			if signer == currentSigner {
+//				break
+//			}
+//			if recordMissing {
+//				signerMissing = append(signerMissing, signer)
+//			}
+//		}
+//
+//	}
+//
+//	return signerMissing
+//}
 
 // Get the signers from header
 func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {

@@ -31,86 +31,28 @@ import (
 )
 
 const (
-	/*
-	 *  inb:version:category:action/data
-	 */
-	InbPrefix              = "inb"
-	InbVersion             = "1"
-	InbCategoryEvent       = "event"
-	InbEventVote           = "vote"
-	InbEventVoteCandidates = "candidates"
-	InbEventConfirm        = "confirm"
-	InbEventDeclare        = "declare"
-	InbMinSplitLen         = 3
-	PosPrefix              = 0
-	PosVersion             = 1
-	PosCategory            = 2
-	PosEventVote           = 3
-	PosEventConfirm        = 3
-	PosEventDeclare        = 3
-	PosEventConfirmNumber  = 4
-	PosEventDeclareInfo    = 4
-	//achilles
-	posEventVoteCandidates       = 4
-	posEventVoteCandidatesNumber = 5
-
 	PosEventDeclareInfoSplitLen = 3
 	PosEventDeclareInfoId       = 0
 	PosEventDeclareInfoIp       = 1
 	PosEventDeclareInfoPort     = 2
-	//inb by ghy begin
-	PosEventDeclareInfoName    = 3
-	PosEventDeclareInfoNation  = 4
-	PosEventDeclareInfoCity    = 5
-	PosEventDeclareInfoImage   = 6
-	PosEventDeclareInfoWebsite = 7
-	PosEventDeclareInfoEmail   = 8
-	PosEventDeclareInfodata    = 9
-	//inb by ghy end
+	PosEventDeclareInfoName     = 3
+	PosEventDeclareInfoNation   = 4
+	PosEventDeclareInfoCity     = 5
+	PosEventDeclareInfoImage    = 6
+	PosEventDeclareInfoWebsite  = 7
+	PosEventDeclareInfoEmail    = 8
+	PosEventDeclareInfodata     = 9
 )
-
-// Vote :
-// vote come from custom tx which data like "inb:1:event:vote"
-// Sender of tx is Voter, the tx.to is Candidate
-// Stake is the balance of Voter when create this vote
-type Vote struct {
-	Voter common.Address
-	//achilles
-	Candidate []common.Address
-	Stake     *big.Int
-}
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
-	ModifyPredecessorVotes []Vote
-	LoopStartTime          uint64
-	SignersPool            []common.Address
-	SignerMissing          []common.Address
-	ConfirmedBlockNumber   uint64
-
-	//inb by ssh begin
-	Enodes []common.EnodeInfo
-	//inb by ssh end
-
-	//inb by ghy begin
-	Enode []string
-	//inb by ghy end
+	LoopStartTime        uint64
+	SignersPool          []common.Address
+	SignerMissing        []common.Address
+	ConfirmedBlockNumber uint64
+	Enodes               []common.EnodeInfo
 }
-
-// Encode HeaderExtra
-//func encodeHeaderExtra(config *params.VdposConfig, number *big.Int, val HeaderExtra) ([]byte, error) {
-//
-//	var headerExtra interface{}
-//	switch {
-//	//case config.IsTrantor(number):
-//
-//	default:
-//		headerExtra = val
-//	}
-//	return rlp.EncodeToBytes(headerExtra)
-//
-//}
 
 func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
 	var headerExtra interface{}
@@ -118,17 +60,6 @@ func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
 	return rlp.EncodeToBytes(headerExtra)
 
 }
-
-// Decode HeaderExtra
-//func decodeHeaderExtra(config *params.VdposConfig, number *big.Int, b []byte, val *HeaderExtra) error {
-//	var err error
-//	switch {
-//	//case config.IsTrantor(number):
-//	default:
-//		err = rlp.DecodeBytes(b, val)
-//	}
-//	return err
-//}
 
 func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 	var err error
@@ -140,7 +71,6 @@ func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) (HeaderExtra, error) {
 
 	for _, tx := range txs {
-
 		txSender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
 		if err != nil {
 			continue
@@ -173,7 +103,9 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 
 			if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
-				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender)
+				//headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
+			} else {
+				return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
 			}
 
 		}
@@ -215,6 +147,7 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
+//inb by ghy begin
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address) []common.EnodeInfo {
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
@@ -291,6 +224,10 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	return currentEnodeInfos
 }
 
+
+//inb by ghy end
+
+// inb by ssh 190904 begin
 func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transaction, txSender common.Address, vdposContext *types.VdposContext) error {
 	// process 3 kinds of transactions which relate to voter
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
@@ -306,3 +243,5 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	}
 	return nil
 }
+
+// inb by ssh 190904 end
