@@ -47,19 +47,17 @@ const (
 var (
 	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	OneYearBySec                     = int64(365 * 86400)
-	defaultBlockPeriod               = uint64(2)  // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(2)  // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)  // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21) // Default max signers
-	minVoterBalance                  = new(big.Int).Mul(big.NewInt(1), big.NewInt(1e+18))
+	defaultBlockPeriod               = uint64(2)                       // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)                       // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)                       // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)                      // Default max signers
 	extraVanity                      = 32                              // Fixed number of extra-data prefix bytes reserved for signer vanity
 	extraSeal                        = 65                              // Fixed number of extra-data suffix bytes reserved for signer seal
 	uncleHash                        = types.CalcUncleHash(nil)        // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)                   // Default difficulty
 	defaultLoopCntRecalculateSigners = uint64(50)                      // Default loop count to recreate signers from top tally
 	DefaultMinerReward               = big.NewInt(6341958396752917300) // Default reward for miner in wei
-	//DefaultTotalAccount              = new(big.Int).Mul(big.NewInt(10), big.NewInt(1e+18))
-	BeVotedNeedINB = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
 
@@ -92,15 +90,8 @@ var (
 	// the previous block's timestamp + the minimum block period.
 	ErrInvalidTimestamp = errors.New("invalid timestamp")
 
-	// errInvalidVotingChain is returned if an authorization list is attempted to
-	// be modified via out-of-range or non-contiguous headers.
-	errInvalidVotingChain = errors.New("invalid voting chain")
-
 	// errUnauthorizedSigner is returned if a header is signed by a non-authorized entity.
 	errUnauthorizedSigner = errors.New("unauthorized signer")
-
-	// errPunishedMissing is returned if a header calculate punished signer is wrong.
-	errPunishedMissing = errors.New("punished signer missing")
 
 	// errUnclesNotAllowed is returned if uncles exists
 	errUnclesNotAllowed = errors.New("uncles not allowed")
@@ -114,8 +105,6 @@ var (
 	// errSignersPoolEmpty is returned if no signer when calculate
 	errSignersPoolEmpty = errors.New("signers pool is empty")
 
-	// errMissingGenesisLightConfig is returned only in light syncmode if light config missing
-	errMissingGenesisLightConfig = errors.New("light config in genesis is missing")
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -152,9 +141,6 @@ func New(config *params.VdposConfig, db ethdb.Database) *Vdpos {
 	}
 	if conf.MaxSignerCount == 0 {
 		conf.MaxSignerCount = defaultMaxSignerCount
-	}
-	if conf.MinVoterBalance.Uint64() > 0 {
-		minVoterBalance = conf.MinVoterBalance
 	}
 
 	// Allocate the snapshot caches and create the engine
@@ -462,7 +448,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	}
 
 	// Accumulate any block rewards and commit the final state root
-	v.accumulateRewards(chain.Config(), state, header)
+	//v.accumulateRewards(chain.Config(), state, header)
 
 	// encode header.extra
 	currentHeaderExtraEnc, err := encodeHeaderExtra(currentHeaderExtra)
@@ -755,7 +741,7 @@ func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Has
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
-func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
+//func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
 	//header.Reward = DefaultMinerReward.String()
 	//reward := new(big.Int).Set(DefaultMinerReward)
 	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
@@ -816,37 +802,49 @@ func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.Stat
 	//	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
 	//}
 
-}
+//}
 
 // Get the signer missing from last signer till header.Coinbase
-func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common.Address, extra HeaderExtra, newLoop bool) []common.Address {
+//func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common.Address, extra HeaderExtra, newLoop bool) []common.Address {
+//
+//	var signerMissing []common.Address
+//
+//	if newLoop {
+//		for i, qlen := 0, len(extra.SignersPool); i < len(extra.SignersPool); i++ {
+//			if lastSigner == extra.SignersPool[qlen-1-i] {
+//				break
+//			} else {
+//				signerMissing = append(signerMissing, extra.SignersPool[qlen-1-i])
+//			}
+//		}
+//	} else {
+//		recordMissing := false
+//		for _, signer := range extra.SignersPool {
+//			if signer == lastSigner {
+//				recordMissing = true
+//				continue
+//			}
+//			if signer == currentSigner {
+//				break
+//			}
+//			if recordMissing {
+//				signerMissing = append(signerMissing, signer)
+//			}
+//		}
+//
+//	}
+//
+//	return signerMissing
+//}
 
-	var signerMissing []common.Address
-
-	if newLoop {
-		for i, qlen := 0, len(extra.SignersPool); i < len(extra.SignersPool); i++ {
-			if lastSigner == extra.SignersPool[qlen-1-i] {
-				break
-			} else {
-				signerMissing = append(signerMissing, extra.SignersPool[qlen-1-i])
-			}
-		}
-	} else {
-		recordMissing := false
-		for _, signer := range extra.SignersPool {
-			if signer == lastSigner {
-				recordMissing = true
-				continue
-			}
-			if signer == currentSigner {
-				break
-			}
-			if recordMissing {
-				signerMissing = append(signerMissing, signer)
-			}
-		}
-
+// Get the signers from header
+func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {
+	// decode header.extra
+	headerExtra := HeaderExtra{}
+	err := decodeHeaderExtra(header.Extra[extraVanity:len(header.Extra)-extraSeal], &headerExtra)
+	if err != nil {
+		log.Error("Fail to decode parent header", "err", err)
+		return nil, err
 	}
-
-	return signerMissing
+	return headerExtra.SignersPool, nil
 }

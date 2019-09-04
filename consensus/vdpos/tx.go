@@ -31,87 +31,28 @@ import (
 )
 
 const (
-	/*
-	 *  inb:version:category:action/data
-	 */
-	InbPrefix              = "inb"
-	InbVersion             = "1"
-	InbCategoryEvent       = "event"
-	InbEventVote           = "vote"
-	InbEventVoteCandidates = "candidates"
-	InbEventConfirm        = "confirm"
-	InbEventDeclare        = "declare"
-	InbMinSplitLen         = 3
-	PosPrefix              = 0
-	PosVersion             = 1
-	PosCategory            = 2
-	PosEventVote           = 3
-	PosEventConfirm        = 3
-	PosEventDeclare        = 3
-	PosEventConfirmNumber  = 4
-	PosEventDeclareInfo    = 4
-	//achilles
-	posEventVoteCandidates       = 4
-	posEventVoteCandidatesNumber = 5
-
 	PosEventDeclareInfoSplitLen = 3
 	PosEventDeclareInfoId       = 0
 	PosEventDeclareInfoIp       = 1
 	PosEventDeclareInfoPort     = 2
-	//inb by ghy begin
-	PosEventDeclareInfoName    = 3
-	PosEventDeclareInfoNation  = 4
-	PosEventDeclareInfoCity    = 5
-	PosEventDeclareInfoImage   = 6
-	PosEventDeclareInfoWebsite = 7
-	PosEventDeclareInfoEmail   = 8
-	PosEventDeclareInfodata    = 9
-	//inb by ghy end
+	PosEventDeclareInfoName     = 3
+	PosEventDeclareInfoNation   = 4
+	PosEventDeclareInfoCity     = 5
+	PosEventDeclareInfoImage    = 6
+	PosEventDeclareInfoWebsite  = 7
+	PosEventDeclareInfoEmail    = 8
+	PosEventDeclareInfodata     = 9
 )
-
-// Vote :
-// vote come from custom tx which data like "inb:1:event:vote"
-// Sender of tx is Voter, the tx.to is Candidate
-// Stake is the balance of Voter when create this vote
-type Vote struct {
-	Voter common.Address
-	//achilles
-	Candidate []common.Address
-	Stake     *big.Int
-}
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {
-	CurrentBlockVotes      []Vote
-	ModifyPredecessorVotes []Vote
-	LoopStartTime          uint64
-	SignersPool            []common.Address
-	SignerMissing          []common.Address
-	ConfirmedBlockNumber   uint64
-
-	//inb by ssh begin
-	Enodes []common.EnodeInfo
-	//inb by ssh end
-
-	//inb by ghy begin
-	Enode []string
-	//inb by ghy end
+	LoopStartTime        uint64
+	SignersPool          []common.Address
+	SignerMissing        []common.Address
+	ConfirmedBlockNumber uint64
+	Enodes               []common.EnodeInfo
 }
-
-// Encode HeaderExtra
-//func encodeHeaderExtra(config *params.VdposConfig, number *big.Int, val HeaderExtra) ([]byte, error) {
-//
-//	var headerExtra interface{}
-//	switch {
-//	//case config.IsTrantor(number):
-//
-//	default:
-//		headerExtra = val
-//	}
-//	return rlp.EncodeToBytes(headerExtra)
-//
-//}
 
 func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
 	var headerExtra interface{}
@@ -119,17 +60,6 @@ func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
 	return rlp.EncodeToBytes(headerExtra)
 
 }
-
-// Decode HeaderExtra
-//func decodeHeaderExtra(config *params.VdposConfig, number *big.Int, b []byte, val *HeaderExtra) error {
-//	var err error
-//	switch {
-//	//case config.IsTrantor(number):
-//	default:
-//		err = rlp.DecodeBytes(b, val)
-//	}
-//	return err
-//}
 
 func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 	var err error
@@ -141,7 +71,6 @@ func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) (HeaderExtra, error) {
 
 	for _, tx := range txs {
-
 		txSender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
 		if err != nil {
 			continue
@@ -159,7 +88,10 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			if params.TxConfig.CandidateSize < uint64(len(candidates)) {
 				return headerExtra, errors.Errorf("candidates over size")
 			}
-			headerExtra.CurrentBlockVotes = v.processEventVote(headerExtra.CurrentBlockVotes, state, txSender, candidates, vdposContext)
+			err = v.processEventVote(state, txSender, candidates, vdposContext)
+			if err != nil {
+				return headerExtra, err
+			}
 
 		}
 
@@ -171,16 +103,14 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 
 		}
-		//account := state.GetAccountInfo(txSender)
-		//if account == nil {
-		//	return headerExtra, errors.Errorf("error of account")
-		//}
-		//
-		//if account.Resources.NET.MortgagteINB.Cmp(BeVotedNeedINB) == 1 {
-		//	headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
-		//} else {
-		//	return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
-		//}
+		// check each address
+		number := header.Number.Uint64()
+		if number > 1 {
+			err = v.processPredecessorVoter(state, tx, txSender, vdposContext)
+			if err != nil {
+				return headerExtra, err
+			}
+		}
 
 	}
 
@@ -189,8 +119,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 	return headerExtra, nil
 }
 
-func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) []Vote {
-	//if state.GetMortgageInbOfNet(voter).Cmp(minVoterBalance) > 0 {
+func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
 	stake := state.GetMortgageInbOfNet(voter)
 	v.lock.RUnlock()
@@ -201,23 +130,16 @@ func (v *Vdpos) processEventVote(currentBlockVotes []Vote, state *state.StateDB,
 		Stake:     stake,
 	}
 
-	currentBlockVotes = append(currentBlockVotes, Vote{
-		Voter:     voter,
-		Candidate: candidates,
-		Stake:     stake,
-	})
 	err := vdposContext.UpdateVotes(vote)
 	if err != nil {
-		return nil
+		return err
 	}
 	err = vdposContext.UpdateTallysByVotes(vote)
 	if err != nil {
-		return nil
+		return err
 	}
-	//}
-	//state.AddVoteRecord(voter,stake)
 
-	return currentBlockVotes
+	return nil
 }
 
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
@@ -298,30 +220,24 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	return currentEnodeInfos
 }
 
-//func (v *Vdpos) processPredecessorVoter(modifyPredecessorVotes []Vote, state *state.StateDB, tx *types.Transaction, voter common.Address, snap *Snapshot) []Vote {
-//	// process normal transaction which relate to voter
-//	if tx.Value().Cmp(big.NewInt(0)) > 0 {
-//		if snap.isVoter(voter) {
-//			v.lock.RLock()
-//			stake := state.GetMortgageInbOfNet(voter)
-//			v.lock.RUnlock()
-//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-//				Voter:     voter,
-//				Candidate: []common.Address{voter},
-//				Stake:     stake,
-//			})
-//		}
-//		if snap.isVoter(*tx.To()) {
-//			v.lock.RLock()
-//			stake := state.GetMortgageInbOfNet(*tx.To())
-//			v.lock.RUnlock()
-//			modifyPredecessorVotes = append(modifyPredecessorVotes, Vote{
-//				Voter:     *tx.To(),
-//				Candidate: []common.Address{voter},
-//				Stake:     stake,
-//			})
-//		}
-//
-//	}
-//	return modifyPredecessorVotes
-//}
+
+//inb by ghy end
+
+// inb by ssh 190904 begin
+func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transaction, txSender common.Address, vdposContext *types.VdposContext) error {
+	// process 3 kinds of transactions which relate to voter
+	if tx.Value().Cmp(big.NewInt(0)) > 0 {
+		if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Redeem) {
+			v.lock.RLock()
+			stake := state.GetMortgageInbOfNet(txSender)
+			v.lock.RUnlock()
+			err := vdposContext.UpdateTallysAndVotesByMPV(txSender, stake)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+// inb by ssh 190904 end
