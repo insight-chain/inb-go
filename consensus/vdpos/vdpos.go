@@ -47,16 +47,17 @@ const (
 var (
 	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	OneYearBySec                     = int64(365 * 86400)
-	defaultBlockPeriod               = uint64(2)                       // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(2)                       // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)                       // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21)                      // Default max signers
-	extraVanity                      = 32                              // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                              // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil)        // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)                   // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(50)                      // Default loop count to recreate signers from top tally
-	DefaultMinerReward               = big.NewInt(6341958396752917300) // Default reward for miner in wei
+	defaultBlockPeriod               = uint64(2)                                               // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)                                               // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)                                               // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)                                              // Default max signers
+	extraVanity                      = 32                                                      // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                                                      // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)                                // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                                           // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                                               // Default loop count to recreate signers from top tally
+	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18)) // Default stake of selfVoteSigners in first LOOP
+	DefaultMinerReward               = big.NewInt(6341958396752917300)                         // Default reward for miner in wei
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
@@ -383,11 +384,11 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				vote := &types.Votes{
 					Voter:     voter,
 					Candidate: candidates,
-					Stake:     state.GetMortgageInbOfNet(voter),
+					Stake:     selfVoteSignersStake,
 					//Stake: big.NewInt(1),
 				}
-				vdposContext.UpdateVotes(vote)
 				vdposContext.UpdateTallysByVotes(vote)
+				vdposContext.UpdateVotes(vote)
 				alreadyVote[voter] = struct{}{}
 			}
 		}

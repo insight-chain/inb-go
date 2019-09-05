@@ -130,11 +130,11 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 		Stake:     stake,
 	}
 
-	err := vdposContext.UpdateVotes(vote)
+	err := vdposContext.UpdateTallysByVotes(vote)
 	if err != nil {
 		return err
 	}
-	err = vdposContext.UpdateTallysByVotes(vote)
+	err = vdposContext.UpdateVotes(vote)
 	if err != nil {
 		return err
 	}
@@ -219,7 +219,6 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 
 	return currentEnodeInfos
 }
-
 
 //inb by ghy end
 
