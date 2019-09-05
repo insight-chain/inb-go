@@ -24,7 +24,7 @@ var Modules = map[string]string{
 	"clique":     Clique_JS,
 	"ethash":     Ethash_JS,
 	"debug":      Debug_JS,
-	"eth":        Eth_JS,
+	"inb":        Eth_JS,
 	"miner":      Miner_JS,
 	"net":        Net_JS,
 	"personal":   Personal_JS,
@@ -486,7 +486,7 @@ web3._extend({
 //minerReward inb by ghy
 const Eth_JS = `
 web3._extend({
-	property: 'eth',
+	property: 'inb',
 	methods: [
 		new web3._extend.Method({
 			name: 'mortgageCpu',
@@ -544,7 +544,7 @@ web3._extend({
 		}),
 		new web3._extend.Method({
 			name: 'getAccountInfo',
-			call: 'eth_getAccountInfo',
+			call: 'inb_getAccountInfo',
 			params: 1
 		}),
 		new web3._extend.Method({

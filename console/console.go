@@ -18,6 +18,7 @@ package console
 
 import (
 	"fmt"
+	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"io"
 	"io/ioutil"
 	"os"
@@ -137,7 +138,7 @@ func (c *Console) init(preload []string) error {
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	flatten := "var eth = web3.eth; var personal = web3.personal; "
+	flatten := "var inb = web3.eth; var personal = web3.personal; "
 	for api := range apis {
 		if api == "web3" {
 			continue // manually mapped or ignore

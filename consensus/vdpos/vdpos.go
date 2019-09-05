@@ -576,7 +576,7 @@ func (v *Vdpos) CalcDifficulty(chain consensus.ChainReader, time uint64, parent 
 func (v *Vdpos) APIs(chain consensus.ChainReader) []rpc.API {
 	return []rpc.API{
 		{
-			Namespace: "eth",
+			Namespace: "inb",
 			Version:   "1.0",
 			Service:   &API{chain: chain, vdpos: v},
 			Public:    true,
