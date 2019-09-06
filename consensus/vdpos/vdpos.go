@@ -47,6 +47,7 @@ const (
 var (
 	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	OneYearBySec                     = int64(365 * 86400)
+
 	defaultBlockPeriod               = uint64(2)                                               // Default minimum difference between two consecutive block's timestamps
 	defaultSignerPeriod              = uint64(2)                                               // Default minimum difference between two signer's timestamps
 	defaultSignerBlocks              = uint64(6)                                               // Default number of blocks every signer created
@@ -58,6 +59,7 @@ var (
 	defaultLoopCntRecalculateSigners = uint64(5)                                               // Default loop count to recreate signers from top tally
 	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18)) // Default stake of selfVoteSigners in first LOOP
 	DefaultMinerReward               = big.NewInt(6341958396752917300)                         // Default reward for miner in wei
+
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
@@ -105,6 +107,7 @@ var (
 
 	// errSignersPoolEmpty is returned if no signer when calculate
 	errSignersPoolEmpty = errors.New("signers pool is empty")
+
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -715,6 +718,7 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 //func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
+
 //header.Reward = DefaultMinerReward.String()
 //reward := new(big.Int).Set(DefaultMinerReward)
 //reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
@@ -775,9 +779,11 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
 //}
 
+
 //}
 
 // Get the signer missing from last signer till header.Coinbase
+
 //func (v *Vdpos) getSignerMissing(lastSigner common.Address, currentSigner common.Address, extra HeaderExtra, newLoop bool) []common.Address {
 //
 //	var signerMissing []common.Address
@@ -820,4 +826,5 @@ func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {
 		return nil, err
 	}
 	return headerExtra.SignersPool, nil
+
 }

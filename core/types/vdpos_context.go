@@ -281,6 +281,7 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error
 	return nil
 }
 
+
 //2019.9.4 inb by ghy end
 
 func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
@@ -322,3 +323,4 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 	}
 	return nil
 }
+
