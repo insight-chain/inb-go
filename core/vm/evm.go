@@ -372,7 +372,6 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 			contract.UseGas(contract.Gas)
 		}
 	}
-
 	switch txType {
 	case types.ReceiveVoteAward:
 		return ret, contract.Gas, err, VoteAward

@@ -20,7 +20,6 @@ import (
 	"errors"
 
 	"fmt"
-	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"math/big"
 	"sync"
 	"sync/atomic"
@@ -30,6 +29,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
@@ -1024,8 +1024,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case "MiningReward":
 			from := v.TotalAddress
 			to := header.Coinbase
+			//to := w.coinbase
 			value := reward
 			newTx := w.CreateTx(from, to, value)
+
 			localTxs[from] = append(localTxs[from], newTx, newTx)
 		case "VerifyReward":
 
@@ -1057,6 +1059,24 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		default:
 		}
 	}
+	//if header.Number.Cmp(big.NewInt(1)) == 0 {
+	//
+	//	fmt.Println("区块为1的特殊共识交易", header.Number, "reward", reward)
+	//	for k, v := range localTxs {
+	//		fmt.Println("区块为1的特殊共识交易", "from", k.String())
+	//		fmt.Println("区块为1的特殊共识交易", "to", v[0].To().String())
+	//		fmt.Println("区块为1的特殊共识交易", "from", v[0].Value().String())
+	//	}
+	//}
+
+	//fmt.Println(header.Number, "reward", reward)
+	//for k, v := range localTxs {
+	//	fmt.Println("from", k.String())
+	//	fmt.Println("to", v[0].To().String())
+	//	fmt.Println("value", v[0].Value().String())
+	//	fmt.Println("==================")
+	//}
+
 	//2019.8.29 inb by ghy end
 	if len(localTxs) > 0 {
 		txs := types.NewTransactionsByPriceAndNonce(w.current.signer, localTxs)
@@ -1086,6 +1106,7 @@ func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transa
 	}
 
 	db, _ := w.chain.State()
+	//db, _ := w.eth.BlockChain().State()
 	nonce := db.GetNonce(args.From)
 
 	args.Nonce = nonce
@@ -1116,7 +1137,6 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 		return err
 	}
 	block.VdposContext = w.current.vdposContext
-
 	// add by ssh 190829 end
 
 	if w.isRunning() {

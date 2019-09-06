@@ -72,6 +72,7 @@ var (
 	// that is not part of the local blockchain.
 	errUnknownBlock = errors.New("unknown block")
 
+	errBlockOneHaveNoTx = errors.New("block 1 must have special transaction")
 	// errMissingVanity is returned if a block's extra-data section is shorter than
 	// 32 bytes, which is required to store the signer vanity.
 	errMissingVanity = errors.New("extra-data 32 byte vanity prefix missing")
@@ -343,7 +344,6 @@ func (v *Vdpos) Prepare(chain consensus.ChainReader, header *types.Header) error
 func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, uncles []*types.Header, receipts []*types.Receipt, vdposContext *types.VdposContext) (*types.Block, error) {
 
 	number := header.Number.Uint64()
-
 	// Mix digest is reserved for now, set to empty
 	header.MixDigest = common.Hash{}
 
@@ -490,7 +490,9 @@ func (v *Vdpos) Authorize(signer common.Address, signFn SignerFn, signTxFn SignT
 // the local signing credentials.
 func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	header := block.Header()
-
+	if len(block.Transactions()) == 0 {
+		return errBlockOneHaveNoTx
+	}
 	// Sealing the genesis block is not supported
 	number := header.Number.Uint64()
 	if number == 0 {
