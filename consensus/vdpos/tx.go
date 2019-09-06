@@ -96,13 +96,16 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
+
 			if state.GetMortgageInbOfNet(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
+
 			} else {
 				return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
 			}
 
 		}
+
 		// check each address
 		number := header.Number.Uint64()
 		if number > 1 {
@@ -111,6 +114,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 				return headerExtra, err
 			}
 		}
+
 
 	}
 
@@ -130,11 +134,13 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 		Stake:     stake,
 	}
 
-	err := vdposContext.UpdateVotes(vote)
+
+	err := vdposContext.UpdateTallysByVotes(vote)
+
 	if err != nil {
 		return err
 	}
-	err = vdposContext.UpdateTallysByVotes(vote)
+	err = vdposContext.UpdateVotes(vote)
 	if err != nil {
 		return err
 	}
@@ -142,7 +148,11 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
+
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
+
+//inb by ghy begin
+
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {

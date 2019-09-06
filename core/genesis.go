@@ -462,11 +462,11 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 					//Stake:     state.GetMortgageInbOfNet(voter),
 					Stake: big.NewInt(1),
 				}
-				err = dc.UpdateVotes(vote)
+				err = dc.UpdateTallysByVotes(vote)
 				if err != nil {
 					return nil, nil
 				}
-				err = dc.UpdateTallysByVotes(vote)
+				err = dc.UpdateVotes(vote)
 				if err != nil {
 					return nil, nil
 				}
