@@ -47,16 +47,19 @@ const (
 var (
 	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	OneYearBySec                     = int64(365 * 86400)
-	defaultBlockPeriod               = uint64(2)                       // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(2)                       // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)                       // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21)                      // Default max signers
-	extraVanity                      = 32                              // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                              // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil)        // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)                   // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(50)                      // Default loop count to recreate signers from top tally
-	DefaultMinerReward               = big.NewInt(6341958396752917300) // Default reward for miner in wei
+
+	defaultBlockPeriod               = uint64(2)                                               // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)                                               // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)                                               // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)                                              // Default max signers
+	extraVanity                      = 32                                                      // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                                                      // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)                                // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                                           // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                                               // Default loop count to recreate signers from top tally
+	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18)) // Default stake of selfVoteSigners in first LOOP
+	DefaultMinerReward               = big.NewInt(6341958396752917300)                         // Default reward for miner in wei
+
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
@@ -302,7 +305,7 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		}
 	}
 
-	if !snapContext.inturn(signer, header) {
+	if !snapContext.inturn(signer, header, parent) {
 		return errUnauthorizedSigner
 	}
 	return nil
@@ -384,11 +387,11 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				vote := &types.Votes{
 					Voter:     voter,
 					Candidate: candidates,
-					Stake:     state.GetMortgageInbOfNet(voter),
+					Stake:     selfVoteSignersStake,
 					//Stake: big.NewInt(1),
 				}
-				vdposContext.UpdateVotes(vote)
 				vdposContext.UpdateTallysByVotes(vote)
+				vdposContext.UpdateVotes(vote)
 				alreadyVote[voter] = struct{}{}
 			}
 		}
@@ -405,7 +408,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		// decode extra from last header.extra
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
 		if err != nil {
-			log.Info("Fail to decode parent header", "err", err)
+			log.Error("Fail to decode parent header", "err", err)
 			return nil, err
 		}
 		currentHeaderExtra.ConfirmedBlockNumber = parentHeaderExtra.ConfirmedBlockNumber
@@ -517,7 +520,7 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 	}
 	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
 
-	if !snapContext.inturn(signer, header) {
+	if !snapContext.inturn(signer, header, parent) {
 		//<-stop
 		return errUnauthorizedSigner
 	}
@@ -713,94 +716,69 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 	return v.verifySeal(chain, header, parents)
 }
 
-func (v *Vdpos) ApplyGenesis(chain consensus.ChainReader, genesisHash common.Hash) error {
-	if v.config.LightConfig != nil {
-		var genesisVotes []*Vote
-		alreadyVote := make(map[common.Address]struct{})
-		for _, unPrefixVoter := range v.config.SelfVoteSigners {
-			voter := common.Address(unPrefixVoter)
-			if genesisAccount, ok := v.config.LightConfig.Alloc[unPrefixVoter]; ok {
-				if _, ok := alreadyVote[voter]; !ok {
-					stake := new(big.Int)
-					stake.UnmarshalText([]byte(genesisAccount.Balance))
-					genesisVotes = append(genesisVotes, &Vote{
-						Voter:     voter,
-						Candidate: []common.Address{voter},
-						Stake:     stake,
-					})
-					alreadyVote[voter] = struct{}{}
-				}
-			}
-		}
-
-		//TODO light node how to use vdposContext
-
-		return nil
-	}
-	return errMissingGenesisLightConfig
-}
-
 // accumulateRewards credits the coinbase of the given block with the mining reward.
 //func (v *Vdpos) accumulateRewards(config *params.ChainConfig, states *state.StateDB, header *types.Header) {
-	//header.Reward = DefaultMinerReward.String()
-	//reward := new(big.Int).Set(DefaultMinerReward)
-	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
-	//inb by ssh 190627
-	//blockNumberOneYear := OneYearBySec / int64(v.config.Period)
-	//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
-	////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
-	////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
-	////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
-	////		reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
-	////		break
-	////	}
-	////}
-	//SpecialNumerSlice := header.SpecialConsensus.SpecialNumer
-	//if len(SpecialNumerSlice) > 1 {
-	//	for i := 1; i < len(SpecialNumerSlice); i++ {
-	//		if header.Number.Cmp(SpecialNumerSlice[i-1].Number) == 1 && header.Number.Cmp(SpecialNumerSlice[i].Number) == -1 {
-	//			mul := new(big.Int).Mul(reward, SpecialNumerSlice[i-1].Molecule)
-	//			reward = new(big.Int).Div(mul, SpecialNumerSlice[i-1].Denominator)
-	//			break
-	//		}
-	//	}
-	//}
-	//
-	//DefaultMinerReward = reward
-	//if reward.Cmp(big.NewInt(0)) > 0 {
-	//
-	//	//for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
-	//	//	switch SpecialConsensusAddress.Name {
-	//	//	case state.Foundation:
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-	//	//	case state.MiningReward:
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-	//	//		states.AddBalance(header.Coinbase, reward)
-	//	//	case state.VerifyReward:
-	//	//
-	//	//	case state.VotingReward:
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-	//	//	case state.Team:
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-	//	//	case state.OnlineMarketing:
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
-	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-	//	//	case state.OfflineMarketing:
-	//	//		halfReward := new(big.Int).Div(reward, big.NewInt(2))
-	//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
-	//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
-	//	//	default:
-	//	//
-	//	//	}
-	//	//}
-	//
-	//}
-	//if states.GetBalance(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748")).Cmp(big.NewInt(0)) == 0 {
-	//	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
-	//}
+
+//header.Reward = DefaultMinerReward.String()
+//reward := new(big.Int).Set(DefaultMinerReward)
+//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
+//inb by ssh 190627
+//blockNumberOneYear := OneYearBySec / int64(v.config.Period)
+//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
+////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
+////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
+////		reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
+////		break
+////	}
+////}
+//SpecialNumerSlice := header.SpecialConsensus.SpecialNumer
+//if len(SpecialNumerSlice) > 1 {
+//	for i := 1; i < len(SpecialNumerSlice); i++ {
+//		if header.Number.Cmp(SpecialNumerSlice[i-1].Number) == 1 && header.Number.Cmp(SpecialNumerSlice[i].Number) == -1 {
+//			mul := new(big.Int).Mul(reward, SpecialNumerSlice[i-1].Molecule)
+//			reward = new(big.Int).Div(mul, SpecialNumerSlice[i-1].Denominator)
+//			break
+//		}
+//	}
+//}
+//
+//DefaultMinerReward = reward
+//if reward.Cmp(big.NewInt(0)) > 0 {
+//
+//	//for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
+//	//	switch SpecialConsensusAddress.Name {
+//	//	case state.Foundation:
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+//	//	case state.MiningReward:
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.AddBalance(header.Coinbase, reward)
+//	//	case state.VerifyReward:
+//	//
+//	//	case state.VotingReward:
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+//	//	case state.Team:
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+//	//	case state.OnlineMarketing:
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+//	//	case state.OfflineMarketing:
+//	//		halfReward := new(big.Int).Div(reward, big.NewInt(2))
+//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
+//	//	default:
+//	//
+//	//	}
+//	//}
+//
+//}
+//if states.GetBalance(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748")).Cmp(big.NewInt(0)) == 0 {
+//	states.AddBalance1(common.HexToAddress("0x6a0ffa6e79afdbdf076f47b559b136136e568748"), reward)
+//}
+
 
 //}
 

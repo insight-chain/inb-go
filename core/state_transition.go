@@ -146,7 +146,7 @@ func ApplyMessage(evm *vm.EVM, msg Message, gp *GasPool) ([]byte, uint64, bool, 
 
 // to returns the recipient of the message.
 func (st *StateTransition) to() common.Address {
-	if st.msg == nil || (st.msg.To() == nil && st.msg.Types() == types.Contract) /* contract creation */ {
+	if st.msg == nil || st.msg.To() == nil /* contract creation */ {
 		return common.Address{}
 	}
 	return *st.msg.To()
