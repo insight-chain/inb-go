@@ -115,7 +115,6 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 			}
 		}
 
-
 	}
 
 	//2019.8.5 inb mod by ghy end
@@ -134,9 +133,7 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 		Stake:     stake,
 	}
 
-
 	err := vdposContext.UpdateTallysByVotes(vote)
-
 	if err != nil {
 		return err
 	}
@@ -148,11 +145,9 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
-
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
 
-//inb by ghy begin
-
+	//inb by ghy begin
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
@@ -229,7 +224,6 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 
 	return currentEnodeInfos
 }
-
 
 //inb by ghy end
 

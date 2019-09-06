@@ -191,9 +191,8 @@ func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent
 	}
 	parentExtra := HeaderExtra{}
 	err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentExtra)
-
 	if err != nil {
-		log.Info("Fail to decode header", "err", err)
+		log.Error("Fail to decode header", "err", err)
 		return false
 	}
 	headerTime := header.Time.Uint64()
