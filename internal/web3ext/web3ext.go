@@ -490,56 +490,56 @@ web3._extend({
 	methods: [
 		new web3._extend.Method({
 			name: 'mortgageCpu',
-			call: 'eth_mortgageCpu',
+			call: 'inb_mortgageCpu',
 			params: 1
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'mortgageNet',
-			call: 'eth_mortgageNet',
+			call: 'inb_mortgageNet',
 			params: 1
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'mortgageRawNet',
-			call: 'eth_mortgageRawNet',
+			call: 'inb_mortgageRawNet',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getBlockEnodeByBlockNumber',
-			call: 'eth_getBlockEnodeByBlockNumber',
+			call: 'inb_getBlockEnodeByBlockNumber',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getLiquidity',
-			call: 'eth_getLiquidity',
+			call: 'inb_getLiquidity',
 			params: 0
 		}),
 		new web3._extend.Method({
 			name: 'unMortgageCpu',
-			call: 'eth_unMortgageCpu',
+			call: 'inb_unMortgageCpu',
 			params: 1
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'unMortgageNet',
-			call: 'eth_unMortgageNet',
+			call: 'inb_unMortgageNet',
 			params: 1
 			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'unMortgageRawNet',
-			call: 'eth_unMortgageRawNet',
+			call: 'inb_unMortgageRawNet',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'chainId',
-			call: 'eth_chainId',
+			call: 'inb_chainId',
 			params: 0
 		}),
 		new web3._extend.Method({
 			name: 'minerReward',
-			call: 'eth_minerReward',
+			call: 'inb_minerReward',
 			params: 0
 		}),
 		new web3._extend.Method({
@@ -549,61 +549,61 @@ web3._extend({
 		}),
 		new web3._extend.Method({
 			name: 'sign',
-			call: 'eth_sign',
+			call: 'inb_sign',
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null]
 		}),
 		new web3._extend.Method({
 			name: 'resend',
-			call: 'eth_resend',
+			call: 'inb_resend',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter, web3._extend.utils.fromDecimal, web3._extend.utils.fromDecimal]
 		}),
 		new web3._extend.Method({
 			name: 'signTransaction',
-			call: 'eth_signTransaction',
+			call: 'inb_signTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'signPaymentTransaction',
-			call: 'eth_signPaymentTransaction',
+			call: 'inb_signPaymentTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.utils.toHex]
 		}),
 		new web3._extend.Method({
 			name: 'sendVote',
-			call: 'eth_sendVote',
+			call: 'inb_sendVote',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'sendRawVote',
-			call: 'eth_sendRawVote',
+			call: 'inb_sendRawVote',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'submitTransaction',
-			call: 'eth_submitTransaction',
+			call: 'inb_submitTransaction',
 			params: 1,
 			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransaction',
-			call: 'eth_getRawTransactionByHash',
+			call: 'inb_getRawTransactionByHash',
 			params: 1
 		}),
 		new web3._extend.Method({
 			name: 'getRawTransactionFromBlock',
 			call: function(args) {
-				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'eth_getRawTransactionByBlockHashAndIndex' : 'eth_getRawTransactionByBlockNumberAndIndex';
+				return (web3._extend.utils.isString(args[0]) && args[0].indexOf('0x') === 0) ? 'inb_getRawTransactionByBlockHashAndIndex' : 'inb_getRawTransactionByBlockNumberAndIndex';
 			},
 			params: 2,
 			inputFormatter: [web3._extend.formatters.inputBlockNumberFormatter, web3._extend.utils.toHex]
 		}),
 		new web3._extend.Method({
 			name: 'getProof',
-			call: 'eth_getProof',
+			call: 'inb_getProof',
 			params: 3,
 			inputFormatter: [web3._extend.formatters.inputAddressFormatter, null, web3._extend.formatters.inputBlockNumberFormatter]
 		}),
@@ -611,7 +611,7 @@ web3._extend({
 	properties: [
 		new web3._extend.Property({
 			name: 'pendingTransactions',
-			getter: 'eth_pendingTransactions',
+			getter: 'inb_pendingTransactions',
 			outputFormatter: function(txs) {
 				var formatted = [];
 				for (var i = 0; i < txs.length; i++) {

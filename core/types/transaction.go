@@ -772,7 +772,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 		//if specialConsensu[common.BytesToAddress(v.Data())] !nil {
 		//	return errors.New("total address can not touch!")
 		//}
-		if specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil {
+		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
 			return errors.New("can not transfer to special consensus address")
 		}
 		info := specialConsensu[common.BytesToAddress(v.Data())]

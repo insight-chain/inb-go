@@ -18,7 +18,6 @@ package console
 
 import (
 	"fmt"
-	"github.com/onsi/ginkgo/reporters/stenographer/support/go-colorable"
 	"io"
 	"io/ioutil"
 	"os"
@@ -138,7 +137,7 @@ func (c *Console) init(preload []string) error {
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	flatten := "var inb = web3.eth; var personal = web3.personal; "
+	flatten := "var inb = web3.inb; var personal = web3.personal; "
 	for api := range apis {
 		if api == "web3" {
 			continue // manually mapped or ignore
@@ -279,19 +278,19 @@ func (c *Console) Welcome() {
 	fmt.Fprintf(c.printer, "Welcome to the Ginb JavaScript console!\n\n")
 	c.jsre.Run(`
 		console.log("instance: " + web3.version.node);
-		console.log("coinbase: " + eth.coinbase);
-		console.log("at block: " + eth.blockNumber + " (" + new Date(1000 * eth.getBlock(eth.blockNumber).timestamp) + ")");
+		console.log("coinbase: " + inb.coinbase);
+		console.log("at block: " + inb.blockNumber + " (" + new Date(1000 * inb.getBlock(inb.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);
 	`)
 	// List all the supported modules for the user to call
 	if apis, err := c.client.SupportedModules(); err == nil {
 		modules := make([]string, 0, len(apis))
 		for api, version := range apis {
-			//inb by ssh begin
+			/*//inb by ssh begin
 			if api == "eth" {
 				api = "inb"
 			}
-			//inb by ssh end
+			//inb by ssh end*/
 			modules = append(modules, fmt.Sprintf("%s:%s", api, version))
 		}
 		sort.Strings(modules)
@@ -337,13 +336,13 @@ func (c *Console) Interactive() {
 			}
 
 			//inb by ssh begin
-			if len(line) >= 3 {
+			/*if len(line) >= 3 {
 				midLine := line[:3]
 				endLine := line[3:]
 				if midLine == "inb" {
 					line = "eth" + endLine
 				}
-			}
+			}*/
 			//inb by ssh end
 
 			// User input retrieved, send for interpretation and loop
