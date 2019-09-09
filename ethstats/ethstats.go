@@ -473,8 +473,8 @@ type blockStats struct {
 	ParentHash common.Hash    `json:"parentHash"`
 	Timestamp  *big.Int       `json:"timestamp"`
 	Miner      common.Address `json:"miner"`
-	NetUsed    uint64         `json:"netUsed"`
-	NetLimit   uint64         `json:"netLimit"`
+	ResUsed    uint64         `json:"resUsed"`
+	ResLimit   uint64         `json:"resLimit"`
 	Diff       string         `json:"difficulty"`
 	TotalDiff  string         `json:"totalDifficulty"`
 	Txs        []txStats      `json:"transactions"`
@@ -559,8 +559,8 @@ func (s *Service) assembleBlockStats(block *types.Block) *blockStats {
 		ParentHash: header.ParentHash,
 		Timestamp:  header.Time,
 		Miner:      author,
-		NetUsed:    header.NetUsed,
-		NetLimit:   header.NetLimit,
+		ResUsed:    header.ResUsed,
+		ResLimit:   header.ResLimit,
 		Diff:       header.Difficulty.String(),
 		TotalDiff:  td.String(),
 		Txs:        txs,

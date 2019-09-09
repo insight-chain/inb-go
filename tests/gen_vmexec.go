@@ -22,7 +22,7 @@ func (v vmExec) MarshalJSON() ([]byte, error) {
 		Code     hexutil.Bytes            `json:"code"     gencodec:"required"`
 		Data     hexutil.Bytes            `json:"data"     gencodec:"required"`
 		Value    *math.HexOrDecimal256    `json:"value"    gencodec:"required"`
-		NetLimit math.HexOrDecimal64      `json:"net"      gencodec:"required"`
+		ResLimit math.HexOrDecimal64      `json:"res"      gencodec:"required"`
 		//GasPrice *math.HexOrDecimal256    `json:"gasPrice" gencodec:"required"`
 	}
 	var enc vmExec
@@ -32,7 +32,7 @@ func (v vmExec) MarshalJSON() ([]byte, error) {
 	enc.Code = v.Code
 	enc.Data = v.Data
 	enc.Value = (*math.HexOrDecimal256)(v.Value)
-	enc.NetLimit = math.HexOrDecimal64(v.NetLimit)
+	enc.ResLimit = math.HexOrDecimal64(v.ResLimit)
 	//enc.GasPrice = (*math.HexOrDecimal256)(v.GasPrice)
 	return json.Marshal(&enc)
 }
@@ -45,7 +45,7 @@ func (v *vmExec) UnmarshalJSON(input []byte) error {
 		Code     *hexutil.Bytes            `json:"code"     gencodec:"required"`
 		Data     *hexutil.Bytes            `json:"data"     gencodec:"required"`
 		Value    *math.HexOrDecimal256     `json:"value"    gencodec:"required"`
-		NetLimit *math.HexOrDecimal64      `json:"net"      gencodec:"required"`
+		ResLimit *math.HexOrDecimal64      `json:"res"      gencodec:"required"`
 		//GasPrice *math.HexOrDecimal256     `json:"gasPrice" gencodec:"required"`
 	}
 	var dec vmExec
@@ -76,10 +76,10 @@ func (v *vmExec) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'value' for vmExec")
 	}
 	v.Value = (*big.Int)(dec.Value)
-	if dec.NetLimit == nil {
-		return errors.New("missing required field 'net' for vmExec")
+	if dec.ResLimit == nil {
+		return errors.New("missing required field 'res' for vmExec")
 	}
-	v.NetLimit = uint64(*dec.NetLimit)
+	v.ResLimit = uint64(*dec.ResLimit)
 	//if dec.GasPrice == nil {
 	//	return errors.New("missing required field 'gasPrice' for vmExec")
 	//}

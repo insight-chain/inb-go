@@ -52,14 +52,13 @@ const (
 	UpdateNodeInformation
 
 	SpecilaTx
-	Repayment
 	Contract
 )
 
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Repayment && txType != Contract {
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract {
 		flag = false
 	}
 	return flag
@@ -97,7 +96,7 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	//Repayment *payment `json:"repayment" rlp:"-"`
+	Repayment *payment `json:"repayment" rlp:"-"`
 }
 
 //payment the real account that pay resources for transactions
@@ -123,29 +122,29 @@ type txdataMarshaling struct {
 }
 
 func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
-	return newTransaction(nonce, &to, amount, gasLimit, data, txType)
+	return newTransaction(nonce, &to, amount, gasLimit, data, txType, nil)
 }
 
-//func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, payment *common.Address, txType TxType) *Transaction {
-//	return newTransaction(Fnonce, &to, amount, gasLimit, data, payment, txType)
-//}
+func NewTransaction4Payment(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType, payment *common.Address) *Transaction {
+	return newTransaction(nonce, &to, amount, gasLimit, data, txType, payment)
+}
 
 func NewContractCreation(nonce uint64, amount *big.Int, gasLimit uint64, data []byte) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, data, Contract)
+	return newTransaction(nonce, nil, amount, gasLimit, data, Contract, nil)
 }
 
 func NewNilToTransaction(nonce uint64, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
-	return newTransaction(nonce, nil, amount, gasLimit, data, txType)
+	return newTransaction(nonce, nil, amount, gasLimit, data, txType, nil)
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType, resourcePayer *common.Address) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
-	//var rePayment *payment
-	//if nil != resourcePayer {
-	//	rePayment.ResourcePayer = resourcePayer
-	//}
+	var rePayment *payment
+	if nil != resourcePayer {
+		rePayment.ResourcePayer = resourcePayer
+	}
 	d := txdata{
 		AccountNonce: nonce,
 		Recipient:    to,
@@ -153,11 +152,11 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		Amount:       new(big.Int),
 		//Net:     gasLimit,
 		//Price:        new(big.Int),
-		V:     new(big.Int),
-		R:     new(big.Int),
-		S:     new(big.Int),
-		Types: txType,
-		//Repayment:    rePayment,
+		V:         new(big.Int),
+		R:         new(big.Int),
+		S:         new(big.Int),
+		Types:     txType,
+		Repayment: rePayment,
 	}
 	if amount != nil {
 		d.Amount.Set(amount)
@@ -176,9 +175,9 @@ func (tx *Transaction) ChainId() *big.Int {
 
 //achilles repayment
 // ChainId returns which chain id this transaction was signed for (if at all)
-//func (tx *Transaction) ChainId4Payment() *big.Int {
-//	return deriveChainId(tx.data.Repayment.Vp)
-//}
+func (tx *Transaction) ChainId4Payment() *big.Int {
+	return deriveChainId(tx.data.Repayment.Vp)
+}
 
 // Protected returns whether the transaction is protected from replay protection.
 func (tx *Transaction) Protected() bool {
@@ -251,9 +250,9 @@ func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amoun
 func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool { return true }
 
-//func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
-func (tx *Transaction) Types() TxType                { return tx.data.Types }
-func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
+func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
+func (tx *Transaction) Types() TxType                 { return tx.data.Types }
+func (tx *Transaction) WhichTypes(types TxType) bool  { return tx.data.Types == types }
 
 func (tx *Transaction) isContract() bool {
 	flag := false
@@ -273,7 +272,7 @@ func (tx *Transaction) NoNeedUseNet() bool {
 
 func (tx *Transaction) NoNeedUseBalance() bool {
 	flag := false
-	if !(tx.WhichTypes(Repayment) || tx.WhichTypes(Reset) || tx.WhichTypes(Receive)) {
+	if !(tx.WhichTypes(Reset) || tx.WhichTypes(Receive)) {
 		flag = true
 	}
 	return flag
@@ -353,10 +352,10 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	}
 	cpy := &Transaction{data: tx.data}
 	//achilles repayment
-	//if tx.IsRepayment() && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
-	//	cpy.data.Repayment.Rp, cpy.data.Repayment.Sp, cpy.data.Repayment.Vp = r, s, v
-	//	return cpy, nil
-	//}
+	if tx.IsRepayment() && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
+		cpy.data.Repayment.Rp, cpy.data.Repayment.Sp, cpy.data.Repayment.Vp = r, s, v
+		return cpy, nil
+	}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
 	return cpy, nil
 }
@@ -378,41 +377,39 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 	return tx.data.V, tx.data.R, tx.data.S
 }
 
-//func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
-//	return tx.data.Repayment.Vp, tx.data.Repayment.Rp, tx.data.Repayment.Sp
-//}
+func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
+	return tx.data.Repayment.Vp, tx.data.Repayment.Rp, tx.data.Repayment.Sp
+}
+
 //
-//func (tx *Transaction) SetPayment() {
-//	tx.data.Repayment = &payment{
-//		ResourcePayer: nil,
-//		Vp:            nil,
-//		Rp:            nil,
-//		Sp:            nil,
-//	}
-//}
+func (tx *Transaction) SetPayment() {
+	tx.data.Repayment = &payment{
+		ResourcePayer: nil,
+		Vp:            nil,
+		Rp:            nil,
+		Sp:            nil,
+	}
+}
+
 //
-//func (tx *Transaction) RemovePaymentSignatureValues() {
-//	tx.data.Repayment.Vp = nil
-//	tx.data.Repayment.Rp = nil
-//	tx.data.Repayment.Sp = nil
-//}
+func (tx *Transaction) RemovePaymentSignatureValues() {
+	tx.data.Repayment.Vp = nil
+	tx.data.Repayment.Rp = nil
+	tx.data.Repayment.Sp = nil
+}
 
 //achilles
 //  type of transaction is repayment
-//func (tx *Transaction) IsRepayment() bool {
-//	if tx.data.Repayment == nil {
-//		return false
-//	} else {
-//		if tx.data.Repayment.ResourcePayer == nil {
-//			return false
-//		}
-//	}
-//	//var resourcePayer common.Address
-//	//if resourcePayer == *tx.data.Repayment.ResourcePayer {
-//	//	return false
-//	//}
-//	return true
-//}
+func (tx *Transaction) IsRepayment() bool {
+	if tx.data.Repayment == nil {
+		return false
+	}
+	var resourcePayer common.Address
+	if resourcePayer == *tx.data.Repayment.ResourcePayer {
+		return false
+	}
+	return true
+}
 
 // Transactions is a Transaction slice type for basic sorting.
 type Transactions []*Transaction
@@ -556,7 +553,7 @@ type Message struct {
 	types      TxType
 	receive    *big.Int
 	//achilles repayment
-	//resourcePayer common.Address
+	resourcePayer common.Address
 }
 
 func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, data []byte, checkNonce bool, txType TxType) Message {
@@ -587,14 +584,14 @@ func (m Message) Receive() *big.Int             { return m.receive }
 func (m Message) WhichTypes(txType TxType) bool { return m.types == txType }
 
 //achilles repayment add apis
-//func (m Message) ResourcePayer() common.Address { return m.resourcePayer }
-//func (m Message) IsRePayment() bool {
-//	var resourcePayer common.Address
-//	if resourcePayer != m.resourcePayer {
-//		return true
-//	}
-//	return false
-//}
+func (m Message) ResourcePayer() common.Address { return m.resourcePayer }
+func (m Message) IsRePayment() bool {
+	var resourcePayer common.Address
+	if resourcePayer != m.resourcePayer {
+		return true
+	}
+	return false
+}
 
 //inb by ssh begin
 //type ITransaction struct {

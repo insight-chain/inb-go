@@ -488,23 +488,17 @@ const Eth_JS = `
 web3._extend({
 	property: 'inb',
 	methods: [
-		new web3._extend.Method({
-			name: 'mortgageCpu',
-			call: 'inb_mortgageCpu',
-			params: 1
-			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'mortgageNet',
-			call: 'inb_mortgageNet',
-			params: 1
-			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'mortgageRawNet',
-			call: 'inb_mortgageRawNet',
-			params: 1
-		}),
+		//new web3._extend.Method({
+		//	name: 'mortgageNet',
+		//	call: 'inb_mortgageNet',
+		//	params: 1
+		//	inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		//}),
+		//new web3._extend.Method({
+		//	name: 'mortgageRawNet',
+		//	call: 'inb_mortgageRawNet',
+		//	params: 1
+		//}),
 		new web3._extend.Method({
 			name: 'getBlockEnodeByBlockNumber',
 			call: 'inb_getBlockEnodeByBlockNumber',
@@ -515,23 +509,17 @@ web3._extend({
 			call: 'inb_getLiquidity',
 			params: 0
 		}),
-		new web3._extend.Method({
-			name: 'unMortgageCpu',
-			call: 'inb_unMortgageCpu',
-			params: 1
-			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'unMortgageNet',
-			call: 'inb_unMortgageNet',
-			params: 1
-			inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'unMortgageRawNet',
-			call: 'inb_unMortgageRawNet',
-			params: 1
-		}),
+		//new web3._extend.Method({
+		//	name: 'unMortgageNet',
+		//	call: 'inb_unMortgageNet',
+		//	params: 1
+		//	inputFormatter:[web3._extend.formatters.inputTransactionFormatter]
+		//}),
+		//new web3._extend.Method({
+		//	name: 'unMortgageRawNet',
+		//	call: 'inb_unMortgageRawNet',
+		//	params: 1
+		//}),
 		new web3._extend.Method({
 			name: 'chainId',
 			call: 'inb_chainId',
@@ -571,17 +559,17 @@ web3._extend({
 			params: 1,
 			inputFormatter: [web3._extend.utils.toHex]
 		}),
-		new web3._extend.Method({
-			name: 'sendVote',
-			call: 'inb_sendVote',
-			params: 1,
-			inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
-		}),
-		new web3._extend.Method({
-			name: 'sendRawVote',
-			call: 'inb_sendRawVote',
-			params: 1
-		}),
+		//new web3._extend.Method({
+		//	name: 'sendVote',
+		//	call: 'inb_sendVote',
+		//	params: 1,
+		//	inputFormatter: [web3._extend.formatters.inputTransactionFormatter]
+		//}),
+		//new web3._extend.Method({
+		//	name: 'sendRawVote',
+		//	call: 'inb_sendRawVote',
+		//	params: 1
+		//}),
 		new web3._extend.Method({
 			name: 'submitTransaction',
 			call: 'inb_submitTransaction',

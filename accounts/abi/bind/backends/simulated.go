@@ -67,7 +67,7 @@ type SimulatedBackend struct {
 // for testing purposes.
 func NewSimulatedBackend(alloc core.GenesisAlloc, gasLimit uint64) *SimulatedBackend {
 	database := ethdb.NewMemDatabase()
-	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, NetLimit: gasLimit, Alloc: alloc}
+	genesis := core.Genesis{Config: params.AllEthashProtocolChanges, ResLimit: gasLimit, Alloc: alloc}
 	genesis.MustCommit(database)
 	blockchain, _ := core.NewBlockChain(database, nil, genesis.Config, ethash.NewFaker(), vm.Config{}, nil)
 
@@ -134,16 +134,16 @@ func (b *SimulatedBackend) BalanceAt(ctx context.Context, contract common.Addres
 }
 
 //Resource by zc
-func (b *SimulatedBackend) CpuAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-
-	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
-		return nil, errBlockNumberUnsupported
-	}
-	statedb, _ := b.blockchain.State()
-	return statedb.GetCpu(contract), nil
-}
+//func (b *SimulatedBackend) CpuAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
+//	b.mu.Lock()
+//	defer b.mu.Unlock()
+//
+//	if blockNumber != nil && blockNumber.Cmp(b.blockchain.CurrentBlock().Number()) != 0 {
+//		return nil, errBlockNumberUnsupported
+//	}
+//	statedb, _ := b.blockchain.State()
+//	return statedb.GetCpu(contract), nil
+//}
 func (b *SimulatedBackend) NetAt(ctx context.Context, contract common.Address, blockNumber *big.Int) (*big.Int, error) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
@@ -443,12 +443,12 @@ func (m callmsg) Nonce() uint64        { return 0 }
 func (m callmsg) CheckNonce() bool     { return false }
 func (m callmsg) To() *common.Address  { return m.CallMsg.To }
 func (m callmsg) Receive() *big.Int    { return m.CallMsg.Receive }
+
 //func (m callmsg) GasPrice() *big.Int   { return m.CallMsg.GasPrice }
 func (m callmsg) GasPrice() *big.Int { return big.NewInt(1) }
 func (m callmsg) Gas() uint64        { return m.CallMsg.Net }
 func (m callmsg) Value() *big.Int    { return m.CallMsg.Value }
 func (m callmsg) Data() []byte       { return m.CallMsg.Data }
-
 
 //achilles repayment add apis
 func (m callmsg) ResourcePayer() common.Address { return [21]byte{} }

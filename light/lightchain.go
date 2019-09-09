@@ -174,7 +174,7 @@ func (bc *LightChain) SetHead(head uint64) {
 
 // GasLimit returns the gas limit of the current HEAD block.
 func (self *LightChain) GasLimit() uint64 {
-	return self.hc.CurrentHeader().NetLimit
+	return self.hc.CurrentHeader().ResLimit
 }
 
 // Reset purges the entire blockchain, restoring it to its genesis state.

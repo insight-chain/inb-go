@@ -270,25 +270,25 @@ func TestBlockReceiptStorage(t *testing.T) {
 
 	receipt1 := &types.Receipt{
 		Status:            types.ReceiptStatusFailed,
-		CumulativeNetUsed: 1,
+		CumulativeResUsed: 1,
 		Logs: []*types.Log{
 			{Address: common.BytesToAddress([]byte{0x11})},
 			{Address: common.BytesToAddress([]byte{0x01, 0x11})},
 		},
 		TxHash:          common.BytesToHash([]byte{0x11, 0x11}),
 		ContractAddress: common.BytesToAddress([]byte{0x01, 0x11, 0x11}),
-		NetUsed:         111111,
+		ResUsed:         111111,
 	}
 	receipt2 := &types.Receipt{
 		PostState:         common.Hash{2}.Bytes(),
-		CumulativeNetUsed: 2,
+		CumulativeResUsed: 2,
 		Logs: []*types.Log{
 			{Address: common.BytesToAddress([]byte{0x22})},
 			{Address: common.BytesToAddress([]byte{0x02, 0x22})},
 		},
 		TxHash:          common.BytesToHash([]byte{0x22, 0x22}),
 		ContractAddress: common.BytesToAddress([]byte{0x02, 0x22, 0x22}),
-		NetUsed:         222222,
+		ResUsed:         222222,
 	}
 	receipts := []*types.Receipt{receipt1, receipt2}
 

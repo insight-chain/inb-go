@@ -48,7 +48,7 @@ type Receipt struct {
 	// Consensus fields
 	PostState         []byte `json:"root"`
 	Status            uint64 `json:"status"`
-	CumulativeNetUsed uint64 `json:"cumulativeNetUsed" gencodec:"required"`
+	CumulativeResUsed uint64 `json:"cumulativeResUsed" gencodec:"required"`
 	Bloom             Bloom  `json:"logsBloom"         gencodec:"required"`
 	Logs              []*Log `json:"logs"              gencodec:"required"`
 
@@ -56,23 +56,22 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 
-	IncomeClaimed   *big.Int         `json:"incomeClaimed" gencodec:"required"`
-	NetUsed         uint64         `json:"netUsed" gencodec:"required"`
+	IncomeClaimed *big.Int `json:"incomeClaimed" gencodec:"required"`
+	ResUsed       uint64   `json:"resUsed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
 	PostState         hexutil.Bytes
 	Status            hexutil.Uint64
 	IncomeClaimed     *big.Int
-	CumulativeNetUsed hexutil.Uint64
-	NetUsed           hexutil.Uint64
-
+	CumulativeresUsed hexutil.Uint64
+	ResUsed           hexutil.Uint64
 }
 
 // receiptRLP is the consensus encoding of a receipt.
 type receiptRLP struct {
 	PostStateOrStatus []byte
-	CumulativeNetUsed uint64
+	CumulativeResUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
 	IncomeClaimed     *big.Int
@@ -80,19 +79,18 @@ type receiptRLP struct {
 
 type receiptStorageRLP struct {
 	PostStateOrStatus []byte
-	CumulativeNetUsed uint64
+	CumulativeResUsed uint64
 	Bloom             Bloom
 	TxHash            common.Hash
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
 	IncomeClaimed     *big.Int
-	NetUsed           uint64
-
+	ResUsed           uint64
 }
 
 // NewReceipt creates a barebone transaction receipt, copying the init fields.
-func NewReceipt(root []byte, failed bool, cumulativeNetUsed uint64) *Receipt {
-	r := &Receipt{PostState: common.CopyBytes(root), CumulativeNetUsed: cumulativeNetUsed}
+func NewReceipt(root []byte, failed bool, cumulativeResUsed uint64) *Receipt {
+	r := &Receipt{PostState: common.CopyBytes(root), CumulativeResUsed: cumulativeResUsed}
 	if failed {
 		r.Status = ReceiptStatusFailed
 	} else {
@@ -105,7 +103,7 @@ func NewReceipt(root []byte, failed bool, cumulativeNetUsed uint64) *Receipt {
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &receiptRLP{r.statusEncoding(),
-		r.CumulativeNetUsed, r.Bloom, r.Logs,r.IncomeClaimed})//2019.8.1 inb bu ghy
+		r.CumulativeResUsed, r.Bloom, r.Logs, r.IncomeClaimed}) //2019.8.1 inb bu ghy
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -118,8 +116,8 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	if err := r.setStatus(dec.PostStateOrStatus); err != nil {
 		return err
 	}
-	r.CumulativeNetUsed, r.Bloom, r.Logs,r.IncomeClaimed =
-		dec.CumulativeNetUsed, dec.Bloom, dec.Logs,dec.IncomeClaimed//2019.8.1 inb by ghy
+	r.CumulativeResUsed, r.Bloom, r.Logs, r.IncomeClaimed =
+		dec.CumulativeResUsed, dec.Bloom, dec.Logs, dec.IncomeClaimed //2019.8.1 inb by ghy
 	return nil
 }
 
@@ -168,12 +166,12 @@ type ReceiptForStorage Receipt
 func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 	enc := &receiptStorageRLP{
 		PostStateOrStatus: (*Receipt)(r).statusEncoding(),
-		CumulativeNetUsed: r.CumulativeNetUsed,
+		CumulativeResUsed: r.CumulativeResUsed,
 		Bloom:             r.Bloom,
 		TxHash:            r.TxHash,
 		ContractAddress:   r.ContractAddress,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
-		NetUsed:           r.NetUsed,
+		ResUsed:           r.ResUsed,
 		IncomeClaimed:     r.IncomeClaimed,
 	}
 	for i, log := range r.Logs {
@@ -193,13 +191,13 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		return err
 	}
 	// Assign the consensus fields
-	r.CumulativeNetUsed, r.Bloom = dec.CumulativeNetUsed, dec.Bloom
+	r.CumulativeResUsed, r.Bloom = dec.CumulativeResUsed, dec.Bloom
 	r.Logs = make([]*Log, len(dec.Logs))
 	for i, log := range dec.Logs {
 		r.Logs[i] = (*Log)(log)
 	}
 	// Assign the implementation fields
-	r.TxHash, r.ContractAddress, r.NetUsed,r.IncomeClaimed = dec.TxHash, dec.ContractAddress, dec.NetUsed,dec.IncomeClaimed//2019.8.1 inb by ghy
+	r.TxHash, r.ContractAddress, r.ResUsed, r.IncomeClaimed = dec.TxHash, dec.ContractAddress, dec.ResUsed, dec.IncomeClaimed //2019.8.1 inb by ghy
 
 	return nil
 }

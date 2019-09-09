@@ -46,7 +46,7 @@ type Unmortgagtion struct {
 //1 inb can be exchanged for Net
 func (c *StateDB) PerInbIsNet() *big.Int {
 
-	as := c.GetMortgageStateObject().data.Resources.NET.MortgagteINB
+	as := c.GetMortgageStateObject().data.Res.MortgagteINB
 	asString := as.Set(as).String()
 	asValue, err := strconv.ParseInt(asString, 10, 64)
 	if err != nil {
@@ -82,24 +82,6 @@ func (c *StateDB) UnitConvertNet() *big.Int {
 	return weiToNet
 }
 
-//1 inb can be exchanged for CPU
-func (c *StateDB) PerInbIsCpu() *big.Int {
-
-	as := c.GetMortgageStateObject().data.Resources.CPU.MortgagteINB
-	asString := as.Set(as).String()
-	asValue, err := strconv.ParseInt(asString, 10, 64)
-	if err != nil {
-
-	}
-
-	if as == big.NewInt(0) || asValue == 0 {
-		PerINBGainCpuNum = big.NewInt(1).Div(big.NewInt(691200000*1000), big.NewInt(10*100000000))
-	} else {
-		PerINBGainCpuNum = as.Div(big.NewInt(691200000*1000), as)
-	}
-	return PerINBGainCpuNum
-}
-
 //mortgage how much NET inb gets
 func (c *StateDB) GainNumberOfNet(inbNumber *big.Int) *big.Int {
 
@@ -110,21 +92,6 @@ func (c *StateDB) GainNumberOfNet(inbNumber *big.Int) *big.Int {
 	} else {
 		if inbNumber != nil {
 			return big.NewInt(1).Mul(inbNumber, everyINBGainNetNum)
-		}
-		return big.NewInt(0)
-	}
-}
-
-//mortgage how much CPU inb gets
-func (c *StateDB) GainNumberOfCpu(inbNumber *big.Int) *big.Int {
-
-	everyINBGainCpuNum := c.PerInbIsCpu()
-	if everyINBGainCpuNum == big.NewInt(0) {
-		return big.NewInt(0)
-	} else {
-		if inbNumber != nil {
-
-			return big.NewInt(1).Mul(inbNumber, everyINBGainCpuNum)
 		}
 		return big.NewInt(0)
 	}

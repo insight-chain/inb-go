@@ -433,7 +433,7 @@ func (pool *TxPool) reset(oldHead, newHead *types.Header) {
 	}
 	pool.currentState = statedb
 	pool.pendingState = state.ManageState(statedb)
-	pool.currentMaxGas = newHead.NetLimit
+	pool.currentMaxGas = newHead.ResLimit
 
 	// Inject any transactions discarded due to reorgs
 	log.Debug("Reinjecting stale transactions", "count", len(reinject))
@@ -615,15 +615,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	//achilles repayment
-	//v, r, s := tx.RawPaymentSignatureValues()
-	//if v != nil && r != nil && s != nil{
-	//	payment, err := types.RecoverPaymentPlain(tx.Hash(),v,r,s,false) //todo how to define true or false; payment gas blance valid
-	//	if err != nil{
-	//		return ErrInvalidSender
-	//	}
-	//	fmt.Println(payment)
-	//}
 	//achilles config validate candidates size
 
 	//if tx.WhichTypes(types.UpdateNodeInformation) {
@@ -660,7 +651,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			if accountInfo == nil {
 				return errors.New("error of candidates address")
 			}
-			if accountInfo.Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			if accountInfo.Res.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -676,14 +667,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	var netPayment common.Address
-	//if tx.WhichTypes(types.Repayment) {
-	//	payment, err := types.Sender(pool.signer, tx)
-	//	if err != nil {
-	//		return ErrInvalidSender
-	//	}
-	//	netPayment = payment
-	//	tx.RemovePaymentSignatureValues()
-	//}
+
+	if tx.IsRepayment() {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return ErrInvalidSender
+		}
+		netPayment = payment
+		tx.RemovePaymentSignatureValues()
+	}
 	// Make sure the transaction is signed properly
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
@@ -692,7 +684,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if from[0] != crypto.PrefixToAddress[0] {
 		return ErrInvalidAddress
 	}
-	if !tx.WhichTypes(types.Repayment) {
+	if !tx.IsRepayment() {
 		netPayment = from
 	}
 	// Drop non-local transactions under our own minimal accepted gas price
@@ -1481,7 +1473,7 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
 				//2019.7.15 inb mod by ghy begin
-				if pool.currentState.GetAccountInfo(address).Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+				if pool.currentState.GetAccountInfo(address).Res.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
 				} else {
 					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())

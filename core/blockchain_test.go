@@ -531,8 +531,8 @@ func testReorgBadHashes(t *testing.T, full bool) {
 		if ncm.CurrentBlock().Hash() != blocks[2].Header().Hash() {
 			t.Errorf("last block hash mismatch: have: %x, want %x", ncm.CurrentBlock().Hash(), blocks[2].Header().Hash())
 		}
-		if blocks[2].Header().NetLimit != ncm.GasLimit() {
-			t.Errorf("last  block gasLimit mismatch: have: %d, want %d", ncm.GasLimit(), blocks[2].Header().NetLimit)
+		if blocks[2].Header().ResLimit != ncm.GasLimit() {
+			t.Errorf("last  block resLimit mismatch: have: %d, want %d", ncm.GasLimit(), blocks[2].Header().ResLimit)
 		}
 	} else {
 		if ncm.CurrentHeader().Hash() != headers[2].Hash() {
@@ -779,7 +779,7 @@ func TestChainTxReorgs(t *testing.T) {
 		db      = ethdb.NewMemDatabase()
 		gspec   = &Genesis{
 			Config:   params.TestChainConfig,
-			NetLimit: 3141592,
+			ResLimit: 3141592,
 			Alloc: GenesisAlloc{
 				addr1: {Balance: big.NewInt(1000000)},
 				addr2: {Balance: big.NewInt(1000000)},
@@ -1389,7 +1389,7 @@ func benchmarkLargeNumberOfValueToNonexisting(b *testing.B, numTxs, numBlocks in
 					Balance: big.NewInt(0),
 				}, // push 1, pop
 			},
-			NetLimit: 100e6, // 100 M
+			ResLimit: 100e6, // 100 M
 		}
 	)
 	// Generate the original common chain segment and the two competing forks

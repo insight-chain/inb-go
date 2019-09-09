@@ -3795,7 +3795,6 @@ var outputTransactionFormatter = function (tx){
     if(tx.transactionIndex !== null)
         tx.transactionIndex = utils.toDecimal(tx.transactionIndex);
     tx.nonce = utils.toDecimal(tx.nonce);
-    tx.net = utils.toDecimal(tx.net);
     // tx.gasPrice = utils.toBigNumber(tx.gasPrice);
     tx.value = utils.toBigNumber(tx.value);
     return tx;
@@ -3813,8 +3812,8 @@ var outputTransactionReceiptFormatter = function (receipt){
         receipt.blockNumber = utils.toDecimal(receipt.blockNumber);
     if(receipt.transactionIndex !== null)
         receipt.transactionIndex = utils.toDecimal(receipt.transactionIndex);
-    receipt.cumulativeNetUsed = utils.toDecimal(receipt.cumulativeNetUsed);
-    receipt.netUsed = utils.toDecimal(receipt.netUsed);
+    receipt.cumulativeResUsed = utils.toDecimal(receipt.cumulativeResUsed);
+    receipt.resUsed = utils.toDecimal(receipt.resUsed);
 
     if(utils.isArray(receipt.logs)) {
         receipt.logs = receipt.logs.map(function(log){
@@ -3835,8 +3834,8 @@ var outputTransactionReceiptFormatter = function (receipt){
 var outputBlockFormatter = function(block) {
 
     // transform to number
-    block.netLimit = utils.toDecimal(block.netLimit);
-    block.netUsed = utils.toDecimal(block.netUsed);
+    block.resLimit = utils.toDecimal(block.resLimit);
+    block.resUsed = utils.toDecimal(block.resUsed);
     block.size = utils.toDecimal(block.size);
     block.timestamp = utils.toDecimal(block.timestamp);
     if(block.number !== null)
@@ -5286,39 +5285,25 @@ Object.defineProperty(Eth.prototype, 'defaultAccount', {
 var methods = function () {
 
     //Resource by zc
-    var getCpu = new Method({
-      name: 'getCpu',
-      call: 'inb_getCpu',
-      params: 2,
-      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
-      outputFormatter: formatters.outputBigNumberFormatter
-    });
-    var getNet = new Method({
-      name: 'getNet',
-      call: 'inb_getNet',
+    var getRes = new Method({
+      name: 'getRes',
+      call: 'inb_getRes',
       params: 2,
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
     });
     //inb by ghy begin
-  var getUsedNet = new Method({
-    name: 'getUsedNet',
-    call: 'inb_getUsedNet',
+  var getUsedRes = new Method({
+    name: 'getUsedRes',
+    call: 'inb_getUsedRes',
     params: 2,
     inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
     outputFormatter: formatters.outputBigNumberFormatter
   });
 //inb by ghy end
-    var getCpuOfMortgageINB = new Method({
-      name: 'getCpuOfMortgageINB',
-      call: 'inb_getCpuOfMortgageINB',
-      params: 2,
-      inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
-      outputFormatter: formatters.outputBigNumberFormatter
-    });
-    var getNetOfMortgageINB = new Method({
-      name: 'getNetOfMortgageINB',
-      call: 'inb_getNetOfMortgageINB',
+    var getMortgage = new Method({
+      name: 'getMortgage',
+      call: 'inb_getMortgage',
       params: 2,
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
@@ -5490,13 +5475,11 @@ var methods = function () {
 
     return [
         //Resource by zc
-        getCpu,
-        getNet,
+        getRes,
         //inb by ghy begin
-        getUsedNet,
+        getUsedRes,
       //inb by ghy end
-        getCpuOfMortgageINB,
-        getNetOfMortgageINB,
+        getMortgage,
         //Resource by zc
         getBalance,
         getStorageAt,
