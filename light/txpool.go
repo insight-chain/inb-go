@@ -401,7 +401,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//	return core.ErrInsufficientFunds
 	//}
 
-	for _, v := range pool.chain.CurrentHeader().SpecialConsensus.SpecialConsensusAddress {
+	for _, v := range pool.chain.CurrentHeader().GetSpecialConsensus().SpecialConsensusAddress {
 		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
 			return errors.New("can not transfer to special consensus address")
 		}
@@ -809,7 +809,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 			if subValue.Cmp(big.NewInt(0)) != 1 {
 				return errors.New("not receive vote award time")
 			} else {
-				consensus := pool.chain.CurrentHeader().SpecialConsensus
+				consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
 				for _, v := range consensus.SpecialConsensusAddress {
 					if v.Name == state.OnlineMarketing {
 						ToAddressInfo := currentState.GetAccountInfo(v.ToAddress)
@@ -846,7 +846,7 @@ func (pool *TxPool) validateReceiveVoteAward(ctx context.Context, from common.Ad
 	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
 	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
-		consensus := pool.chain.CurrentHeader().SpecialConsensus
+		consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
 			if v.Name == state.VotingReward {
 				votes := account.Voted

@@ -33,7 +33,7 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Nonce            BlockNonce         `json:"nonce"`
 		DataRoot         common.Hash        `json:"dataRoot"`
 		Reward           string             `json:"reward"           gencodec:"required"`
-		SpecialConsensus SpecialConsensus   `json:"specialConsensus"  gencodec:"required"`
+		SpecialConsensus []byte             `json:"specialConsensus"  gencodec:"required"`
 		VdposContext     *VdposContextProto `json:"vdposContext"     gencodec:"required"`
 		Hash             common.Hash        `json:"hash"`
 	}
@@ -81,7 +81,7 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Nonce            *BlockNonce        `json:"nonce"`
 		DataRoot         *common.Hash       `json:"dataRoot"`
 		Reward           *string            `json:"reward"           gencodec:"required"`
-		SpecialConsensus *SpecialConsensus  `json:"specialConsensus"  gencodec:"required"`
+		SpecialConsensus *[]byte            `json:"specialConsensus"  gencodec:"required"`
 		VdposContext     *VdposContextProto `json:"vdposContext"     gencodec:"required"`
 	}
 	var dec Header

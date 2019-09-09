@@ -726,13 +726,13 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	if len(txs) == 0 {
 		return nil
 	}
-	SpecialConsensusAddress := header.SpecialConsensus.SpecialConsensusAddress
+	SpecialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//reward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
 	reward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18)), big.NewInt(blockNumberOneYear))
 
-	SpecialConsensus := header.SpecialConsensus
+	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
 		for _, v := range SpecialConsensus.SpecialNumer {
 			if header.Number.Cmp(v.Number) == 1 {

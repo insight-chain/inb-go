@@ -19,6 +19,7 @@ package types
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -85,7 +86,7 @@ type Header struct {
 	Nonce            BlockNonce         `json:"nonce"`
 	DataRoot         common.Hash        `json:"dataRoot"`                              //inb by ssh 190627
 	Reward           string             `json:"reward"           gencodec:"required"`  //2019.6.28 inb by ghy
-	SpecialConsensus SpecialConsensus   `json:"specialConsensus"  gencodec:"required"` //2019.7.23 inb by ghy
+	SpecialConsensus []byte             `json:"specialConsensus"  gencodec:"required"` //2019.7.23 inb by ghy
 	VdposContext     *VdposContextProto `json:"vdposContext"     gencodec:"required"`  //inb by ssh 190814
 }
 
@@ -121,6 +122,17 @@ type headerMarshaling struct {
 // RLP encoding.
 func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
+}
+
+func (h *Header) GetSpecialConsensus() SpecialConsensus {
+	SpecialConsensus := SpecialConsensus{}
+
+	err := rlp.DecodeBytes(h.SpecialConsensus, &SpecialConsensus)
+	if err != nil {
+		fmt.Println(err)
+		return SpecialConsensus
+	}
+	return SpecialConsensus
 }
 
 // Size returns the approximate memory used by all internal contents. It is used
@@ -299,9 +311,17 @@ func (b *StorageBlock) DecodeRLP(s *rlp.Stream) error {
 
 // TODO: copies
 
-func (b *Block) Uncles() []*Header                  { return b.uncles }
-func (b *Block) Transactions() Transactions         { return b.transactions }
-func (b *Block) SpecialConsensus() SpecialConsensus { return b.header.SpecialConsensus } //2019.8.6 inb by ghy
+func (b *Block) Uncles() []*Header          { return b.uncles }
+func (b *Block) Transactions() Transactions { return b.transactions }
+func (b *Block) SpecialConsensus() *SpecialConsensus {
+	SpecialConsensus := new(SpecialConsensus)
+
+	err := rlp.DecodeBytes(b.header.SpecialConsensus, SpecialConsensus)
+	if err != nil {
+		return nil
+	}
+	return SpecialConsensus
+} //2019.8.6 inb by ghy
 
 func (b *Block) Transaction(hash common.Hash) *Transaction {
 	for _, transaction := range b.transactions {
