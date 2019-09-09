@@ -999,7 +999,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
 	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
 
-	SpecialConsensus := header.SpecialConsensus
+	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
 		for _, v := range SpecialConsensus.SpecialNumer {
 			if header.Number.Cmp(v.Number) == 1 {
@@ -1013,7 +1013,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	vdpos.DefaultMinerReward = reward
 	header.Reward = reward.String()
-	for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
+	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		switch v.Name {
 		case "Foundation":
 			from := v.TotalAddress
