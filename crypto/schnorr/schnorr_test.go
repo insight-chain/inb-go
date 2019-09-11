@@ -9,6 +9,7 @@ import (
 
 	//"encoding/hex"
 	"github.com/btcsuite/btcd/btcec"
+
 	"io"
 	"testing"
 )
@@ -252,17 +253,17 @@ func BenchmarkSign(b *testing.B) {
 //		RecoverPubkey(msg, sig)
 //	}
 //}
-func TestSign(t *testing.T){
-	PrivateKey,_:=btcec.NewPrivateKey(btcec.S256())
-	var msg []byte=[]byte("11110000000000000000000000000000")
-	sig,_:=Sign(PrivateKey.Serialize(),msg)
-	hashType:=[]byte{0x00}
-	sig1:=append(sig,hashType[:]...)
-	t.Log("lensig::",len(sig1))
-	t.Log("lenmsg::",len(msg))
-
-
-	pubkey,_,_:=RecoverCompact(btcec.S256(),sig1,msg)
-	t.Log(pubkey)
-	t.Log(PrivateKey.PubKey().SerializeUncompressed())
-}
+//func TestSign(t *testing.T){
+//	PrivateKey,_:=btcec.NewPrivateKey(btcec.S256())
+//	var msg []byte=[]byte("11110000000000000000000000000000")
+//	sig,_:=Sign(PrivateKey.Serialize(),msg)
+//	hashType:=[]byte{0x00}
+//	sig1:=append(sig,hashType[:]...)
+//	t.Log("lensig::",len(sig1))
+//	t.Log("lenmsg::",len(msg))
+//
+//
+//	pubkey,_,_:=RecoverCompact(btcec.S256(),sig1,msg)
+//	t.Log(pubkey)
+//	t.Log(PrivateKey.PubKey().SerializeUncompressed())
+//}

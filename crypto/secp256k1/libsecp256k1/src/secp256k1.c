@@ -26,6 +26,7 @@
 } while(0)
 
 static void default_illegal_callback_fn(const char* str, void* data) {
+    (void)data;
     fprintf(stderr, "[libsecp256k1] illegal argument: %s\n", str);
     abort();
 }
@@ -36,6 +37,7 @@ static const secp256k1_callback default_illegal_callback = {
 };
 
 static void default_error_callback_fn(const char* str, void* data) {
+    (void)data;
     fprintf(stderr, "[libsecp256k1] internal consistency check failed: %s\n", str);
     abort();
 }
@@ -308,7 +310,7 @@ int secp256k1_ecdsa_verify(const secp256k1_context* ctx, const secp256k1_ecdsa_s
 static int nonce_function_rfc6979(unsigned char *nonce32, const unsigned char *msg32, const unsigned char *key32, const unsigned char *algo16, void *data, unsigned int counter) {
    unsigned char keydata[112];
    int keylen = 64;
-   secp256k1_rfc6979_hmac_sha256_t rng;
+   secp256k1_rfc6979_hmac_sha256 rng;
    unsigned int i;
    /* We feed a byte array to the PRNG as input, consisting of:
     * - the private key (32 bytes) and message (32 bytes), see RFC 6979 3.2d.
@@ -419,6 +421,33 @@ int secp256k1_ec_pubkey_create(const secp256k1_context* ctx, secp256k1_pubkey *p
         secp256k1_pubkey_save(pubkey, &p);
     }
     secp256k1_scalar_clear(&sec);
+    return ret;
+}
+
+int secp256k1_ec_privkey_negate(const secp256k1_context* ctx, unsigned char *seckey) {
+    secp256k1_scalar sec;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(seckey != NULL);
+
+    secp256k1_scalar_set_b32(&sec, seckey, NULL);
+    secp256k1_scalar_negate(&sec, &sec);
+    secp256k1_scalar_get_b32(seckey, &sec);
+
+    return 1;
+}
+
+int secp256k1_ec_pubkey_negate(const secp256k1_context* ctx, secp256k1_pubkey *pubkey) {
+    int ret = 0;
+    secp256k1_ge p;
+    VERIFY_CHECK(ctx != NULL);
+    ARG_CHECK(pubkey != NULL);
+
+    ret = secp256k1_pubkey_load(ctx, &p, pubkey);
+    memset(pubkey, 0, sizeof(*pubkey));
+    if (ret) {
+        secp256k1_ge_neg(&p, &p);
+        secp256k1_pubkey_save(pubkey, &p);
+    }
     return ret;
 }
 
