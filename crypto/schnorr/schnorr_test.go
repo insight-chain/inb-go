@@ -2,7 +2,6 @@
 package schnorr
 
 import (
-	"bytes"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
@@ -63,30 +62,30 @@ func compactSigCheck(t *testing.T, sig []byte) {
 		t.Errorf("highest bit: %d bit & 0x80: %d", b, b&0x80)
 	}
 }
-
-// 19.09.05 by spl begin
-func TestSignatureValidity(t *testing.T) {
-	pubkey, seckey := generateKeyPair()
-	msg := csprngEntropy(32)
-	sig, err := Sign(msg, seckey)
-	if err != nil {
-		t.Errorf("signature error: %s", err)
-	}
-	compactSigCheck(t, sig)
-	if len(pubkey) != 65 {
-		t.Errorf("pubkey length mismatch: want: 65 have: %d", len(pubkey))
-	}
-	if len(seckey) != 32 {
-		t.Errorf("seckey length mismatch: want: 32 have: %d", len(seckey))
-	}
-	//if len(sig) != 65 {
-	//	t.Errorf("sig length mismatch: want: 65 have: %d", len(sig))
-	//}
-	//recid := int(sig[64])
-	//if recid > 4 || recid < 0 {
-	//	t.Errorf("sig recid mismatch: want: within 0 to 4 have: %d", int(sig[64]))
-	//}
-}
+//
+//// 19.09.05 by spl begin
+//func TestSignatureValidity(t *testing.T) {
+//	pubkey, seckey := generateKeyPair()
+//	msg := csprngEntropy(32)
+//	sig, err := Sign(msg, seckey)
+//	if err != nil {
+//		t.Errorf("signature error: %s", err)
+//	}
+//	compactSigCheck(t, sig)
+//	if len(pubkey) != 65 {
+//		t.Errorf("pubkey length mismatch: want: 65 have: %d", len(pubkey))
+//	}
+//	if len(seckey) != 32 {
+//		t.Errorf("seckey length mismatch: want: 32 have: %d", len(seckey))
+//	}
+//	//if len(sig) != 65 {
+//	//	t.Errorf("sig length mismatch: want: 65 have: %d", len(sig))
+//	//}
+//	//recid := int(sig[64])
+//	//if recid > 4 || recid < 0 {
+//	//	t.Errorf("sig recid mismatch: want: within 0 to 4 have: %d", int(sig[64]))
+//	//}
+//}
 
 //func TestInvalidRecoveryID(t *testing.T) {
 //	_, seckey := generateKeyPair()
@@ -98,95 +97,95 @@ func TestSignatureValidity(t *testing.T) {
 //		t.Fatalf("got %q, want %q", err, ErrInvalidRecoveryID)
 //	}
 //}
+//
+//// 19.09.05 by spl begin
+//func TestSignAndRecover(t *testing.T) {
+//	pubkey1, seckey := generateKeyPair()
+//	msg := csprngEntropy(32)
+//	sig, err := Sign(msg, seckey)
+//	if err != nil {
+//		t.Errorf("signature error: %s", err)
+//	}
+//	if len(pubkey1)!=0||len(sig)!=0{
+//
+//	}
+//	//pubkey2, err := RecoverPubkey(msg, sig)
+//	//if err != nil {
+//	//	t.Errorf("recover error: %s", err)
+//	//}
+//	//if !bytes.Equal(pubkey1, pubkey2) {
+//	//	t.Errorf("pubkey mismatch: want: %x have: %x", pubkey1, pubkey2)
+//	//}
+//}
+//
+//// 19.09.05 by spl begin
+//func TestSignDeterministic(t *testing.T) {
+//	_, seckey := generateKeyPair()
+//	msg := make([]byte, 32)
+//	copy(msg, "hi there")
+//
+//	sig1, err := Sign(msg, seckey)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	sig2, err := Sign(msg, seckey)
+//	if err != nil {
+//		t.Fatal(err)
+//	}
+//	if !bytes.Equal(sig1, sig2) {
+//		t.Fatal("signatures not equal")
+//	}
+//}
 
-// 19.09.05 by spl begin
-func TestSignAndRecover(t *testing.T) {
-	pubkey1, seckey := generateKeyPair()
-	msg := csprngEntropy(32)
-	sig, err := Sign(msg, seckey)
-	if err != nil {
-		t.Errorf("signature error: %s", err)
-	}
-	if len(pubkey1)!=0||len(sig)!=0{
+//// 19.09.05 by spl begin
+//func TestRandomMessagesWithSameKey(t *testing.T) {
+//	pubkey, seckey := generateKeyPair()
+//	keys := func() ([]byte, []byte) {
+//		return pubkey, seckey
+//	}
+//	signAndRecoverWithRandomMessages(t, keys)
+//}
+//
+//// 19.09.05 by spl begin
+//func TestRandomMessagesWithRandomKeys(t *testing.T) {
+//	keys := func() ([]byte, []byte) {
+//		pubkey, seckey := generateKeyPair()
+//		return pubkey, seckey
+//	}
+//	signAndRecoverWithRandomMessages(t, keys)
+//}
 
-	}
-	//pubkey2, err := RecoverPubkey(msg, sig)
-	//if err != nil {
-	//	t.Errorf("recover error: %s", err)
-	//}
-	//if !bytes.Equal(pubkey1, pubkey2) {
-	//	t.Errorf("pubkey mismatch: want: %x have: %x", pubkey1, pubkey2)
-	//}
-}
-
-// 19.09.05 by spl begin
-func TestSignDeterministic(t *testing.T) {
-	_, seckey := generateKeyPair()
-	msg := make([]byte, 32)
-	copy(msg, "hi there")
-
-	sig1, err := Sign(msg, seckey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	sig2, err := Sign(msg, seckey)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if !bytes.Equal(sig1, sig2) {
-		t.Fatal("signatures not equal")
-	}
-}
-
-// 19.09.05 by spl begin
-func TestRandomMessagesWithSameKey(t *testing.T) {
-	pubkey, seckey := generateKeyPair()
-	keys := func() ([]byte, []byte) {
-		return pubkey, seckey
-	}
-	signAndRecoverWithRandomMessages(t, keys)
-}
-
-// 19.09.05 by spl begin
-func TestRandomMessagesWithRandomKeys(t *testing.T) {
-	keys := func() ([]byte, []byte) {
-		pubkey, seckey := generateKeyPair()
-		return pubkey, seckey
-	}
-	signAndRecoverWithRandomMessages(t, keys)
-}
-
-// 19.09.05 by spl begin
-func signAndRecoverWithRandomMessages(t *testing.T, keys func() ([]byte, []byte)) {
-	for i := 0; i < TestCount; i++ {
-		pubkey1, seckey := keys()
-		msg := csprngEntropy(32)
-		sig, err := Sign(msg, seckey)
-		if err != nil {
-			t.Fatalf("signature error: %s", err)
-		}
-		if sig == nil {
-			t.Fatal("signature is nil")
-		}
-		compactSigCheck(t, sig)
-
-		// TODO: why do we flip around the recovery id?
-		sig[len(sig)-1] %= 4
-		if len(pubkey1)!=0{
-
-		}
-		//pubkey2, err := RecoverPubkey(msg, sig)
-		//if err != nil {
-		//	t.Fatalf("recover error: %s", err)
-		//}
-		//if pubkey2 == nil {
-		//	t.Error("pubkey is nil")
-		//}
-		//if !bytes.Equal(pubkey1, pubkey2) {
-		//	t.Fatalf("pubkey mismatch: want: %x have: %x", pubkey1, pubkey2)
-		//}
-	}
-}
+//// 19.09.05 by spl begin
+//func signAndRecoverWithRandomMessages(t *testing.T, keys func() ([]byte, []byte)) {
+//	for i := 0; i < TestCount; i++ {
+//		pubkey1, seckey := keys()
+//		msg := csprngEntropy(32)
+//		sig, err := Sign(msg, seckey)
+//		if err != nil {
+//			t.Fatalf("signature error: %s", err)
+//		}
+//		if sig == nil {
+//			t.Fatal("signature is nil")
+//		}
+//		compactSigCheck(t, sig)
+//
+//		// TODO: why do we flip around the recovery id?
+//		sig[len(sig)-1] %= 4
+//		if len(pubkey1)!=0{
+//
+//		}
+//		//pubkey2, err := RecoverPubkey(msg, sig)
+//		//if err != nil {
+//		//	t.Fatalf("recover error: %s", err)
+//		//}
+//		//if pubkey2 == nil {
+//		//	t.Error("pubkey is nil")
+//		//}
+//		//if !bytes.Equal(pubkey1, pubkey2) {
+//		//	t.Fatalf("pubkey mismatch: want: %x have: %x", pubkey1, pubkey2)
+//		//}
+//	}
+//}
 
 //func TestRecoveryOfRandomSignature(t *testing.T) {
 //	pubkey1, _ := generateKeyPair()
