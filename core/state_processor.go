@@ -135,7 +135,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		Votingaddress := common.Address{}
 		Onlineaddress := common.Address{}
 		//log := &types.Log{}
-		for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
+		for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 			if v.Name == "VotingReward" {
 				Votingaddress = v.TotalAddress
 			} else if v.Name == "OnlineMarketing" {

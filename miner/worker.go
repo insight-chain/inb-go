@@ -36,6 +36,7 @@ import (
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
+	"github.com/insight-chain/inb-go/rlp"
 )
 
 const (
@@ -940,6 +941,14 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	}
 	// Create the current work task and check any fork transitions needed
 	env := w.current
+
+	// add by ssh 190906 begin
+	if num.Uint64() > 1 && !w.inturn(w.coinbase, uint64(timestamp), parent.Header()) && !w.inturn(w.coinbase, uint64(timestamp)+w.config.Vdpos.Period, parent.Header()) {
+		log.Debug("Cancel commitNewWork: unauthorized signer")
+		return
+	}
+	// add by ssh 190906 end
+
 	//if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {
 	//	misc.ApplyDAOHardFork(env.state)
 	//}
@@ -999,7 +1008,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
 	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
 
-	SpecialConsensus := header.SpecialConsensus
+	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
 		for _, v := range SpecialConsensus.SpecialNumer {
 			if header.Number.Cmp(v.Number) == 1 {
@@ -1013,7 +1022,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	vdpos.DefaultMinerReward = reward
 	header.Reward = reward.String()
-	for _, v := range header.SpecialConsensus.SpecialConsensusAddress {
+	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		switch v.Name {
 		case "Foundation":
 			from := v.TotalAddress
@@ -1147,3 +1156,29 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 	}
 	return nil
 }
+
+// add by ssh 190906 begin
+// inturn returns if a signer is in-turn or not.
+func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.Header) bool {
+
+	parentExtra := vdpos.HeaderExtra{}
+	err := rlp.DecodeBytes(parent.Extra[32:len(parent.Extra)-65], &parentExtra)
+	if err != nil {
+		log.Error("Fail to decode header", "err", err)
+		return false
+	}
+	loopStartTime := parentExtra.LoopStartTime
+	signers := parentExtra.SignersPool
+	if signersCount := len(signers); signersCount > 0 {
+		//config.Period != config.SignerPeriod
+		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
+		//	return true
+		//}
+		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
+			return true
+		}
+	}
+	return false
+}
+
+// add by ssh 190906 end

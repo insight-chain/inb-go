@@ -67,7 +67,7 @@ type Genesiss struct {
 	Number           *math.HexOrDecimal64                        `json:"number"`
 	ResUsed          *math.HexOrDecimal64                        `json:"resUsed"`
 	ParentHash       *common.Hash                                `json:"parentHash"`
-	SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
+	SpecialConsensus *types.SpecialConsensus                     `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
 }
 
 func (g *Genesis) UnmarshalJSON(input []byte) error {
@@ -118,8 +118,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 		g.ParentHash = *dec.ParentHash
 	}
 	//2019.7.23 inb by ghy
-	if dec.SpecialConsensus.SpecialConsensusAddress != nil || dec.SpecialConsensus.SpecialNumer != nil {
-		g.SpecialConsensus = dec.SpecialConsensus
-	}
+
+	g.SpecialConsensus = *dec.SpecialConsensus
+
 	return nil
 }

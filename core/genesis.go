@@ -267,7 +267,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Root:             root,
 		DataRoot:         [32]byte{},                        //inb by ssh 190627
 		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
-		SpecialConsensus: g.SpecialConsensus,                //2019.7.23 inb by ghy
+		SpecialConsensus: []byte{},                          //2019.7.23 inb by ghy
 		VdposContext:     vdposContextProto,                 //add by ssh 190805
 	}
 
@@ -292,6 +292,11 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
 
 		//inb by ghy end
+		encodeToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		if err != nil {
+
+		}
+		head.SpecialConsensus = encodeToBytes
 	}
 
 	if g.ResLimit == 0 {

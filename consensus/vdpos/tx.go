@@ -18,6 +18,7 @@
 package vdpos
 
 import (
+	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
 	"github.com/pkg/errors"
 	"math/big"
@@ -42,6 +43,11 @@ const (
 	PosEventDeclareInfoWebsite  = 7
 	PosEventDeclareInfoEmail    = 8
 	PosEventDeclareInfodata     = 9
+
+	PosEventIssueLightTokenSplitLen    = 3
+	PosEventIssueLightTokenName        = 0
+	PosEventIssueLightTokenSymbol      = 1
+	PosEventIssueLightTokenTotalSupply = 2
 )
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
@@ -73,6 +79,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 	for _, tx := range txs {
 		txSender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
 		if err != nil {
+			log.Error("Fail to get txSender", "err", err)
 			continue
 		}
 
@@ -86,24 +93,43 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 				candidates = append(candidates, address)
 			}
 			if params.TxConfig.CandidateSize < uint64(len(candidates)) {
-				return headerExtra, errors.Errorf("candidates over size")
+				log.Error("Candidates over size")
+				continue
 			}
 			err = v.processEventVote(state, txSender, candidates, vdposContext)
 			if err != nil {
-				return headerExtra, err
+				log.Error("Fail in Vdpos.processEventVote()", "err", err)
+				continue
 			}
 
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
-
 			if state.GetMortgageInbOfNet(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
 
 			} else {
-				return headerExtra, errors.Errorf("update node info account mortgage less than %v inb", BeVotedNeedINB)
+				log.Error("Update node info account mortgage less than %v inb", BeVotedNeedINB)
+				continue
 			}
+		}
 
+		if tx.WhichTypes(types.IssueLightToken) {
+			err = v.processEventIssueLightToken(txData, txSender, vdposContext)
+			if err != nil {
+				log.Error("Fail in Vdpos.processEventIssueLightToken()", "err", err)
+				continue
+			}
+		}
+
+		if tx.WhichTypes(types.TransferLightToken) {
+			txReceiver := *tx.To()
+			value := tx.Value()
+			err = v.processEventTransferLightToken(txData, txSender, txReceiver, value, vdposContext)
+			if err != nil {
+				log.Error("Fail in Vdpos.processEventTransferLightToken()", "err", err)
+				continue
+			}
 		}
 
 		// check each address
@@ -111,10 +137,10 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		if number > 1 {
 			err = v.processPredecessorVoter(state, tx, txSender, vdposContext)
 			if err != nil {
-				return headerExtra, err
+				log.Error("Fail in Vdpos.processPredecessorVoter()", "err", err)
+				continue
 			}
 		}
-
 
 	}
 
@@ -134,9 +160,7 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 		Stake:     stake,
 	}
 
-
 	err := vdposContext.UpdateTallysByVotes(vote)
-
 	if err != nil {
 		return err
 	}
@@ -148,11 +172,9 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
-
 func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
 
-//inb by ghy begin
-
+	//inb by ghy begin
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
@@ -230,7 +252,6 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	return currentEnodeInfos
 }
 
-
 //inb by ghy end
 
 // inb by ssh 190904 begin
@@ -251,3 +272,89 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 }
 
 // inb by ssh 190904 end
+
+func (v *Vdpos) processEventIssueLightToken(txDataInfo string, txSender common.Address, vdposContext *types.VdposContext) error {
+	lightTokenInfo := strings.Split(txDataInfo, "~")
+	if len(lightTokenInfo) < PosEventIssueLightTokenSplitLen {
+		return errors.Errorf("issue lightToken need 3 parameter")
+	} else {
+		name := lightTokenInfo[PosEventIssueLightTokenName]
+		symbol := lightTokenInfo[PosEventIssueLightTokenSymbol]
+		totalSupplyStr := lightTokenInfo[PosEventIssueLightTokenTotalSupply]
+		totalSupply, ok := new(big.Int).SetString(totalSupplyStr, 10)
+		if !ok {
+			return errors.Errorf("unable to convert string to big integer: %v", totalSupplyStr)
+		}
+		lightToken := &types.LightToken{
+			Name:        name,
+			Symbol:      symbol,
+			TotalSupply: totalSupply,
+		}
+
+		lightTokenExist, err := vdposContext.GetLightToken(name)
+		if lightTokenExist != nil {
+			if err != nil {
+				return errors.Errorf("err in vdposContext.GetLightToken()")
+			} else {
+				return errors.Errorf("this lightToken has already exist")
+			}
+		}
+
+		err = vdposContext.UpdateLightToken(lightToken)
+		if err != nil {
+			return err
+		}
+
+		lightTokenChanges := new(types.LightTokenChanges)
+		lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, types.LightTokenChange{
+			Address:        txSender,
+			LightTokenName: name,
+			ChangeBalance:  totalSupply,
+			ChangeType:     types.Add,
+		})
+		err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (v *Vdpos) processEventTransferLightToken(lightTokenName string, txSender common.Address, txReceiver common.Address, value *big.Int, vdposContext *types.VdposContext) error {
+
+	lightTokenExist, err := vdposContext.GetLightToken(lightTokenName)
+	if lightTokenExist == nil {
+		return errors.Errorf("this lightToken do not exist")
+	} else {
+		if err != nil {
+			return errors.Errorf("err in vdposContext.GetLightToken()")
+		}
+	}
+
+	senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(txSender, lightTokenName)
+	if err != nil {
+		return errors.Errorf("err in vdposContext.GetLightTokenBalanceByAddress()")
+	} else {
+		if senderBalance.Cmp(value) == -1 {
+			return errors.Errorf("not enough lightToken balance to transfer")
+		} else {
+			lightTokenChanges := new(types.LightTokenChanges)
+			lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, types.LightTokenChange{
+				Address:        txSender,
+				LightTokenName: lightTokenName,
+				ChangeBalance:  value,
+				ChangeType:     types.Sub,
+			}, types.LightTokenChange{
+				Address:        txReceiver,
+				LightTokenName: lightTokenName,
+				ChangeBalance:  value,
+				ChangeType:     types.Add,
+			})
+			err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
