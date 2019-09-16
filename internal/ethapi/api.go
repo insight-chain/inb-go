@@ -619,14 +619,7 @@ func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) *hexutil.Big {
 // 2019.7.31 inb by ghy begin
 
 //Resource by zc
-func (s *PublicBlockChainAPI) GetCpu(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-	if state == nil || err != nil {
-		return nil, err
-	}
-	return (*hexutil.Big)(state.GetCpu(address)), state.Error()
-}
-func (s *PublicBlockChainAPI) GetNet(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetRes(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -634,7 +627,7 @@ func (s *PublicBlockChainAPI) GetNet(ctx context.Context, address common.Address
 	return (*hexutil.Big)(state.GetNet(address)), state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetUsedNet(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetUsedRes(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -642,14 +635,7 @@ func (s *PublicBlockChainAPI) GetUsedNet(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetUsedNet(address)), state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetCpuOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
-	if state == nil || err != nil {
-		return nil, err
-	}
-	return (*hexutil.Big)(state.GetMortgageInbOfCpu(address)), state.Error()
-}
-func (s *PublicBlockChainAPI) GetNetOfMortgageINB(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetMortgage(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
@@ -657,185 +643,105 @@ func (s *PublicBlockChainAPI) GetNetOfMortgageINB(ctx context.Context, address c
 	return (*hexutil.Big)(state.GetMortgageInbOfNet(address)), state.Error()
 }
 
-//mortageCpu
-func (s *PublicTransactionPoolAPI) MortgageCpu(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetMortgageStateObject()
-	address := totalAccount.Address()
-	args.To = &address
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, signed)
-}
-
 //mortageNet
-func (s *PublicTransactionPoolAPI) MortgageNet(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetMortgageStateObject()
-	address := totalAccount.Address()
-	args.To = &address
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, signed)
-}
+//func (s *PublicTransactionPoolAPI) MortgageNet(ctx context.Context, args SendTxArgs) (common.Hash, error) {
+//	// Look up the wallet containing the requested signer
+//	account := accounts.Account{Address: args.From}
+//
+//	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
+//	totalAccount := state.GetMortgageStateObject()
+//	address := totalAccount.Address()
+//	args.To = &address
+//	wallet, err := s.b.AccountManager().Find(account)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//
+//	if args.Nonce == nil {
+//		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+//		// the same nonce to multiple accounts.
+//		s.nonceLock.LockAddr(args.From)
+//		defer s.nonceLock.UnlockAddr(args.From)
+//	}
+//
+//	// Set some sanity defaults and terminate on failure
+//	if err := args.setDefaults(ctx, s.b); err != nil {
+//		return common.Hash{}, err
+//	}
+//	// Assemble the transaction and sign with the wallet
+//	tx := args.toTransaction()
+//
+//	var chainID *big.Int
+//	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+//		chainID = config.ChainID
+//	}
+//	signed, err := wallet.SignTx(account, tx, chainID)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//	return submitTransaction(ctx, s.b, signed)
+//}
 
 //achilles add apis
-func (s *PublicTransactionPoolAPI) MortgageRawNet(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
-	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
-		return common.Hash{}, err
-	}
-	//if !tx.IsRepayment() {
-	//	tx.SetPayment()
-	//}
-	return submitTransaction(ctx, s.b, tx)
-}
-
-//unMortgageCpu
-func (s *PublicTransactionPoolAPI) UnMortgageCpu(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetMortgageStateObject()
-	address := totalAccount.Address()
-	args.To = &address
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, signed)
-}
+//func (s *PublicTransactionPoolAPI) MortgageRawNet(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+//	tx := new(types.Transaction)
+//	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
+//		return common.Hash{}, err
+//	}
+//	//if !tx.IsRepayment() {
+//	//	tx.SetPayment()
+//	//}
+//	return submitTransaction(ctx, s.b, tx)
+//}
 
 //unMortageNet
-func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
-	totalAccount := state.GetMortgageStateObject()
-	address := totalAccount.Address()
-	args.To = &address
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, signed)
-}
-
-//achilles add apis
-func (s *PublicTransactionPoolAPI) UnMortgageRawNet(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
-	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, tx)
-}
+//func (s *PublicTransactionPoolAPI) UnMortgageNet(ctx context.Context, args SendTxArgs) (common.Hash, error) {
+//	// Look up the wallet containing the requested signer
+//	account := accounts.Account{Address: args.From}
+//
+//	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
+//	totalAccount := state.GetMortgageStateObject()
+//	address := totalAccount.Address()
+//	args.To = &address
+//
+//	wallet, err := s.b.AccountManager().Find(account)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//
+//	if args.Nonce == nil {
+//		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+//		// the same nonce to multiple accounts.
+//		s.nonceLock.LockAddr(args.From)
+//		defer s.nonceLock.UnlockAddr(args.From)
+//	}
+//
+//	// Set some sanity defaults and terminate on failure
+//	if err := args.setDefaults(ctx, s.b); err != nil {
+//		return common.Hash{}, err
+//	}
+//	// Assemble the transaction and sign with the wallet
+//	tx := args.toTransaction()
+//
+//	var chainID *big.Int
+//	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+//		chainID = config.ChainID
+//	}
+//	signed, err := wallet.SignTx(account, tx, chainID)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//	return submitTransaction(ctx, s.b, signed)
+//}
+//
+////achilles add apis
+//func (s *PublicTransactionPoolAPI) UnMortgageRawNet(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+//	tx := new(types.Transaction)
+//	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
+//		return common.Hash{}, err
+//	}
+//	return submitTransaction(ctx, s.b, tx)
+//}
 
 //Resource by zc
 // Result structs for GetProof
@@ -849,8 +755,7 @@ type AccountResult struct {
 	StorageProof []StorageResult `json:"storageProof"`
 
 	//Resource by zc
-	Cpu *hexutil.Big `json:"cpu"`
-	Net *hexutil.Big `json:"net"`
+	Res *hexutil.Big `json:"res"`
 	//Resource by zc
 }
 type StorageResult struct {
@@ -908,8 +813,7 @@ func (s *PublicBlockChainAPI) GetProof(ctx context.Context, address common.Addre
 		StorageProof: storageProof,
 
 		//Resource by zc
-		Cpu: (*hexutil.Big)(state.GetCpu(address)),
-		Net: (*hexutil.Big)(state.GetNet(address)),
+		Res: (*hexutil.Big)(state.GetNet(address)),
 		//Resource by zc
 	}, state.Error()
 }
@@ -1226,8 +1130,8 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"difficulty":       (*hexutil.Big)(head.Difficulty),
 		"extraData":        hexutil.Bytes(head.Extra),
 		"size":             hexutil.Uint64(b.Size()),
-		"netLimit":         hexutil.Uint64(head.NetLimit),
-		"netUsed":          hexutil.Uint64(head.NetUsed),
+		"resLimit":         hexutil.Uint64(head.ResLimit),
+		"resUsed":          hexutil.Uint64(head.ResUsed),
 		"timestamp":        (*hexutil.Big)(head.Time),
 		"transactionsRoot": head.TxHash,
 		"receiptsRoot":     head.ReceiptHash,
@@ -1489,8 +1393,8 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"transactionIndex":  hexutil.Uint64(index),
 		"from":              from,
 		"to":                tx.To(),
-		"netUsed":           hexutil.Uint64(receipt.NetUsed),           //inb by ssh 190628
-		"cumulativeNetUsed": hexutil.Uint64(receipt.CumulativeNetUsed), //inb by ssh 190628
+		"resUsed":           hexutil.Uint64(receipt.ResUsed),           //inb by ssh 190628
+		"cumulativeResUsed": hexutil.Uint64(receipt.CumulativeResUsed), //inb by ssh 190628
 		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
@@ -1678,57 +1582,57 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	//if !tx.IsRepayment() {
-	//	tx.SetPayment()
-	//}
+	if !tx.IsRepayment() {
+		tx.SetPayment()
+	}
 
 	return submitTransaction(ctx, s.b, tx)
 }
 
 //achilles add apis
-func (s *PublicTransactionPoolAPI) SendVote(ctx context.Context, args SendTxArgs) (common.Hash, error) {
-
-	// Look up the wallet containing the requested signer
-	account := accounts.Account{Address: args.From}
-
-	wallet, err := s.b.AccountManager().Find(account)
-	if err != nil {
-		return common.Hash{}, err
-	}
-
-	if args.Nonce == nil {
-		// Hold the addresse's mutex around signing to prevent concurrent assignment of
-		// the same nonce to multiple accounts.
-		s.nonceLock.LockAddr(args.From)
-		defer s.nonceLock.UnlockAddr(args.From)
-	}
-
-	// Set some sanity defaults and terminate on failure
-	if err := args.setDefaults(ctx, s.b); err != nil {
-		return common.Hash{}, err
-	}
-	// Assemble the transaction and sign with the wallet
-	tx := args.toTransaction()
-
-	var chainID *big.Int
-	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
-		chainID = config.ChainID
-	}
-	signed, err := wallet.SignTx(account, tx, chainID)
-	if err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, signed)
-}
-
-//achilles add apis
-func (s *PublicTransactionPoolAPI) SendRawVote(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
-	tx := new(types.Transaction)
-	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
-		return common.Hash{}, err
-	}
-	return submitTransaction(ctx, s.b, tx)
-}
+//func (s *PublicTransactionPoolAPI) SendVote(ctx context.Context, args SendTxArgs) (common.Hash, error) {
+//
+//	// Look up the wallet containing the requested signer
+//	account := accounts.Account{Address: args.From}
+//
+//	wallet, err := s.b.AccountManager().Find(account)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//
+//	if args.Nonce == nil {
+//		// Hold the addresse's mutex around signing to prevent concurrent assignment of
+//		// the same nonce to multiple accounts.
+//		s.nonceLock.LockAddr(args.From)
+//		defer s.nonceLock.UnlockAddr(args.From)
+//	}
+//
+//	// Set some sanity defaults and terminate on failure
+//	if err := args.setDefaults(ctx, s.b); err != nil {
+//		return common.Hash{}, err
+//	}
+//	// Assemble the transaction and sign with the wallet
+//	tx := args.toTransaction()
+//
+//	var chainID *big.Int
+//	if config := s.b.ChainConfig(); config.IsEIP155(s.b.CurrentBlock().Number()) {
+//		chainID = config.ChainID
+//	}
+//	signed, err := wallet.SignTx(account, tx, chainID)
+//	if err != nil {
+//		return common.Hash{}, err
+//	}
+//	return submitTransaction(ctx, s.b, signed)
+//}
+//
+////achilles add apis
+//func (s *PublicTransactionPoolAPI) SendRawVote(ctx context.Context, encodedTx hexutil.Bytes) (common.Hash, error) {
+//	tx := new(types.Transaction)
+//	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
+//		return common.Hash{}, err
+//	}
+//	return submitTransaction(ctx, s.b, tx)
+//}
 
 // Sign calculates an ECDSA signature for:
 // keccack256("\x19Ethereum Signed Message:\n" + len(message) + message).
@@ -1800,50 +1704,50 @@ func (s *PublicTransactionPoolAPI) SignTransaction(ctx context.Context, args Sen
 // need to valid the sender sign
 // The node needs to have the private key of the account corresponding with
 // the given from address and it needs to be unlocked.
-//func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, data hexutil.Bytes) (*SignTransactionResult, error) {
-//
-//	tx := &types.Transaction{}
-//	if err := rlp.DecodeBytes(data, tx); err != nil {
-//		return nil, err
-//	}
-//	var resourcePayer common.Address
-//	if resourcePayer == tx.ResourcePayer() {
-//		return nil, fmt.Errorf("resourcePayer not specified")
-//	}
-//	resourcePayer = tx.ResourcePayer()
-//	//recover signature from v,r,s
-//	v, r, ss := tx.RawSignatureValues()
-//	vb := byte(v.Uint64() - 27)
-//	sig := make([]byte, 65)
-//	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-//	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
-//	sig[64] = vb
-//	//vrify sender signature
-//	if len(sig) != 65 {
-//		return nil, fmt.Errorf("signature must be 65 bytes long")
-//	}
-//	/*if sig[64] != 27 && sig[64] != 28 {
-//		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
-//	}*/
-//	//rpk, err := crypto.SigToPub(signHash(data), sig)
-//	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
-//	//	return nil, fmt.Errorf("verify error")
-//	//}
-//	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
-//	from, err := types.Sender(signer, tx)
-//	if err != nil {
-//		return nil, fmt.Errorf("the signature of sender verify error, sender ", from[:])
-//	}
-//	payTx, err := s.sign(resourcePayer, tx)
-//	if err != nil {
-//		return nil, err
-//	}
-//	returnData, err := rlp.EncodeToBytes(payTx)
-//	if err != nil {
-//		return nil, err
-//	}
-//	return &SignTransactionResult{returnData, payTx}, nil
-//}
+func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, data hexutil.Bytes) (*SignTransactionResult, error) {
+
+	tx := &types.Transaction{}
+	if err := rlp.DecodeBytes(data, tx); err != nil {
+		return nil, err
+	}
+	var resourcePayer common.Address
+	if resourcePayer == tx.ResourcePayer() {
+		return nil, fmt.Errorf("resourcePayer not specified")
+	}
+	resourcePayer = tx.ResourcePayer()
+	//recover signature from v,r,s
+	v, r, ss := tx.RawSignatureValues()
+	vb := byte(v.Uint64() - 27)
+	sig := make([]byte, 65)
+	copy(sig[32-len(r.Bytes()):32], r.Bytes())
+	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
+	sig[64] = vb
+	//vrify sender signature
+	if len(sig) != 65 {
+		return nil, fmt.Errorf("signature must be 65 bytes long")
+	}
+	/*if sig[64] != 27 && sig[64] != 28 {
+		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
+	}*/
+	//rpk, err := crypto.SigToPub(signHash(data), sig)
+	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
+	//	return nil, fmt.Errorf("verify error")
+	//}
+	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
+	from, err := types.Sender(signer, tx)
+	if err != nil {
+		return nil, fmt.Errorf("the signature of sender verify error, sender ", from[:])
+	}
+	payTx, err := s.sign(resourcePayer, tx)
+	if err != nil {
+		return nil, err
+	}
+	returnData, err := rlp.EncodeToBytes(payTx)
+	if err != nil {
+		return nil, err
+	}
+	return &SignTransactionResult{returnData, payTx}, nil
+}
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.

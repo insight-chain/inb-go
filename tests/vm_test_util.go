@@ -63,7 +63,7 @@ type vmExec struct {
 	Code     []byte         `json:"code"     gencodec:"required"`
 	Data     []byte         `json:"data"     gencodec:"required"`
 	Value    *big.Int       `json:"value"    gencodec:"required"`
-	NetLimit uint64         `json:"net"      gencodec:"required"`
+	ResLimit uint64         `json:"res"      gencodec:"required"`
 	//GasPrice *big.Int       `json:"gasPrice" gencodec:"required"`
 }
 
@@ -74,7 +74,7 @@ type vmExecMarshaling struct {
 	Code     hexutil.Bytes
 	Data     hexutil.Bytes
 	Value    *math.HexOrDecimal256
-	NetLimit math.HexOrDecimal64
+	ResLimit math.HexOrDecimal64
 	//GasPrice *math.HexOrDecimal256
 }
 
@@ -117,7 +117,7 @@ func (t *VMTest) Run(vmconfig vm.Config) error {
 func (t *VMTest) exec(statedb *state.StateDB, vmconfig vm.Config) ([]byte, uint64, error, *big.Int) {
 	evm := t.newEVM(statedb, vmconfig)
 	e := t.json.Exec
-	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.NetLimit, e.Value)
+	return evm.Call(vm.AccountRef(e.Caller), e.Address, e.Data, e.ResLimit, e.Value)
 }
 
 func (t *VMTest) newEVM(statedb *state.StateDB, vmconfig vm.Config) *vm.EVM {

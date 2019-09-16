@@ -103,13 +103,6 @@ type (
 		account *common.Address
 		prev    *big.Int
 	}
-	//Resource by zc
-	cpuChange struct {
-		account      *common.Address
-		Used         *big.Int
-		Usableness   *big.Int
-		MortgagteINB *big.Int
-	}
 	netChange struct {
 		account      *common.Address
 		Used         *big.Int
@@ -130,7 +123,7 @@ type (
 	}
 	redeemChange struct {
 		account *common.Address
-		redeems  []Redeem
+		redeems []Redeem
 	}
 	dateChange struct {
 		account *common.Address
@@ -202,13 +195,6 @@ func (ch resetObjectChange) revert(s *StateDB) {
 }
 
 //Resource  by zc
-func (ch cpuChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setCpu(ch.Used, ch.Usableness, ch.MortgagteINB)
-}
-
-func (ch cpuChange) dirtied() *common.Address {
-	return ch.account
-}
 func (ch netChange) revert(s *StateDB) {
 	s.getStateObject(*ch.account).setNet(ch.Used, ch.Usableness, ch.MortgagteINB)
 }

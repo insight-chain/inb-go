@@ -325,13 +325,6 @@ func (self *StateDB) GetRedeemTime(addr common.Address) *big.Int {
 }
 
 //Resource by zc
-func (self *StateDB) GetCpu(addr common.Address) *big.Int {
-	stateObject := self.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.Cpu()
-	}
-	return common.Big0
-}
 func (self *StateDB) GetNet(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
@@ -379,13 +372,6 @@ func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
 }
 
 //2019.6.28 inb by ghy end
-func (self *StateDB) GetMortgageInbOfCpu(addr common.Address) *big.Int {
-	stateObject := self.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.MortgageOfCpu()
-	}
-	return common.Big0
-}
 func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {

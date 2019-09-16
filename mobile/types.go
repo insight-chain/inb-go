@@ -107,8 +107,8 @@ func (h *Header) GetReceiptHash() *Hash  { return &Hash{h.header.ReceiptHash} }
 func (h *Header) GetBloom() *Bloom       { return &Bloom{h.header.Bloom} }
 func (h *Header) GetDifficulty() *BigInt { return &BigInt{h.header.Difficulty} }
 func (h *Header) GetNumber() int64       { return h.header.Number.Int64() }
-func (h *Header) GetGasLimit() int64     { return int64(h.header.NetLimit) }
-func (h *Header) GetGasUsed() int64      { return int64(h.header.NetUsed) }
+func (h *Header) GetGasLimit() int64     { return int64(h.header.ResLimit) }
+func (h *Header) GetGasUsed() int64      { return int64(h.header.ResUsed) }
 func (h *Header) GetTime() int64         { return h.header.Time.Int64() }
 func (h *Header) GetExtra() []byte       { return h.header.Extra }
 func (h *Header) GetMixDigest() *Hash    { return &Hash{h.header.MixDigest} }
@@ -330,12 +330,12 @@ func (r *Receipt) EncodeJSON() (string, error) {
 
 func (r *Receipt) GetStatus() int               { return int(r.receipt.Status) }
 func (r *Receipt) GetPostState() []byte         { return r.receipt.PostState }
-func (r *Receipt) GetCumulativeGasUsed() int64  { return int64(r.receipt.CumulativeNetUsed) }
+func (r *Receipt) GetCumulativeGasUsed() int64  { return int64(r.receipt.CumulativeResUsed) }
 func (r *Receipt) GetBloom() *Bloom             { return &Bloom{r.receipt.Bloom} }
 func (r *Receipt) GetLogs() *Logs               { return &Logs{r.receipt.Logs} }
 func (r *Receipt) GetTxHash() *Hash             { return &Hash{r.receipt.TxHash} }
 func (r *Receipt) GetContractAddress() *Address { return &Address{r.receipt.ContractAddress} }
-func (r *Receipt) GetGasUsed() int64            { return int64(r.receipt.NetUsed) }
+func (r *Receipt) GetGasUsed() int64            { return int64(r.receipt.ResUsed) }
 
 // Info represents a diagnostic information about the whisper node.
 type Info struct {

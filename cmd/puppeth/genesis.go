@@ -143,7 +143,7 @@ func newAlethGenesisSpec(network string, genesis *core.Genesis) (*alethGenesisSp
 	spec.Genesis.Timestamp = (hexutil.Uint64)(genesis.Timestamp)
 	spec.Genesis.ParentHash = genesis.ParentHash
 	spec.Genesis.ExtraData = (hexutil.Bytes)(genesis.ExtraData)
-	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.NetUsed)
+	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.ResUsed)
 	spec.Genesis.SpecialConsensus = genesis.SpecialConsensus //2019.7.23 inb by ghy
 
 	for address, account := range genesis.Alloc {
@@ -368,7 +368,7 @@ func newParityChainSpec(network string, genesis *core.Genesis, bootnodes []strin
 	spec.Genesis.Timestamp = (hexutil.Uint64)(genesis.Timestamp)
 	spec.Genesis.ParentHash = genesis.ParentHash
 	spec.Genesis.ExtraData = (hexutil.Bytes)(genesis.ExtraData)
-	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.NetLimit)
+	spec.Genesis.GasLimit = (hexutil.Uint64)(genesis.ResLimit)
 	spec.Genesis.SpecialConsensus = genesis.SpecialConsensus //2019.7.23 inb by ghy
 
 	spec.Accounts = make(map[common.UnprefixedAddress]*parityChainSpecAccount)
@@ -466,7 +466,7 @@ func newPyEthereumGenesisSpec(network string, genesis *core.Genesis) (*pyEthereu
 	spec := &pyEthereumGenesisSpec{
 		Timestamp:  (hexutil.Uint64)(genesis.Timestamp),
 		ExtraData:  genesis.ExtraData,
-		GasLimit:   (hexutil.Uint64)(genesis.NetLimit),
+		GasLimit:   (hexutil.Uint64)(genesis.ResLimit),
 		Difficulty: (*hexutil.Big)(genesis.Difficulty),
 		Mixhash:    genesis.Mixhash,
 		Coinbase:   genesis.Coinbase,

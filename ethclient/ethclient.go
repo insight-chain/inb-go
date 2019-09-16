@@ -337,14 +337,9 @@ func (ec *Client) BalanceAt(ctx context.Context, account common.Address, blockNu
 }
 
 //Resource  by zc
-func (ec *Client) CpuAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
-	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "inb_getCpu", account, toBlockNumArg(blockNumber))
-	return (*big.Int)(&result), err
-}
 func (ec *Client) NetAt(ctx context.Context, account common.Address, blockNumber *big.Int) (*big.Int, error) {
 	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "inb_getNet", account, toBlockNumArg(blockNumber))
+	err := ec.c.CallContext(ctx, &result, "inb_getRes", account, toBlockNumArg(blockNumber))
 	return (*big.Int)(&result), err
 }
 
@@ -426,14 +421,14 @@ func (ec *Client) PendingBalanceAt(ctx context.Context, account common.Address) 
 }
 
 //Resource by zc
-func (ec *Client) PendingCpuAt(ctx context.Context, account common.Address) (*big.Int, error) {
-	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "inb_getCpu", account, "pending")
-	return (*big.Int)(&result), err
-}
+//func (ec *Client) PendingCpuAt(ctx context.Context, account common.Address) (*big.Int, error) {
+//	var result hexutil.Big
+//	err := ec.c.CallContext(ctx, &result, "inb_getCpu", account, "pending")
+//	return (*big.Int)(&result), err
+//}
 func (ec *Client) PendingNetAt(ctx context.Context, account common.Address) (*big.Int, error) {
 	var result hexutil.Big
-	err := ec.c.CallContext(ctx, &result, "inb_getNet", account, "pending")
+	err := ec.c.CallContext(ctx, &result, "inb_getRes", account, "pending")
 	return (*big.Int)(&result), err
 }
 

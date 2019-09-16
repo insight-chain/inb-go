@@ -89,10 +89,10 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	//var flag *big.Int
-	//if tx.data.Repayment != nil && (tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag) {
-	//	tx.from.Store(sigCache{signer: signer, from: addr})
-	//}
+	var flag *big.Int
+	if tx.data.Repayment != nil && (tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag) {
+		tx.from.Store(sigCache{signer: signer, from: addr})
+	}
 	return addr, nil
 }
 
@@ -142,24 +142,22 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return HomesteadSigner{}.Sender(tx)
 	}
 	//achilles repayment add apis
-	//var flag *big.Int
-	//if tx.IsRepayment() && tx.data.Repayment.Vp != flag && tx.data.Repayment.Rp != flag && tx.data.Repayment.Sp != flag {
-	//	if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
-	//		return common.Address{}, ErrInvalidChainId
-	//	}
-	//	V := new(big.Int).Sub(tx.data.Repayment.Vp, s.chainIdMul)
-	//	V.Sub(V, big8)
-	//	return recoverPlain(s.Hash(tx), tx.data.Repayment.Rp, tx.data.Repayment.Sp, V, true)
-	//} else {
-	if tx.ChainId().Cmp(s.chainId) != 0 {
-		fmt.Println("tx.ChainId")
-		fmt.Println(tx.ChainId().String())
-		return common.Address{}, ErrInvalidChainId
+	var flag *big.Int
+	if tx.IsRepayment() && tx.data.Repayment.Vp != flag && tx.data.Repayment.Rp != flag && tx.data.Repayment.Sp != flag {
+		if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
+			return common.Address{}, ErrInvalidChainId
+		}
+		V := new(big.Int).Sub(tx.data.Repayment.Vp, s.chainIdMul)
+		V.Sub(V, big8)
+		return recoverPlain(s.Hash(tx), tx.data.Repayment.Rp, tx.data.Repayment.Sp, V, true)
+	} else {
+		if tx.ChainId().Cmp(s.chainId) != 0 {
+			return common.Address{}, ErrInvalidChainId
+		}
+		V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
+		V.Sub(V, big8)
+		return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
 	}
-	V := new(big.Int).Sub(tx.data.V, s.chainIdMul)
-	V.Sub(V, big8)
-	return recoverPlain(s.Hash(tx), tx.data.R, tx.data.S, V, true)
-	//}
 }
 
 // SignatureValues returns signature values. This signature

@@ -22,13 +22,13 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		Nonce            math.HexOrDecimal64                         `json:"nonce"`
 		Timestamp        math.HexOrDecimal64                         `json:"timestamp"`
 		ExtraData        hexutil.Bytes                               `json:"extraData"`
-		NetLimit         math.HexOrDecimal64                         `json:"netLimit"   gencodec:"required"`
+		ResLimit         math.HexOrDecimal64                         `json:"resLimit"   gencodec:"required"`
 		Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
 		Mixhash          common.Hash                                 `json:"mixHash"`
 		Coinbase         common.Address                              `json:"coinbase"`
 		Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
 		Number           math.HexOrDecimal64                         `json:"number"`
-		NetUsed          math.HexOrDecimal64                         `json:"netUsed"`
+		ResUsed          math.HexOrDecimal64                         `json:"resUsed"`
 		ParentHash       common.Hash                                 `json:"parentHash"`
 		SpecialConsensus types.SpecialConsensus                      `json:"specialConsensus" gencodec:"required"`
 	}
@@ -37,7 +37,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 	enc.Nonce = math.HexOrDecimal64(g.Nonce)
 	enc.Timestamp = math.HexOrDecimal64(g.Timestamp)
 	enc.ExtraData = g.ExtraData
-	enc.NetLimit = math.HexOrDecimal64(g.NetLimit)
+	enc.ResLimit = math.HexOrDecimal64(g.ResLimit)
 	enc.Difficulty = (*math.HexOrDecimal256)(g.Difficulty)
 	enc.Mixhash = g.Mixhash
 	enc.Coinbase = g.Coinbase
@@ -48,7 +48,7 @@ func (g Genesis) MarshalJSON() ([]byte, error) {
 		}
 	}
 	enc.Number = math.HexOrDecimal64(g.Number)
-	enc.NetUsed = math.HexOrDecimal64(g.NetUsed)
+	enc.ResUsed = math.HexOrDecimal64(g.ResUsed)
 	enc.ParentHash = g.ParentHash
 	enc.SpecialConsensus = g.SpecialConsensus //2019.7.23 inb by ghy
 	return json.Marshal(&enc)
@@ -59,13 +59,13 @@ type Genesiss struct {
 	Nonce            *math.HexOrDecimal64                        `json:"nonce"`
 	Timestamp        *math.HexOrDecimal64                        `json:"timestamp"`
 	ExtraData        *hexutil.Bytes                              `json:"extraData"`
-	NetLimit         *math.HexOrDecimal64                        `json:"netLimit"   gencodec:"required"`
+	ResLimit         *math.HexOrDecimal64                        `json:"resLimit"   gencodec:"required"`
 	Difficulty       *math.HexOrDecimal256                       `json:"difficulty" gencodec:"required"`
 	Mixhash          *common.Hash                                `json:"mixHash"`
 	Coinbase         *common.Address                             `json:"coinbase"`
 	Alloc            map[common.UnprefixedAddress]GenesisAccount `json:"alloc"      gencodec:"required"`
 	Number           *math.HexOrDecimal64                        `json:"number"`
-	NetUsed          *math.HexOrDecimal64                        `json:"netUsed"`
+	ResUsed          *math.HexOrDecimal64                        `json:"resUsed"`
 	ParentHash       *common.Hash                                `json:"parentHash"`
 	SpecialConsensus *types.SpecialConsensus                     `json:"specialConsensus" gencodec:"required"` //2019.7.23 inb by ghy
 }
@@ -87,10 +87,10 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.ExtraData != nil {
 		g.ExtraData = *dec.ExtraData
 	}
-	if dec.NetLimit == nil {
-		return errors.New("missing required field 'netLimit' for Genesis")
+	if dec.ResLimit == nil {
+		return errors.New("missing required field 'resLimit' for Genesis")
 	}
-	g.NetLimit = uint64(*dec.NetLimit)
+	g.ResLimit = uint64(*dec.ResLimit)
 	if dec.Difficulty == nil {
 		return errors.New("missing required field 'difficulty' for Genesis")
 	}
@@ -111,8 +111,8 @@ func (g *Genesis) UnmarshalJSON(input []byte) error {
 	if dec.Number != nil {
 		g.Number = uint64(*dec.Number)
 	}
-	if dec.NetUsed != nil {
-		g.NetUsed = uint64(*dec.NetUsed)
+	if dec.ResUsed != nil {
+		g.ResUsed = uint64(*dec.ResUsed)
 	}
 	if dec.ParentHash != nil {
 		g.ParentHash = *dec.ParentHash

@@ -805,9 +805,9 @@ func SetReceiptsData(config *params.ChainConfig, block *types.Block, receipts ty
 		}
 		// The used gas can be calculated based on previous receipts
 		if j == 0 {
-			receipts[j].NetUsed = receipts[j].CumulativeNetUsed
+			receipts[j].ResUsed = receipts[j].CumulativeResUsed
 		} else {
-			receipts[j].NetUsed = receipts[j].CumulativeNetUsed - receipts[j-1].CumulativeNetUsed
+			receipts[j].ResUsed = receipts[j].CumulativeResUsed - receipts[j-1].CumulativeResUsed
 		}
 		// The derived log fields can simply be set from the block and transaction
 		for k := 0; k < len(receipts[j].Logs); k++ {
@@ -1588,7 +1588,7 @@ func (bc *BlockChain) reportBlock(block *types.Block, receipts types.Receipts, e
 	var receiptString string
 	for i, receipt := range receipts {
 		receiptString += fmt.Sprintf("\t %d: cumulative: %v gas: %v contract: %v status: %v tx: %v logs: %v bloom: %x state: %x\n",
-			i, receipt.CumulativeNetUsed, receipt.NetUsed, receipt.ContractAddress.Hex(),
+			i, receipt.CumulativeResUsed, receipt.ResUsed, receipt.ContractAddress.Hex(),
 			receipt.Status, receipt.TxHash.Hex(), receipt.Logs, receipt.Bloom, receipt.PostState)
 	}
 	log.Error(fmt.Sprintf(`

@@ -120,7 +120,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.TxHash = tx.Hash()
 
 	receipt.IncomeClaimed = receive
-	receipt.NetUsed = net
+	receipt.ResUsed = net
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil && msg.Types() == types.Contract {
 		receipt.ContractAddress = crypto.CreateAddress(vmenv.Context.Origin, tx.Nonce())

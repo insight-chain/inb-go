@@ -755,7 +755,7 @@ func (w *worker) commitTransaction(tx *types.Transaction, coinbase common.Addres
 
 	// add by ssh 190829 begin
 	vdposSnap := w.current.vdposContext.Snapshot()
-	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.NetUsed, *w.chain.GetVMConfig())
+	receipt, _, err := core.ApplyTransaction(w.config, w.chain, &coinbase, w.current.gasPool, w.current.state, w.current.header, tx, &w.current.header.ResUsed, *w.chain.GetVMConfig())
 
 	if err != nil {
 		w.current.state.RevertToSnapshot(snap)
@@ -776,7 +776,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 	}
 
 	if w.current.gasPool == nil {
-		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.NetLimit)
+		w.current.gasPool = new(core.GasPool).AddGas(w.current.header.ResLimit)
 	}
 
 	var coalescedLogs []*types.Log
@@ -791,7 +791,7 @@ func (w *worker) commitTransactions(txs *types.TransactionsByPriceAndNonce, coin
 		if interrupt != nil && atomic.LoadInt32(interrupt) != commitInterruptNone {
 			// Notify resubmit loop to increase resubmitting interval due to too frequent commits.
 			if atomic.LoadInt32(interrupt) == commitInterruptResubmit {
-				ratio := float64(w.current.header.NetLimit-w.current.gasPool.Gas()) / float64(w.current.header.NetLimit)
+				ratio := float64(w.current.header.ResLimit-w.current.gasPool.Gas()) / float64(w.current.header.ResLimit)
 				if ratio < 0.1 {
 					ratio = 0.1
 				}
@@ -904,7 +904,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	header := &types.Header{
 		ParentHash: parent.Hash(),
 		Number:     num.Add(num, common.Big1),
-		NetLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
+		ResLimit:   core.CalcGasLimit(parent, w.gasFloor, w.gasCeil),
 		Extra:      w.extra,
 		Time:       big.NewInt(timestamp),
 	}

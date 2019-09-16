@@ -25,8 +25,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 		Bloom            Bloom              `json:"logsBloom"        gencodec:"required"`
 		Difficulty       *hexutil.Big       `json:"difficulty"       gencodec:"required"`
 		Number           *hexutil.Big       `json:"number"           gencodec:"required"`
-		NetLimit         hexutil.Uint64     `json:"netLimit"         gencodec:"required"`
-		NetUsed          hexutil.Uint64     `json:"netUsed"          gencodec:"required"`
+		ResLimit         hexutil.Uint64     `json:"resLimit"         gencodec:"required"`
+		ResUsed          hexutil.Uint64     `json:"resUsed"          gencodec:"required"`
 		Time             *hexutil.Big       `json:"timestamp"        gencodec:"required"`
 		Extra            hexutil.Bytes      `json:"extraData"        gencodec:"required"`
 		MixDigest        common.Hash        `json:"mixHash"`
@@ -47,8 +47,8 @@ func (h Header) MarshalJSON() ([]byte, error) {
 	enc.Bloom = h.Bloom
 	enc.Difficulty = (*hexutil.Big)(h.Difficulty)
 	enc.Number = (*hexutil.Big)(h.Number)
-	enc.NetLimit = hexutil.Uint64(h.NetLimit)
-	enc.NetUsed = hexutil.Uint64(h.NetUsed)
+	enc.ResLimit = hexutil.Uint64(h.ResLimit)
+	enc.ResUsed = hexutil.Uint64(h.ResUsed)
 	enc.Time = (*hexutil.Big)(h.Time)
 	enc.Extra = h.Extra
 	enc.MixDigest = h.MixDigest
@@ -73,8 +73,8 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		Bloom            *Bloom             `json:"logsBloom"        gencodec:"required"`
 		Difficulty       *hexutil.Big       `json:"difficulty"       gencodec:"required"`
 		Number           *hexutil.Big       `json:"number"           gencodec:"required"`
-		NetLimit         *hexutil.Uint64    `json:"netLimit"         gencodec:"required"`
-		NetUsed          *hexutil.Uint64    `json:"netUsed"          gencodec:"required"`
+		ResLimit         *hexutil.Uint64    `json:"resLimit"         gencodec:"required"`
+		ResUsed          *hexutil.Uint64    `json:"resUsed"          gencodec:"required"`
 		Time             *hexutil.Big       `json:"timestamp"        gencodec:"required"`
 		Extra            *hexutil.Bytes     `json:"extraData"        gencodec:"required"`
 		MixDigest        *common.Hash       `json:"mixHash"`
@@ -124,14 +124,14 @@ func (h *Header) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'number' for Header")
 	}
 	h.Number = (*big.Int)(dec.Number)
-	if dec.NetLimit == nil {
-		return errors.New("missing required field 'netLimit' for Header")
+	if dec.ResLimit == nil {
+		return errors.New("missing required field 'resLimit' for Header")
 	}
-	h.NetLimit = uint64(*dec.NetLimit)
-	if dec.NetUsed == nil {
-		return errors.New("missing required field 'netUsed' for Header")
+	h.ResLimit = uint64(*dec.ResLimit)
+	if dec.ResUsed == nil {
+		return errors.New("missing required field 'resUsed' for Header")
 	}
-	h.NetUsed = uint64(*dec.NetUsed)
+	h.ResUsed = uint64(*dec.ResUsed)
 	if dec.Time == nil {
 		return errors.New("missing required field 'timestamp' for Header")
 	}

@@ -103,11 +103,8 @@ type Account struct {
 	Balance  *big.Int
 	Root     common.Hash // merkle root of the storage trie
 	CodeHash []byte
-	//Resource by zc
-	Resources Resources
-	//Resource by zc
-
-	Stores []Store // slice of regular mortgaging
+	Res      Resource // resource for account
+	Stores   []Store  // slice of regular mortgaging
 	//Recommender common.Address
 	Redeems                  []Redeem // redeeming nets
 	Regular                  *big.Int //  total of regular mortgaging
@@ -116,17 +113,24 @@ type Account struct {
 	LastReceiveVoteAwardTime *big.Int
 }
 
-//Resource by zc
-type Resources struct {
-	CPU  Resource
-	NET  Resource
-	Date *big.Int
-}
 type Resource struct {
 	Used         *big.Int // used
 	Usableness   *big.Int // unuse
 	MortgagteINB *big.Int //
+	Date         *big.Int
 }
+
+//Resource by zc
+//type Resources struct {
+//	CPU  Resource
+//	NET  Resource
+//	Date *big.Int
+//}
+//type Resource struct {
+//	Used         *big.Int // used
+//	Usableness   *big.Int // unuse
+//	MortgagteINB *big.Int //
+//}
 
 type Store struct {
 	Nonce            uint64   // transaction of regular mortgaging
@@ -152,23 +156,14 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 		data.CodeHash = emptyCodeHash
 	}
 	//Resource by zc
-	if data.Resources.CPU.Used == nil {
-		data.Resources.CPU.Used = new(big.Int)
+	if data.Res.Used == nil {
+		data.Res.Used = new(big.Int)
 	}
-	if data.Resources.CPU.Usableness == nil {
-		data.Resources.CPU.Usableness = new(big.Int)
+	if data.Res.Usableness == nil {
+		data.Res.Usableness = new(big.Int)
 	}
-	if data.Resources.CPU.MortgagteINB == nil {
-		data.Resources.CPU.MortgagteINB = big.NewInt(0)
-	}
-	if data.Resources.NET.Used == nil {
-		data.Resources.NET.Used = new(big.Int)
-	}
-	if data.Resources.NET.Usableness == nil {
-		data.Resources.NET.Usableness = new(big.Int)
-	}
-	if data.Resources.NET.MortgagteINB == nil {
-		data.Resources.NET.MortgagteINB = new(big.Int)
+	if data.Res.MortgagteINB == nil {
+		data.Res.MortgagteINB = new(big.Int)
 	}
 	if data.Stores == nil {
 		data.Stores = make([]Store, 0)
@@ -556,8 +551,8 @@ func (self *stateObject) ReceiveLockedAward(nonce int, value *big.Int, isAll boo
 
 					afterRegular := new(big.Int).Sub(self.data.Regular, &v.Value)
 					self.data.Regular = afterRegular
-					afterMortgagteINB := new(big.Int).Sub(self.data.Resources.NET.MortgagteINB, &v.Value)
-					self.data.Resources.NET.MortgagteINB = afterMortgagteINB
+					afterMortgagteINB := new(big.Int).Sub(self.data.Res.MortgagteINB, &v.Value)
+					self.data.Res.MortgagteINB = afterMortgagteINB
 
 					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
 
@@ -611,7 +606,7 @@ func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
 }
 
 func (self *stateObject) Vote(time *big.Int) {
-	self.data.Voted = self.data.Resources.NET.MortgagteINB
+	self.data.Voted = self.data.Res.MortgagteINB
 	self.data.LastReceiveVoteAwardTime = time
 }
 
@@ -685,17 +680,17 @@ func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mort
 
 	self.db.journal.append(netChange{
 		account:      &self.address,
-		Used:         new(big.Int).Set(self.data.Resources.NET.Used),
-		Usableness:   new(big.Int).Set(self.data.Resources.NET.Usableness),
-		MortgagteINB: new(big.Int).Set(self.data.Resources.NET.MortgagteINB),
+		Used:         new(big.Int).Set(self.data.Res.Used),
+		Usableness:   new(big.Int).Set(self.data.Res.Usableness),
+		MortgagteINB: new(big.Int).Set(self.data.Res.MortgagteINB),
 	})
 	self.setNet(usedAmount, usableAmount, mortgageInb)
 }
 
 func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
-	self.data.Resources.NET.Used = usedAmount
-	self.data.Resources.NET.Usableness = usableAmount
-	self.data.Resources.NET.MortgagteINB = mortgageInb
+	self.data.Res.Used = usedAmount
+	self.data.Res.Usableness = usableAmount
+	self.data.Res.MortgagteINB = mortgageInb
 }
 
 func (self *stateObject) SetRedeems(redeems []Redeem) {
@@ -714,13 +709,13 @@ func (self *stateObject) SetDate(update *big.Int) {
 
 	self.db.journal.append(dateChange{
 		account: &self.address,
-		prev:    new(big.Int).Set(self.data.Resources.Date),
+		prev:    new(big.Int).Set(self.data.Res.Date),
 	})
 	self.setDate(update)
 }
 
 func (self *stateObject) setDate(update *big.Int) {
-	self.data.Resources.Date = update
+	self.data.Res.Date = update
 }
 
 //achilles0718 regular mortgagtion
@@ -823,22 +818,14 @@ func (self *stateObject) StoreLength() int {
 }
 
 //Resource by zc
-func (self *stateObject) Cpu() *big.Int {
-
-	return self.data.Resources.CPU.Usableness
-}
 func (self *stateObject) Net() *big.Int {
-	return self.data.Resources.NET.Usableness
+	return self.data.Res.Usableness
 }
 func (self *stateObject) UsedNet() *big.Int {
-	return self.data.Resources.NET.Used
-}
-func (self *stateObject) MortgageOfCpu() *big.Int {
-
-	return self.data.Resources.CPU.MortgagteINB
+	return self.data.Res.Used
 }
 func (self *stateObject) MortgageOfNet() *big.Int {
-	return self.data.Resources.NET.MortgagteINB
+	return self.data.Res.MortgagteINB
 }
 
 func (self *stateObject) GetRedeem() *big.Int {
@@ -854,7 +841,7 @@ func (self *stateObject) Regular() *big.Int {
 }
 
 func (self *stateObject) Date() *big.Int {
-	return self.data.Resources.Date
+	return self.data.Res.Date
 }
 
 //Resource by zc
@@ -864,11 +851,11 @@ func (self *stateObject) Nonce() uint64 {
 
 //2019.6.28 inb by ghy begin
 func (self *stateObject) Resource() Resource {
-	return self.data.Resources.NET
+	return self.data.Res
 }
 
 func (self *stateObject) MortgageOfINB() *big.Int {
-	return self.data.Resources.NET.MortgagteINB
+	return self.data.Res.MortgagteINB
 }
 
 //2019.6.28 inb by ghy end

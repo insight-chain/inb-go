@@ -356,23 +356,23 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	if !types.ValidateType(tx.Types()) {
 		return core.ErrTxType
 	}
-	//if tx.IsRepayment() {
-	//	payment, err := types.Sender(pool.signer, tx)
-	//	if err != nil {
-	//		return core.ErrInvalidSender
-	//	}
-	//	netPayment = payment
-	//	tx.RemovePaymentSignatureValues()
-	//}
+	if tx.IsRepayment() {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return core.ErrInvalidSender
+		}
+		netPayment = payment
+		tx.RemovePaymentSignatureValues()
+	}
 
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
 	if from, err = types.Sender(pool.signer, tx); err != nil {
 		return core.ErrInvalidSender
 	}
-	//if !tx.IsRepayment() {
-	netPayment = from
-	//}
+	if !tx.IsRepayment() {
+		netPayment = from
+	}
 
 	// Last but not least check for nonce errors
 	currentState := pool.currentState(ctx)
@@ -407,16 +407,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		}
 	}
 
-	//achilles repayment
-	//v, r, s := tx.RawPaymentSignatureValues()
-	//if v != nil && r != nil && s != nil{
-	//	payment, err := types.RecoverPaymentPlain(tx.Hash(),v,r,s,false) //todo how to define true or false; payment gas blance valid
-	//	if err != nil{
-	//		return ErrInvalidSender
-	//	}
-	//	fmt.Println(payment)
-	//}
-
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
 		var candidatesSlice []common.Address
@@ -429,7 +419,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			if accountInfo == nil {
 				return errors.New("error of candidates address")
 			}
-			if accountInfo.Resources.NET.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			if accountInfo.Res.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -456,7 +446,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	if from[0] != crypto.PrefixToAddress[0] {
 		return core.ErrInvalidAddress
 	}
-	if !tx.WhichTypes(types.Repayment) {
+	if !tx.IsRepayment() {
 		netPayment = from
 	}
 	// Drop non-local transactions under our own minimal accepted gas price
