@@ -133,7 +133,7 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	if tx.Types() == 11 && tx.Data() != nil && string(tx.Data()[5:]) == "000000000000000000000000000000" {
+	if tx.Types() == SpecilaTx && tx.Data() != nil && string(tx.Data()[5:]) == "000000000000000000000000000000" {
 		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
 	}
 

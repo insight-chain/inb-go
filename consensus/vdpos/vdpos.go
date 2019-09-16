@@ -45,20 +45,24 @@ const (
 )
 
 var (
-	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
+	DefaultInbIncreaseOneYear1       = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
+	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(params.Inber))
 	OneYearBySec                     = int64(365 * 86400)
-	defaultBlockPeriod               = uint64(2)                                               // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(2)                                               // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)                                               // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21)                                              // Default max signers
-	extraVanity                      = 32                                                      // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                                                      // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil)                                // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)                                           // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(5)                                               // Default loop count to recreate signers from top tally
-	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18)) // Default stake of selfVoteSigners in first LOOP
-	DefaultMinerReward               = big.NewInt(6341958396752917300)                         // Default reward for miner in wei
-	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	defaultBlockPeriod               = uint64(2)                                                      // Default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)                                                      // Default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)                                                      // Default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)                                                     // Default max signers
+	extraVanity                      = 32                                                             // Fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                                                             // Fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)                                       // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                                                  // Default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                                                      // Default loop count to recreate signers from top tally
+	selfVoteSignersStake1            = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18))        // Default stake of selfVoteSigners in first LOOP
+	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // Default stake of selfVoteSigners in first LOOP
+	DefaultMinerReward1              = big.NewInt(6341958396752917300)                                // Default reward for miner in wei
+	DefaultMinerReward               = big.NewInt(634195)                                             // Default reward for miner in wei
+	BeVotedNeedINB1                  = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
+	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(params.Inber))
 	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
 	//RevenueCycleTime                 = uint64(30*24*60*60)
 
@@ -72,6 +76,8 @@ var (
 	// errUnknownBlock is returned when the list of signers is requested for a block
 	// that is not part of the local blockchain.
 	errUnknownBlock = errors.New("unknown block")
+
+	errBlockOneHaveNoTx = errors.New("block  must have special transaction") //2019.9.6 inb by ghy
 
 	// errMissingVanity is returned if a block's extra-data section is shorter than
 	// 32 bytes, which is required to store the signer vanity.
@@ -491,6 +497,12 @@ func (v *Vdpos) Authorize(signer common.Address, signFn SignerFn, signTxFn SignT
 // the local signing credentials.
 func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	header := block.Header()
+
+	//2019.9.6 inb by ghy begin
+	if len(block.Transactions()) == 0 {
+		return errBlockOneHaveNoTx
+	}
+	//2019.9.6 inb by ghy end
 
 	// Sealing the genesis block is not supported
 	number := header.Number.Uint64()

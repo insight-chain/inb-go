@@ -9,21 +9,21 @@ var (
 	OneDaySecond = big.NewInt(24 * 60 * 60)
 
 	//vote
-	VoteRewardCycleSeconds  = big.NewInt(1)
+	VoteRewardCycleSeconds  = big.NewInt(30)
 	VoteRewardCycleTimes    = big.NewInt(7)
 	VoteDenominator         = big.NewInt(12)
 	VoteHundred             = big.NewInt(100)
 	VoteNumberOfDaysOneYear = big.NewInt(365)
 
 	//Mortgage,unMortgage,change vote
-	VoteRewardCycleSecondsForChange  = big.NewInt(1)
+	VoteRewardCycleSecondsForChange  = big.NewInt(30)
 	VoteRewardCycleTimesForChange    = big.NewInt(1)
 	VoteDenominatorForChange         = big.NewInt(12)
 	VoteHundredForChange             = big.NewInt(100)
 	VoteNumberOfDaysOneYearForChange = big.NewInt(365)
 
 	//locked 30days
-	LockedRewardCycleSecondsFor30days  = big.NewInt(1)
+	LockedRewardCycleSecondsFor30days  = big.NewInt(30)
 	LockedRewardCycleTimesFor30days    = big.NewInt(7)
 	LockedDenominatorFor30days         = big.NewInt(9)
 	LockedHundredFor30days             = big.NewInt(100)
