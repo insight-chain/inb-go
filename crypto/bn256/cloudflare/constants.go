@@ -14,8 +14,8 @@ func bigFromBase10(s string) *big.Int {
 	return n
 }
 
-var TestNumber1 = new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+18))
-var TestNumber2 = new(big.Int).Mul(big.NewInt(1e+9), big.NewInt(1e+18))
+var TestNumber1 = new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+5))
+var TestNumber2 = new(big.Int).Mul(big.NewInt(1e+9), big.NewInt(1e+5))
 
 //testAccount is a test account for testing environment use
 var TestAccount1 = common.Address{58, 100, 4, 10, 120, 240, 237, 213, 146, 159, 215, 139, 137, 9, 135, 13, 224, 54, 42, 53}

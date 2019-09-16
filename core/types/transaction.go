@@ -730,7 +730,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//reward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
-	reward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18)), big.NewInt(blockNumberOneYear))
+	reward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
@@ -842,6 +842,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 				}
 				info.num++
 			default:
+				fmt.Println(info.Name)
 				return errors.New("other tx can not allowed")
 			}
 			//specialConsensu[common.BytesToAddress(v.Data())]++

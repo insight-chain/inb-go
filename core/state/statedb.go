@@ -72,13 +72,13 @@ const (
 	OnlineMarketing  string = "OnlineMarketing"                              // account record value of OnlineMarketing
 	OfflineMarketing string = "OfflineMarketing"                             // account record value of OfflineMarketing
 
-	FoundationAccount       string = "0x1100000000000000000000000000000000000000" // account record value of Foundation
-	MiningRewardAccount     string = "0x1310000000000000000000000000000000000000" // account record value of Mining
-	VerifyRewardAccount     string = "0x1330000000000000000000000000000000000000" // account record value of Verify
-	VotingRewardAccount     string = "0x1350000000000000000000000000000000000000" // account record value of Voting
-	TeamAccount             string = "0x1500000000000000000000000000000000000000" // account record value of team
-	OnlineMarketingAccount  string = "0x1710000000000000000000000000000000000000" // account record value of OnlineMarketing
-	OfflineMarketingAccount string = "0x1730000000000000000000000000000000000000" // account record value of OfflineMarketing
+	FoundationAccount       string = "0x951100000000000000000000000000000000000000" // account record value of Foundation
+	MiningRewardAccount     string = "0x951310000000000000000000000000000000000000" // account record value of Mining
+	VerifyRewardAccount     string = "0x951330000000000000000000000000000000000000" // account record value of Verify
+	VotingRewardAccount     string = "0x951350000000000000000000000000000000000000" // account record value of Voting
+	TeamAccount             string = "0x951500000000000000000000000000000000000000" // account record value of team
+	OnlineMarketingAccount  string = "0x951710000000000000000000000000000000000000" // account record value of OnlineMarketing
+	OfflineMarketingAccount string = "0x951730000000000000000000000000000000000000" // account record value of OfflineMarketing
 )
 
 //Resource by zc
@@ -785,7 +785,7 @@ func (self *StateDB) createObject(addr common.Address) (newobj, prev *stateObjec
 //   1. sends funds to sha(account ++ (nonce + 1))
 //   2. tx_create(sha(account ++ nonce)) (note that this gets the address of 1)
 //
-// Carrying over the balance ensures that Ether doesn't disappear.
+// Carrying over the balance ensures that Inber doesn't disappear.
 func (self *StateDB) CreateAccount(addr common.Address) {
 	new, prev := self.createObject(addr)
 	if prev != nil {

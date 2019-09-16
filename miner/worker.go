@@ -944,7 +944,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	// add by ssh 190906 begin
 	if num.Uint64() > 1 && !w.inturn(w.coinbase, uint64(timestamp), parent.Header()) && !w.inturn(w.coinbase, uint64(timestamp)+w.config.Vdpos.Period, parent.Header()) {
-		log.Error("Cancel commitNewWork: unauthorized signer")
+		log.Info("Cancel commitNewWork: unauthorized signer")
 		return
 	}
 	// add by ssh 190906 end
@@ -1019,7 +1019,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		}
 
 	}
-
 	vdpos.DefaultMinerReward = reward
 	header.Reward = reward.String()
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
@@ -1142,7 +1141,7 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 			//	feesWei.Add(feesWei, new(big.Int).Mul(new(big.Int).SetUint64(receipts[i].GasUsed), tx.GasPrice()))
 			//}
 
-			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Ether)))
+			feesEth := new(big.Float).Quo(new(big.Float).SetInt(feesWei), new(big.Float).SetInt(big.NewInt(params.Inber)))
 
 			log.Info("Commit new mining work", "number", block.Number(), "sealhash", w.engine.SealHash(block.Header()),
 				"uncles", len(uncles), "txs", w.current.tcount, "net", block.GasUsed(), "fees", feesEth, "elapsed", common.PrettyDuration(time.Since(start)))

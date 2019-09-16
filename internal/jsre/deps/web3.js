@@ -1892,6 +1892,7 @@ var unitMap = {
     'femtoether':   '1000',
     'mwei':         '1000000',
     'Mwei':         '1000000',
+    'inb':          '100000',
     'lovelace':     '1000000',
     'picoether':    '1000000',
     'gwei':         '1000000000',

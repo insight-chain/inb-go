@@ -591,28 +591,36 @@ func (s *PublicBlockChainAPI) GetBalance(ctx context.Context, address common.Add
 }
 
 // 2019.7.31 inb by ghy begin
-func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) *hexutil.Big {
+func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) string {
 
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, rpc.LatestBlockNumber)
 	if state == nil || err != nil {
-		return nil
+		return ""
 	}
-	total := (new(big.Int).Mul(big.NewInt(9e+9), big.NewInt(1e+18)))
-	Foundation := (state.GetBalance(common.HexToAddress(st.FoundationAccount)))
-	MiningReward := (state.GetBalance(common.HexToAddress(st.MiningRewardAccount)))
-	VerifyReward := (state.GetBalance(common.HexToAddress(st.VerifyRewardAccount)))
-	VotingReward := (state.GetBalance(common.HexToAddress(st.VotingRewardAccount)))
-	Team := (state.GetBalance(common.HexToAddress(st.TeamAccount)))
-	OnlineMarketing := (state.GetBalance(common.HexToAddress(st.OnlineMarketingAccount)))
-	OfflineMarketing := (state.GetBalance(common.HexToAddress(st.OfflineMarketingAccount)))
-	total1 := new(big.Int).Sub(total, Foundation)
-	total2 := new(big.Int).Sub(total1, MiningReward)
-	total3 := new(big.Int).Sub(total2, VerifyReward)
-	total4 := new(big.Int).Sub(total3, VotingReward)
-	total5 := new(big.Int).Sub(total4, Team)
-	total6 := new(big.Int).Sub(total5, OnlineMarketing)
-	total7 := new(big.Int).Sub(total6, OfflineMarketing)
-	return (*hexutil.Big)(total7)
+	//total := (new(big.Int).Mul(big.NewInt(9e+9), big.NewInt(1e+18)))
+	total := new(big.Int).Mul(big.NewInt(1e+10), big.NewInt(params.Inber))
+
+	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
+	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
+		total = new(big.Int).Sub(total, state.GetBalance(v.TotalAddress))
+	}
+	return total.String()
+
+	//Foundation := (state.GetBalance(common.HexToAddress(st.FoundationAccount)))
+	//MiningReward := (state.GetBalance(common.HexToAddress(st.MiningRewardAccount)))
+	//VerifyReward := (state.GetBalance(common.HexToAddress(st.VerifyRewardAccount)))
+	//VotingReward := (state.GetBalance(common.HexToAddress(st.VotingRewardAccount)))
+	//Team := (state.GetBalance(common.HexToAddress(st.TeamAccount)))
+	//OnlineMarketing := (state.GetBalance(common.HexToAddress(st.OnlineMarketingAccount)))
+	//OfflineMarketing := (state.GetBalance(common.HexToAddress(st.OfflineMarketingAccount)))
+	//total1 := new(big.Int).Sub(total, Foundation)
+	//total2 := new(big.Int).Sub(total1, MiningReward)
+	//total3 := new(big.Int).Sub(total2, VerifyReward)
+	//total4 := new(big.Int).Sub(total3, VotingReward)
+	//total5 := new(big.Int).Sub(total4, Team)
+	//total6 := new(big.Int).Sub(total5, OnlineMarketing)
+	//total7 := new(big.Int).Sub(total6, OfflineMarketing)
+	//return total7.String()
 
 }
 

@@ -23,10 +23,10 @@ var P = bigFromBase10("218882428718392752222464057452572750886963111572978236626
 var Order = bigFromBase10("21888242871839275222246405745257275088548364400416034343698204186575808495617")
 
 // XiTo2PMinusTnum1 is a prime over which we form a basic field.
-var XiToPMinusTnum1 = new(big.Int).Mul(big.NewInt(5e+5), big.NewInt(1e+18))
+var XiToPMinusTnum1 = new(big.Int).Mul(big.NewInt(5e+5), big.NewInt(1e+5))
 
 // XiTo2PMinusTnum2 is a prime over which we form a basic field.
-var XiToPMinusTnum2 = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+18))
+var XiToPMinusTnum2 = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5))
 
 //XiTo2PMinusTacc1 is Tacc, represented as little-endian 64-bit words.
 var XiTo2PMinusTacc1 = []byte{149, 92, 223, 37, 106, 209, 25, 37, 169, 212, 97, 197, 189, 54, 202, 105, 249, 127, 65, 162, 122}

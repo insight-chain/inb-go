@@ -146,17 +146,19 @@ var (
 )
 var (
 	TxConfig = &CommonConfig{
-		UseNet:           300,
-		UseCpu:           50,
-		CandidateSize:    30,
-		Wei:              big.NewInt(1e+18),
-		Circulation:      big.NewInt(5e+8),
-		Net:              big.NewInt(86400 * 1024 * 1024 * 12.5),
-		WeiOfUseNet:      big.NewInt(1e+16),
+		UseNet:        300,
+		UseCpu:        50,
+		CandidateSize: 30,
+		//Wei:              big.NewInt(1e+18),
+		Wei:         big.NewInt(1e+5), // 2019.9.11 inb by ghy
+		Circulation: big.NewInt(5e+8),
+		Net:         big.NewInt(86400 * 1024 * 1024 * 12.5),
+		//WeiOfUseNet:      big.NewInt(1e+16),
+		WeiOfUseNet:      big.NewInt(1e+4), // 2019.9.11 inb by ghy
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
-		Days:             [4]uint{1, 30, 180, 360},
+		Days:             [3]uint{30, 180, 360},
 		ResetDuration:    big.NewInt(24 * 60 * 60),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60),
 	}
@@ -222,7 +224,7 @@ type CommonConfig struct {
 
 	ResetDuration  *big.Int // duration of resetting nets
 	RegularLimit   int      // max value for regular mortgaging
-	Days           [4]uint
+	Days           [3]uint
 	RedeemDuration *big.Int //duration of redeeming
 }
 
