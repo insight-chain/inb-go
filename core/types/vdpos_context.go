@@ -21,14 +21,17 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/crypto/sha3"
 	"github.com/insight-chain/inb-go/ethdb"
+	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/trie"
 	"math/big"
 )
 
 type VdposContext struct {
-	voteTrie  *trie.Trie
-	tallyTrie *trie.Trie
+	voteTrie              *trie.Trie
+	tallyTrie             *trie.Trie
+	lightTokenTrie        *trie.Trie
+	lightTokenAccountTrie *trie.Trie
 
 	db     ethdb.Database
 	triedb *trie.Database
@@ -46,9 +49,46 @@ type Votes struct {
 	Stake     *big.Int
 }
 
+type LightTokenChangeType uint8
+
+const (
+	Add LightTokenChangeType = iota
+	Sub
+)
+
+type LightToken struct {
+	Name        string
+	Symbol      string
+	TotalSupply *big.Int
+}
+
+type LightTokenState struct {
+	LightTokenName string
+	Balance        *big.Int
+	State          uint8
+}
+
+type LightTokenAccount struct {
+	Address     common.Address
+	LightTokens []LightTokenState
+}
+
+type LightTokenChange struct {
+	Address        common.Address
+	LightTokenName string
+	ChangeBalance  *big.Int
+	ChangeType     LightTokenChangeType
+}
+
+type LightTokenChanges struct {
+	LTCs []LightTokenChange
+}
+
 var (
-	votePrefix  = []byte("vote-")
-	tallyPrefix = []byte("tally-")
+	votePrefix              = []byte("vote-")
+	tallyPrefix             = []byte("tally-")
+	lightTokenPrefix        = []byte("lt-")
+	lightTokenAccountPrefix = []byte("lta-")
 )
 
 func NewVoteTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
@@ -57,6 +97,14 @@ func NewVoteTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
 
 func NewTallyTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
 	return trie.NewTrieWithPrefix(root, tallyPrefix, triedb)
+}
+
+func NewLightTokenTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+	return trie.NewTrieWithPrefix(root, lightTokenPrefix, triedb)
+}
+
+func NewLightTokenAccountTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+	return trie.NewTrieWithPrefix(root, lightTokenAccountPrefix, triedb)
 }
 
 func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
@@ -69,11 +117,21 @@ func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	lightTokenTrie, err := NewLightTokenTrie(common.Hash{}, triedb)
+	if err != nil {
+		return nil, err
+	}
+	lightTokenAccountTrie, err := NewLightTokenAccountTrie(common.Hash{}, triedb)
+	if err != nil {
+		return nil, err
+	}
 	return &VdposContext{
-		voteTrie:  voteTrie,
-		tallyTrie: tallyTrie,
-		db:        db,
-		triedb:    triedb,
+		voteTrie:              voteTrie,
+		tallyTrie:             tallyTrie,
+		lightTokenTrie:        lightTokenTrie,
+		lightTokenAccountTrie: lightTokenAccountTrie,
+		db:     db,
+		triedb: triedb,
 	}, nil
 }
 
@@ -87,20 +145,34 @@ func NewVdposContextFromProto(db ethdb.Database, ctxProto *VdposContextProto) (*
 	if err != nil {
 		return nil, err
 	}
+	lightTokenTrie, err := NewLightTokenTrie(ctxProto.LightTokenHash, triedb)
+	if err != nil {
+		return nil, err
+	}
+	lightTokenAccountTrie, err := NewLightTokenAccountTrie(ctxProto.LightTokenAccountHash, triedb)
+	if err != nil {
+		return nil, err
+	}
 	return &VdposContext{
-		voteTrie:  voteTrie,
-		tallyTrie: tallyTrie,
-		db:        db,
-		triedb:    triedb,
+		voteTrie:              voteTrie,
+		tallyTrie:             tallyTrie,
+		lightTokenTrie:        lightTokenTrie,
+		lightTokenAccountTrie: lightTokenAccountTrie,
+		db:     db,
+		triedb: triedb,
 	}, nil
 }
 
 func (vc *VdposContext) Copy() *VdposContext {
 	voteTrie := *vc.voteTrie
 	tallyTrie := *vc.tallyTrie
+	lightTokenTrie := *vc.lightTokenTrie
+	lightTokenAccountTrie := *vc.lightTokenAccountTrie
 	return &VdposContext{
-		voteTrie:  &voteTrie,
-		tallyTrie: &tallyTrie,
+		voteTrie:              &voteTrie,
+		tallyTrie:             &tallyTrie,
+		lightTokenTrie:        &lightTokenTrie,
+		lightTokenAccountTrie: &lightTokenAccountTrie,
 	}
 }
 
@@ -108,6 +180,8 @@ func (vc *VdposContext) Root() (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, vc.voteTrie.Hash())
 	rlp.Encode(hw, vc.tallyTrie.Hash())
+	rlp.Encode(hw, vc.lightTokenTrie.Hash())
+	rlp.Encode(hw, vc.lightTokenAccountTrie.Hash())
 	hw.Sum(h[:0])
 	return h
 }
@@ -119,6 +193,8 @@ func (vc *VdposContext) Snapshot() *VdposContext {
 func (vc *VdposContext) RevertToSnapShot(snapshot *VdposContext) {
 	vc.voteTrie = snapshot.voteTrie
 	vc.tallyTrie = snapshot.tallyTrie
+	vc.lightTokenTrie = snapshot.lightTokenTrie
+	vc.lightTokenAccountTrie = snapshot.lightTokenAccountTrie
 }
 
 func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
@@ -128,18 +204,30 @@ func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
 		return err
 	}
 	vc.tallyTrie, err = NewTallyTrie(dcp.TallyHash, vc.triedb)
+	if err != nil {
+		return err
+	}
+	vc.lightTokenTrie, err = NewLightTokenTrie(dcp.LightTokenHash, vc.triedb)
+	if err != nil {
+		return err
+	}
+	vc.lightTokenAccountTrie, err = NewLightTokenAccountTrie(dcp.LightTokenAccountHash, vc.triedb)
 	return err
 }
 
 type VdposContextProto struct {
-	VoteHash  common.Hash `json:"voteRoot"         gencodec:"required"`
-	TallyHash common.Hash `json:"tallyRoot"        gencodec:"required"`
+	VoteHash              common.Hash `json:"voteRoot"                  gencodec:"required"`
+	TallyHash             common.Hash `json:"tallyRoot"                 gencodec:"required"`
+	LightTokenHash        common.Hash `json:"lightTokenRoot"            gencodec:"required"`
+	LightTokenAccountHash common.Hash `json:"lightTokenAccountRoot"     gencodec:"required"`
 }
 
 func (vc *VdposContext) ToProto() *VdposContextProto {
 	return &VdposContextProto{
-		VoteHash:  vc.voteTrie.Hash(),
-		TallyHash: vc.tallyTrie.Hash(),
+		VoteHash:              vc.voteTrie.Hash(),
+		TallyHash:             vc.tallyTrie.Hash(),
+		LightTokenHash:        vc.lightTokenTrie.Hash(),
+		LightTokenAccountHash: vc.lightTokenAccountTrie.Hash(),
 	}
 }
 
@@ -147,6 +235,8 @@ func (p *VdposContextProto) Root() (h common.Hash) {
 	hw := sha3.NewKeccak256()
 	rlp.Encode(hw, p.VoteHash)
 	rlp.Encode(hw, p.TallyHash)
+	rlp.Encode(hw, p.LightTokenHash)
+	rlp.Encode(hw, p.LightTokenAccountHash)
 	hw.Sum(h[:0])
 	return h
 }
@@ -170,18 +260,44 @@ func (vc *VdposContext) Commit() (*VdposContextProto, error) {
 		return nil, err
 	}
 
+	lightTokenRoot, err := vc.lightTokenTrie.Commit(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = vc.triedb.Commit(lightTokenRoot, false)
+	if err != nil {
+		return nil, err
+	}
+
+	lightTokenAccountRoot, err := vc.lightTokenAccountTrie.Commit(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = vc.triedb.Commit(lightTokenAccountRoot, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContextProto{
-		VoteHash:  voteRoot,
-		TallyHash: tallyRoot,
+		VoteHash:              voteRoot,
+		TallyHash:             tallyRoot,
+		LightTokenHash:        lightTokenRoot,
+		LightTokenAccountHash: lightTokenAccountRoot,
 	}, nil
 }
 
-func (vc *VdposContext) VoteTrie() *trie.Trie      { return vc.voteTrie }
-func (vc *VdposContext) TallyTrie() *trie.Trie     { return vc.tallyTrie }
-func (vc *VdposContext) GetDB() ethdb.Database     { return vc.db }
-func (vc *VdposContext) SetDB(db ethdb.Database)   { vc.db = db }
-func (vc *VdposContext) SetVote(vote *trie.Trie)   { vc.voteTrie = vote }
-func (vc *VdposContext) SetTally(tally *trie.Trie) { vc.tallyTrie = tally }
+func (vc *VdposContext) GetDB() ethdb.Database               { return vc.db }
+func (vc *VdposContext) SetDB(db ethdb.Database)             { vc.db = db }
+func (vc *VdposContext) VoteTrie() *trie.Trie                { return vc.voteTrie }
+func (vc *VdposContext) TallyTrie() *trie.Trie               { return vc.tallyTrie }
+func (vc *VdposContext) SetVote(vote *trie.Trie)             { vc.voteTrie = vote }
+func (vc *VdposContext) SetTally(tally *trie.Trie)           { vc.tallyTrie = tally }
+func (vc *VdposContext) LightTokenTrie() *trie.Trie          { return vc.lightTokenTrie }
+func (vc *VdposContext) LightTokenAccountTrie() *trie.Trie   { return vc.lightTokenAccountTrie }
+func (vc *VdposContext) SetLightToken(lightToken *trie.Trie) { vc.lightTokenTrie = lightToken }
+func (vc *VdposContext) SetLightTokenAccount(lightTokenAccount *trie.Trie) {
+	vc.lightTokenAccountTrie = lightTokenAccount
+}
 
 func (vc *VdposContext) UpdateTallys(tally *Tally) error {
 	addr := tally.Address
@@ -281,7 +397,6 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error
 	return nil
 }
 
-
 //2019.9.4 inb by ghy end
 
 func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
@@ -324,3 +439,131 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 	return nil
 }
 
+func (vc *VdposContext) GetLightToken(name string) (*LightToken, error) {
+	lightTokenRLP := vc.lightTokenTrie.Get([]byte(name))
+	if lightTokenRLP != nil {
+		lightToken := new(LightToken)
+		if err := rlp.DecodeBytes(lightTokenRLP, lightToken); err != nil {
+			return nil, fmt.Errorf("failed to decode lightToken: %s", err)
+		}
+		return lightToken, nil
+	} else {
+		return nil, nil
+	}
+}
+
+func (vc *VdposContext) GetLightTokenAccountByAddress(address common.Address) (*LightTokenAccount, error) {
+	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(address[:])
+	if lightTokenAccountRLP == nil {
+		return nil, fmt.Errorf("this account has none of lightTokens")
+	} else {
+		lightTokenAccount := new(LightTokenAccount)
+		if err := rlp.DecodeBytes(lightTokenAccountRLP, lightTokenAccount); err != nil {
+			return nil, fmt.Errorf("failed to decode lightTokenAccount: %s", err)
+		}
+		return lightTokenAccount, nil
+	}
+}
+
+func (vc *VdposContext) GetLightTokenBalanceByAddress(address common.Address, lightTokenName string) (*big.Int, error) {
+	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(address[:])
+	if lightTokenAccountRLP == nil {
+		return big.NewInt(0), fmt.Errorf("this account has none of lightTokens")
+	} else {
+		lightTokenAccount := new(LightTokenAccount)
+		if err := rlp.DecodeBytes(lightTokenAccountRLP, lightTokenAccount); err != nil {
+			return big.NewInt(0), fmt.Errorf("failed to decode lightTokenAccount: %s", err)
+		}
+		place := vc.IsLightTokenExistInAccount(lightTokenName, lightTokenAccount.LightTokens)
+		if place == -1 {
+			return big.NewInt(0), fmt.Errorf("this account do not has this lightToken")
+		} else {
+			return lightTokenAccount.LightTokens[place].Balance, nil
+		}
+	}
+}
+
+func (vc *VdposContext) UpdateLightToken(lightToken *LightToken) error {
+	name := []byte(lightToken.Name)
+	lightTokenRLP, err := rlp.EncodeToBytes(lightToken)
+	if err != nil {
+		return fmt.Errorf("failed to encode lightToken to rlp bytes: %s", err)
+	}
+	vc.lightTokenTrie.Update(name, lightTokenRLP)
+	return nil
+}
+
+func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenChanges) error {
+
+	for _, lightTokenChange := range lightTokenChanges.LTCs {
+
+		oldLightTokenAccountRLP := vc.lightTokenAccountTrie.Get(lightTokenChange.Address[:])
+		if oldLightTokenAccountRLP != nil {
+			lightTokenAccount := new(LightTokenAccount)
+			if err := rlp.DecodeBytes(oldLightTokenAccountRLP, lightTokenAccount); err != nil {
+				return fmt.Errorf("failed to decode lightTokenAccount: %s", err)
+			}
+			place := vc.IsLightTokenExistInAccount(lightTokenChange.LightTokenName, lightTokenAccount.LightTokens)
+			if lightTokenChange.ChangeType == Add {
+				if place != -1 {
+					balance := lightTokenAccount.LightTokens[place].Balance
+					lightTokenAccount.LightTokens[place].Balance = balance.Add(balance, lightTokenChange.ChangeBalance)
+				} else {
+					lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
+						LightTokenName: lightTokenChange.LightTokenName,
+						Balance:        lightTokenChange.ChangeBalance,
+						State:          0,
+					})
+				}
+			} else if lightTokenChange.ChangeType == Sub {
+				if place != -1 {
+					balance := lightTokenAccount.LightTokens[place].Balance
+					if balance.Cmp(lightTokenChange.ChangeBalance) == -1 {
+						log.Debug("Not enough balance")
+						continue
+					} else {
+						lightTokenAccount.LightTokens[place].Balance = balance.Sub(balance, lightTokenChange.ChangeBalance)
+					}
+				} else {
+					log.Debug("Not found token,so do't need to sub")
+					continue
+				}
+			}
+
+			newLightTokenAccountRLP, err := rlp.EncodeToBytes(lightTokenAccount)
+			if err != nil {
+				return fmt.Errorf("failed to encode lightTokenAccount to rlp bytes: %s", err)
+			}
+			vc.lightTokenAccountTrie.Update(lightTokenChange.Address[:], newLightTokenAccountRLP)
+		} else {
+			if lightTokenChange.ChangeType == Add {
+				lightTokenAccount := new(LightTokenAccount)
+				lightTokenAccount.Address = lightTokenChange.Address
+				lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
+					LightTokenName: lightTokenChange.LightTokenName,
+					Balance:        lightTokenChange.ChangeBalance,
+					State:          0,
+				})
+				newLightTokenAccountRLP, err := rlp.EncodeToBytes(lightTokenAccount)
+				if err != nil {
+					return fmt.Errorf("failed to encode lightTokenAccount to rlp bytes: %s", err)
+				}
+				vc.lightTokenAccountTrie.Update(lightTokenChange.Address[:], newLightTokenAccountRLP)
+			} else if lightTokenChange.ChangeType == Sub {
+				log.Debug("Not found account,so do't need to sub")
+				continue
+			}
+		}
+
+	}
+	return nil
+}
+
+func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenName string, lightTokenStates []LightTokenState) int {
+	for i, lightTokenState := range lightTokenStates {
+		if lightTokenName == lightTokenState.LightTokenName {
+			return i
+		}
+	}
+	return -1
+}

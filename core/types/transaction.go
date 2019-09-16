@@ -54,12 +54,15 @@ const (
 	SpecilaTx
 	Repayment
 	Contract
+	IssueLightToken
+	TransferLightToken
 )
 
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Repayment && txType != Contract {
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Repayment &&
+		txType != Contract && txType != IssueLightToken && txType != TransferLightToken {
 		flag = false
 	}
 	return flag

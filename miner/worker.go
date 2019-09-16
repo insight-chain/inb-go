@@ -944,7 +944,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	// add by ssh 190906 begin
 	if num.Uint64() > 1 && !w.inturn(w.coinbase, uint64(timestamp), parent.Header()) && !w.inturn(w.coinbase, uint64(timestamp)+w.config.Vdpos.Period, parent.Header()) {
-		log.Error("Cancel commitNewWork: unauthorized signer")
+		log.Debug("Cancel commitNewWork: unauthorized signer")
 		return
 	}
 	// add by ssh 190906 end

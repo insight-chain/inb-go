@@ -123,3 +123,52 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 	}
 	return nodesInfo
 }
+
+func (api *API) GetLightTokenByName(name string) *types.LightToken {
+	header := api.chain.CurrentHeader()
+	if header == nil {
+		return nil
+	}
+
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+	if err != nil {
+		return nil
+	}
+
+	lightToken, err := vdposContext.GetLightToken(name)
+	if err != nil {
+		return nil
+	} else {
+		return lightToken
+	}
+}
+
+func (api *API) GetLightTokenAccountByAddress(address common.Address) *types.LightTokenAccount {
+	header := api.chain.CurrentHeader()
+	if header == nil {
+		return nil
+	}
+
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+	if err != nil {
+		return nil
+	}
+
+	lightTokenAccount, _ := vdposContext.GetLightTokenAccountByAddress(address)
+	return lightTokenAccount
+}
+
+func (api *API) GetLightTokenBalanceByAddress(address common.Address, lightTokenName string) string {
+	header := api.chain.CurrentHeader()
+	if header == nil {
+		return ""
+	}
+
+	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+	if err != nil {
+		return ""
+	}
+
+	balance, _ := vdposContext.GetLightTokenBalanceByAddress(address, lightTokenName)
+	return balance.String()
+}
