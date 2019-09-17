@@ -48,27 +48,25 @@ var (
 	DefaultInbIncreaseOneYear1       = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
 	DefaultInbIncreaseOneYear        = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(params.Inber))
 	OneYearBySec                     = int64(365 * 86400)
-	defaultBlockPeriod               = uint64(2)                                                      // Default minimum difference between two consecutive block's timestamps
-	defaultSignerPeriod              = uint64(2)                                                      // Default minimum difference between two signer's timestamps
-	defaultSignerBlocks              = uint64(6)                                                      // Default number of blocks every signer created
-	defaultMaxSignerCount            = uint64(21)                                                     // Default max signers
-	extraVanity                      = 32                                                             // Fixed number of extra-data prefix bytes reserved for signer vanity
-	extraSeal                        = 65                                                             // Fixed number of extra-data suffix bytes reserved for signer seal
-	uncleHash                        = types.CalcUncleHash(nil)                                       // Always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
-	defaultDifficulty                = big.NewInt(1)                                                  // Default difficulty
-	defaultLoopCntRecalculateSigners = uint64(5)                                                      // Default loop count to recreate signers from top tally
-	selfVoteSignersStake1            = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18))        // Default stake of selfVoteSigners in first LOOP
-	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // Default stake of selfVoteSigners in first LOOP
-	DefaultMinerReward1              = big.NewInt(6341958396752917300)                                // Default reward for miner in wei
-	DefaultMinerReward               = big.NewInt(634195)                                             // Default reward for miner in wei
-	BeVotedNeedINB1                  = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))
-	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(params.Inber))
-	//RevenueCycle                     = new(big.Int).Mul(big.NewInt(30),big.NewInt(24*60*60))
-	//RevenueCycleTime                 = uint64(30*24*60*60)
+	defaultBlockPeriod               = uint64(2)                                                      // default minimum difference between two consecutive block's timestamps
+	defaultSignerPeriod              = uint64(2)                                                      // default minimum difference between two signer's timestamps
+	defaultSignerBlocks              = uint64(6)                                                      // default number of blocks every signer created
+	defaultMaxSignerCount            = uint64(21)                                                     // default max signers
+	extraVanity                      = 32                                                             // fixed number of extra-data prefix bytes reserved for signer vanity
+	extraSeal                        = 65                                                             // fixed number of extra-data suffix bytes reserved for signer seal
+	uncleHash                        = types.CalcUncleHash(nil)                                       // always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
+	defaultDifficulty                = big.NewInt(1)                                                  // default difficulty
+	defaultLoopCntRecalculateSigners = uint64(5)                                                      // default loop count to recreate signers from top tally
+	selfVoteSignersStake1            = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18))        // default stake of selfVoteSigners in first LOOP
+	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // default stake of selfVoteSigners in first LOOP
+	DefaultMinerReward1              = big.NewInt(6341958396752917300)                                // default reward for miner in wei
+	DefaultMinerReward               = big.NewInt(634195)                                             // default reward for miner in wei
+	BeVotedNeedINB1                  = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))        // default min mortgage INB of candidates
+	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(params.Inber)) // default min mortgage INB of candidates
 
 )
 
-// Various error messages to mark blocks invalid. These should be private to
+// various error messages to mark blocks invalid. These should be private to
 // prevent engine specific errors from being referenced in the remainder of the
 // codebase, inherently breaking if the engine is swapped out. Please put common
 // error types into the consensus package.
@@ -76,8 +74,6 @@ var (
 	// errUnknownBlock is returned when the list of signers is requested for a block
 	// that is not part of the local blockchain.
 	errUnknownBlock = errors.New("unknown block")
-
-	errBlockOneHaveNoTx = errors.New("block  must have special transaction") //2019.9.6 inb by ghy
 
 	// errMissingVanity is returned if a block's extra-data section is shorter than
 	// 32 bytes, which is required to store the signer vanity.
@@ -134,7 +130,7 @@ type Vdpos struct {
 // New creates a Vdpos delegated-proof-of-stake consensus engine with the initial
 // signers set to the ones provided by the user.
 func New(config *params.VdposConfig, db ethdb.Database) *Vdpos {
-	// Set any missing consensus parameters to their defaults
+	// set any missing consensus parameters to their defaults
 	conf := *config
 	if conf.Period == 0 {
 		conf.Period = defaultBlockPeriod
@@ -149,7 +145,7 @@ func New(config *params.VdposConfig, db ethdb.Database) *Vdpos {
 		conf.MaxSignerCount = defaultMaxSignerCount
 	}
 
-	// Allocate the snapshot caches and create the engine
+	// allocate the snapshot caches and create the engine
 	recents, _ := lru.NewARC(inMemorySnapshots)
 	signatures, _ := lru.NewARC(inMemorySignatures)
 
@@ -203,12 +199,12 @@ func (v *Vdpos) verifyHeader(chain consensus.ChainReader, header *types.Header, 
 		return errUnknownBlock
 	}
 
-	// Don't waste time checking blocks from the future
+	// don't waste time checking blocks from the future
 	if header.Time.Cmp(big.NewInt(time.Now().Unix())) > 0 {
 		return consensus.ErrFutureBlock
 	}
 
-	// Check that the extra-data contains both the vanity and signature
+	// check that the extra-data contains both the vanity and signature
 	if len(header.Extra) < extraVanity {
 		return errMissingVanity
 	}
@@ -216,12 +212,12 @@ func (v *Vdpos) verifyHeader(chain consensus.ChainReader, header *types.Header, 
 		return errMissingSignature
 	}
 
-	// Ensure that the mix digest is zero as we don't have fork protection currently
+	// ensure that the mix digest is zero as we don't have fork protection currently
 	if header.MixDigest != (common.Hash{}) {
 		return errInvalidMixDigest
 	}
 
-	// Ensure that the block doesn't contain any uncles which are meaningless in Vdpos
+	// ensure that the block doesn't contain any uncles which are meaningless in Vdpos
 	if header.UncleHash != uncleHash {
 		return errInvalidUncleHash
 	}
@@ -231,7 +227,7 @@ func (v *Vdpos) verifyHeader(chain consensus.ChainReader, header *types.Header, 
 	//	return err
 	//}
 
-	// All basic checks passed, verify cascading fields
+	// all basic checks passed, verify cascading fields
 	return v.verifyCascadingFields(chain, header, parents)
 }
 
@@ -261,7 +257,7 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 		return errUnknownBlock
 	}
 
-	// Resolve the authorization key and check against signers
+	// resolve the authorization key and check against signers
 	signer, err := ecrecover(header, v.signatures)
 	if err != nil {
 		return err
@@ -317,7 +313,7 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 // Prepare implements consensus.Engine, preparing all the consensus fields of the
 // header for running the transactions on top.
 func (v *Vdpos) Prepare(chain consensus.ChainReader, header *types.Header) error {
-	// Set the correct difficulty
+	// set the correct difficulty
 	header.Difficulty = new(big.Int).Set(defaultDifficulty)
 
 	if v.config.GenesisTimestamp < uint64(time.Now().Unix()) {
@@ -351,16 +347,16 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 
 	number := header.Number.Uint64()
 
-	// Mix digest is reserved for now, set to empty
+	// mix digest is reserved for now, set to empty
 	header.MixDigest = common.Hash{}
 
-	// Ensure the timestamp has the correct delay
+	// ensure the timestamp has the correct delay
 	parent := chain.GetHeader(header.ParentHash, number-1)
 	if parent == nil {
 		return nil, consensus.ErrUnknownAncestor
 	}
 	header.SpecialConsensus = parent.SpecialConsensus //2019.7.23 inb by ghy
-	//config.Period != config.SignerPeriod
+	// handle config.Period != config.SignerPeriod
 	if (number-1)%v.config.SignerBlocks == 0 {
 		header.Time = new(big.Int).Add(parent.Time, new(big.Int).SetUint64(v.config.SignerPeriod))
 	} else {
@@ -371,7 +367,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		header.Time = big.NewInt(time.Now().Unix())
 	}
 
-	// Ensure the extra data has all it's components
+	// ensure the extra data has all it's components
 	if len(header.Extra) < extraVanity {
 		header.Extra = append(header.Extra, bytes.Repeat([]byte{0x00}, extraVanity-len(header.Extra))...)
 	}
@@ -439,12 +435,11 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			}
 		}
 	} else if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
-		//config.Period != config.SignerPeriod
 		//currentHeaderExtra.LoopStartTime += v.config.Period * v.config.MaxSignerCount * v.config.SignerBlocks
+		// handle config.Period != config.SignerPeriod
 		currentHeaderExtra.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
-		// create random signersPool in currentHeaderExtra by snapshot.Tally
+		// create random signersPool in currentHeaderExtra
 		currentHeaderExtra.SignersPool = []common.Address{}
-
 		newSignersPool, err := snapContext.createSignersPool()
 		if err != nil {
 			log.Error("err", err)
@@ -453,7 +448,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.SignersPool = newSignersPool
 	}
 
-	// Accumulate any block rewards and commit the final state root
+	// accumulate any block rewards and commit the final state root
 	//v.accumulateRewards(chain.Config(), state, header)
 
 	// encode header.extra
@@ -466,12 +461,12 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	header.Extra = append(header.Extra, currentHeaderExtraEnc...)
 	header.Extra = append(header.Extra, make([]byte, extraSeal)...)
 
-	// Set the correct difficulty
+	// set the correct difficulty
 	header.Difficulty = new(big.Int).Set(defaultDifficulty)
 
 	header.Root = state.IntermediateRoot(chain.Config().IsEIP158(header.Number))
 
-	// No uncle block
+	// no uncle block
 	header.UncleHash = types.CalcUncleHash(nil)
 
 	header.VdposContext = vdposContext.ToProto()
@@ -498,29 +493,31 @@ func (v *Vdpos) Authorize(signer common.Address, signFn SignerFn, signTxFn SignT
 func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results chan<- *types.Block, stop <-chan struct{}) error {
 	header := block.Header()
 
-	//2019.9.6 inb by ghy begin
-	if len(block.Transactions()) == 0 {
-		return errBlockOneHaveNoTx
-	}
-	//2019.9.6 inb by ghy end
-
-	// Sealing the genesis block is not supported
+	// sealing the genesis block is not supported
 	number := header.Number.Uint64()
 	if number == 0 {
 		return errUnknownBlock
 	}
 
-	// For 0-period chains, refuse to seal empty blocks (no reward but would spin sealing)
-	if v.config.Period == 0 && len(block.Transactions()) == 0 {
-		log.Info("Sealing paused, waiting for transactions")
+	// for 0-period chains, refuse to seal empty blocks (no reward but would spin sealing)
+	//if v.config.Period == 0 && len(block.Transactions()) == 0 {
+	//	log.Info("Sealing paused, waiting for transactions")
+	//	return nil
+	//}
+
+	//2019.9.6 inb by ghy begin
+	if len(block.Transactions()) == 0 {
+		log.Debug("Sealing paused, waiting for transactions")
 		return nil
 	}
-	// Don't hold the signer fields for the entire sealing procedure
+	//2019.9.6 inb by ghy end
+
+	// don't hold the signer fields for the entire sealing procedure
 	v.lock.RLock()
 	signer, signFn := v.signer, v.signFn
 	v.lock.RUnlock()
 
-	// Bail out if we're unauthorized to sign a block
+	// bail out if we're unauthorized to sign a block
 	parent := chain.GetHeader(header.ParentHash, number-1)
 
 	vdposContext, err := types.NewVdposContextFromProto(v.db, parent.VdposContext)
@@ -543,7 +540,7 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 	//case <-time.After(delay):
 	//}
 
-	// Sign all the things!
+	// sign all the things!
 	headerSigHash := sigHash(header)
 
 	sighash, err := signFn(accounts.Account{Address: signer}, headerSigHash.Bytes())
@@ -553,7 +550,7 @@ func (v *Vdpos) Seal(chain consensus.ChainReader, block *types.Block, results ch
 
 	copy(header.Extra[len(header.Extra)-extraSeal:], sighash)
 
-	// Wait until sealing is terminated or delay timeout.
+	// wait until sealing is terminated or delay timeout.
 	log.Trace("Waiting for slot to sign and propagate", "delay", common.PrettyDuration(delay))
 	go func() {
 		select {
@@ -644,18 +641,18 @@ func sigHash(header *types.Header) (hash common.Hash) {
 
 // ecrecover extracts the Ethereum account address from a signed header.
 func ecrecover(header *types.Header, sigcache *lru.ARCCache) (common.Address, error) {
-	// If the signature's already cached, return that
+	// if the signature's already cached, return that
 	hash := header.Hash()
 	if address, known := sigcache.Get(hash); known {
 		return address.(common.Address), nil
 	}
-	// Retrieve the signature from the header extra-data
+	// retrieve the signature from the header extra-data
 	if len(header.Extra) < extraSeal {
 		return common.Address{}, errMissingSignature
 	}
 	signature := header.Extra[len(header.Extra)-extraSeal:]
 
-	// Recover the public key and the Ethereum address
+	// recover the public key and the Ethereum address
 	headerSigHash := sigHash(header)
 	pubkey, err := crypto.Ecrecover(headerSigHash.Bytes(), signature)
 	if err != nil {
@@ -694,12 +691,12 @@ func (v *Vdpos) snapContext(config *params.VdposConfig, db *state.StateDB, heade
 // in a batch of parents (ascending order) to avoid looking those up from the
 // database. This is useful for concurrently verifying a batch of new headers.
 func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types.Header, parents []*types.Header) error {
-	// The genesis block is the always valid dead-end
+	// the genesis block is the always valid dead-end
 	number := header.Number.Uint64()
 	if number == 0 {
 		return nil
 	}
-	// Ensure that the block's timestamp isn't too close to it's parent
+	// ensure that the block's timestamp isn't too close to it's parent
 	var parent *types.Header
 	if len(parents) > 0 {
 		parent = parents[len(parents)-1]
@@ -710,7 +707,7 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 		return consensus.ErrUnknownAncestor
 	}
 
-	//config.Period != config.SignerPeriod
+	//handle config.Period != config.SignerPeriod
 	var hTime uint64
 	if (number-1)%v.config.SignerBlocks == 0 {
 		hTime = parent.Time.Uint64() + v.config.SignerPeriod
@@ -721,7 +718,7 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 		return ErrInvalidTimestamp
 	}
 
-	// All basic checks passed, verify the seal and return
+	// all basic checks passed, verify the seal and return
 	return v.verifySeal(chain, header, parents)
 }
 
@@ -824,7 +821,7 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //	return signerMissing
 //}
 
-// Get the signers from header
+// getSigners Get the signers from header
 func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {
 	// decode header.extra
 	headerExtra := HeaderExtra{}

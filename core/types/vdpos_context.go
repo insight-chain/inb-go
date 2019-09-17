@@ -64,30 +64,38 @@ type LightToken struct {
 	TotalSupply         *big.Int
 	IssueAccountAddress common.Address
 	IssueTxHash         common.Hash
+	Owner               common.Address
+}
+
+type ApproveInfo struct {
+	Receiver common.Address
+	Balance  *big.Int
+	State    uint8
 }
 
 type LightTokenState struct {
 	LightTokenAddress common.Address
-	LightTokenName    string
+	LT                *LightToken
 	Balance           *big.Int
+	ApproveInfos      []*ApproveInfo
 	State             uint8
 }
 
 type LightTokenAccount struct {
 	Address     common.Address
-	LightTokens []LightTokenState
+	LightTokens []*LightTokenState
 }
 
 type LightTokenChange struct {
 	AccountAddress    common.Address
 	LightTokenAddress common.Address
-	LightTokenName    string
+	LT                *LightToken
 	ChangeBalance     *big.Int
 	ChangeType        LightTokenChangeType
 }
 
 type LightTokenChanges struct {
-	LTCs []LightTokenChange
+	LTCs []*LightTokenChange
 }
 
 var (
@@ -515,9 +523,9 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 					balance := lightTokenAccount.LightTokens[place].Balance
 					lightTokenAccount.LightTokens[place].Balance = balance.Add(balance, lightTokenChange.ChangeBalance)
 				} else {
-					lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
+					lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, &LightTokenState{
 						LightTokenAddress: lightTokenChange.LightTokenAddress,
-						LightTokenName:    lightTokenChange.LightTokenName,
+						LT:                lightTokenChange.LT,
 						Balance:           lightTokenChange.ChangeBalance,
 						State:             0,
 					})
@@ -546,9 +554,9 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 			if lightTokenChange.ChangeType == Add {
 				lightTokenAccount := new(LightTokenAccount)
 				lightTokenAccount.Address = lightTokenChange.AccountAddress
-				lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
+				lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, &LightTokenState{
 					LightTokenAddress: lightTokenChange.LightTokenAddress,
-					LightTokenName:    lightTokenChange.LightTokenName,
+					LT:                lightTokenChange.LT,
 					Balance:           lightTokenChange.ChangeBalance,
 					State:             0,
 				})
@@ -567,7 +575,7 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 	return nil
 }
 
-func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenAddress common.Address, lightTokenStates []LightTokenState) int {
+func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenAddress common.Address, lightTokenStates []*LightTokenState) int {
 	for i, lightTokenState := range lightTokenStates {
 		if lightTokenAddress == lightTokenState.LightTokenAddress {
 			return i

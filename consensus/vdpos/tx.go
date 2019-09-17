@@ -293,9 +293,6 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 		decimals := uint8(decimalsNum)
 		totalSupplyStr := lightTokenInfo[PosEventIssueLightTokenTotalSupply]
 		totalSupply, ok := new(big.Int).SetString(totalSupplyStr, 10)
-		for i := 1; i <= int(decimals); i++ {
-			totalSupply = new(big.Int).Mul(totalSupply, big.NewInt(10))
-		}
 		if !ok {
 			return errors.Errorf("unable to convert string to big integer: %v", totalSupplyStr)
 		}
@@ -303,6 +300,7 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 		lightTokenAddressBytes := append([]byte{149}, txHash[:20]...)
 		lightTokenAddress := common.BytesToAddress(lightTokenAddressBytes)
 
+		// first update lightTokenTrie
 		lightToken := &types.LightToken{
 			Address:             lightTokenAddress,
 			Name:                name,
@@ -311,8 +309,8 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 			TotalSupply:         totalSupply,
 			IssueAccountAddress: txSender,
 			IssueTxHash:         txHash,
+			Owner:               txSender,
 		}
-
 		lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
 		if lightTokenExist != nil {
 			if err != nil {
@@ -321,17 +319,17 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 				return errors.Errorf("this lightToken has already exist")
 			}
 		}
-
 		err = vdposContext.UpdateLightToken(lightToken)
 		if err != nil {
 			return err
 		}
 
+		// second update lightTokenAccountTrie
 		lightTokenChanges := new(types.LightTokenChanges)
-		lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, types.LightTokenChange{
+		lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
 			AccountAddress:    txSender,
 			LightTokenAddress: lightTokenAddress,
-			LightTokenName:    name,
+			LT:                lightToken,
 			ChangeBalance:     totalSupply,
 			ChangeType:        types.Add,
 		})
@@ -347,6 +345,7 @@ func (v *Vdpos) processEventTransferLightToken(txData string, txSender common.Ad
 
 	lightTokenAddress := common.HexToAddress(txData)
 
+	// check up if lightToken exist
 	lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
 	if lightTokenExist == nil {
 		return errors.Errorf("this lightToken do not exist")
@@ -356,6 +355,7 @@ func (v *Vdpos) processEventTransferLightToken(txData string, txSender common.Ad
 		}
 	}
 
+	// check up if balance is enough
 	senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(txSender, lightTokenAddress)
 	if err != nil {
 		return errors.Errorf("err in vdposContext.GetLightTokenBalanceByAddress()")
@@ -364,16 +364,16 @@ func (v *Vdpos) processEventTransferLightToken(txData string, txSender common.Ad
 			return errors.Errorf("not enough lightToken balance to transfer")
 		} else {
 			lightTokenChanges := new(types.LightTokenChanges)
-			lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, types.LightTokenChange{
+			lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
 				AccountAddress:    txSender,
 				LightTokenAddress: lightTokenAddress,
-				LightTokenName:    lightTokenExist.Name,
+				LT:                lightTokenExist,
 				ChangeBalance:     value,
 				ChangeType:        types.Sub,
-			}, types.LightTokenChange{
+			}, &types.LightTokenChange{
 				AccountAddress:    txReceiver,
 				LightTokenAddress: lightTokenAddress,
-				LightTokenName:    lightTokenExist.Name,
+				LT:                lightTokenExist,
 				ChangeBalance:     value,
 				ChangeType:        types.Add,
 			})

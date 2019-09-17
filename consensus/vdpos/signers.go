@@ -33,8 +33,8 @@ import (
 )
 
 const (
-	candidateMaxLen   = 50
-	defaultFullCredit = 1
+	candidateMaxLen   = 50 //max lenth of candidate
+	defaultFullCredit = 1  //default rate of stake
 )
 
 type TallyItem struct {
@@ -77,11 +77,12 @@ func (s *SnapContext) verifySignersPool(signersPool []common.Address) error {
 	return nil
 }
 
+// build TallySlice from TallyTrie
 func (s *SnapContext) buildTallySlice() TallySlice {
 	var tallySlice TallySlice
 	tallTrie := s.VdposContext.TallyTrie()
+	// use trie iterator
 	tallyIterator := trie.NewIterator(tallTrie.PrefixIterator(nil))
-
 	existTally := tallyIterator.Next()
 	if !existTally {
 		return nil
@@ -103,6 +104,7 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 }
 
 func (s *SnapContext) createSignersPool() ([]common.Address, error) {
+	// check up if we really need to create signersPool
 	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks) != 0 {
 		return nil, errCreateSignersPoolNotAllowed
 	}
@@ -110,6 +112,7 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 	var topStakeAddress []common.Address
 	var tallySliceOrder TallySlice
 
+	// use parent block hash as seed so that every signers can use the same one
 	seed := int64(binary.LittleEndian.Uint32(crypto.Keccak512(s.ParentHash.Bytes())))
 
 	// only recalculate signers from to tally per defaultLoopCntRecalculateSigners loop,
@@ -199,10 +202,7 @@ func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent
 	loopStartTime := parentExtra.LoopStartTime
 	signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
-		//config.Period != config.SignerPeriod
-		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
-		//	return true
-		//}
+		// handle config.Period != config.SignerPeriod
 		if loopIndex := ((headerTime - loopStartTime) / (s.config.Period*(s.config.SignerBlocks-1) + s.config.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true
 		}
