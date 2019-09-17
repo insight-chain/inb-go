@@ -77,8 +77,8 @@ type Message interface {
 	Data() []byte
 	//achilles repayment add apis
 	Types() types.TxType
-	//ResourcePayer() common.Address
-	//IsRePayment() bool
+	ResourcePayer() common.Address
+	IsRePayment() bool
 	Receive() *big.Int
 }
 
@@ -247,9 +247,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	//achilles repayment add apis
 	netPayment := st.msg.From()
-	//if st.msg.IsRePayment() {
-	//	netPayment = st.msg.ResourcePayer()
-	//}
+	if st.msg.IsRePayment() {
+		netPayment = st.msg.ResourcePayer()
+	}
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())

@@ -524,7 +524,7 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int) *big.Int {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		return stateObject.MortgageNet(amount, duration, sTime)

@@ -40,7 +40,7 @@ type StateDB interface {
 	GetRedeemTime(addr common.Address) *big.Int
 	GetRegular(addr common.Address) *big.Int
 	GetRedeem(addr common.Address) *big.Int
-	MortgageNet(addr common.Address, amount *big.Int, duration uint, sTime big.Int) *big.Int
+	MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int
 	ResetNet(addr common.Address, update *big.Int) *big.Int
 	Receive(addr common.Address, sTime *big.Int) *big.Int
 	Redeem(addr common.Address, amount *big.Int, sTime *big.Int)

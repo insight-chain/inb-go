@@ -114,7 +114,7 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration uint, sTime big.Int) *big.Int {
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
 	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
 	return db.MortgageNet(sender, amount, duration, sTime)
@@ -169,8 +169,8 @@ func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {
 	return nil
 }
 
-func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration uint) error {
-	if duration > 0 {
+func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *big.Int) error {
+	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
 			return errors.New(" exceeds mortgagtion count limit ")
 		}
