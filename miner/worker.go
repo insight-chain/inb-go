@@ -943,10 +943,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	env := w.current
 
 	// add by ssh 190906 begin
-	if num.Uint64() > 1 && !w.inturn(w.coinbase, uint64(timestamp), parent.Header()) && !w.inturn(w.coinbase, uint64(timestamp)+w.config.Vdpos.Period, parent.Header()) {
-		log.Debug("Cancel commitNewWork: unauthorized signer")
-		return
-	}
+	//if num.Uint64() > 1 && !w.inturn(w.coinbase, uint64(timestamp), parent.Header()) && !w.inturn(w.coinbase, uint64(timestamp)+w.config.Vdpos.Period, parent.Header()) {
+	//	log.Debug("Cancel commitNewWork: unauthorized signer")
+	//	return
+	//}
 	// add by ssh 190906 end
 
 	//if w.config.DAOForkSupport && w.config.DAOForkBlock != nil && w.config.DAOForkBlock.Cmp(header.Number) == 0 {

@@ -93,13 +93,13 @@ web3._extend({
 			params: 0
 		}),
 		new web3._extend.Method({
-			name: 'getLightTokenByName',
-			call: 'vdpos_getLightTokenByName',
+			name: 'getLightTokenByAddress',
+			call: 'vdpos_getLightTokenByAddress',
 			params: 1
 		}),
 		new web3._extend.Method({
-			name: 'getLightTokenAccountByAddress',
-			call: 'vdpos_getLightTokenAccountByAddress',
+			name: 'getLightTokenAccountByAccountAddress',
+			call: 'vdpos_getLightTokenAccountByAccountAddress',
 			params: 1
 		}),
 		new web3._extend.Method({
