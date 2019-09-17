@@ -757,8 +757,8 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 
 			timeNow := pool.chain.CurrentHeader().Time
 
-			startTime := &v.StartTime
-			lastReceivedTime := v.LastReceivedTime
+			startTime := &v.StartHeight
+			lastReceivedTime := v.LastReceivedHeight
 
 			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
 			endTimeSecond := new(big.Int).Add(startTime, daySeconds)

@@ -60,7 +60,7 @@ const (
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract && txType != IssueLightToken && txType != TransferLightToken{
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract && txType != IssueLightToken && txType != TransferLightToken {
 		flag = false
 	}
 	return flag
@@ -407,7 +407,7 @@ func (tx *Transaction) IsRepayment() bool {
 		return false
 	}
 	var resourcePayer common.Address
-	if resourcePayer == *tx.data.Repayment.ResourcePayer {
+	if nil == tx.data.Repayment.ResourcePayer || resourcePayer == *tx.data.Repayment.ResourcePayer {
 		return false
 	}
 	return true

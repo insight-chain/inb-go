@@ -277,11 +277,11 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 			return nil, net, err, nil
 		}
 	} else if txType == types.Reset {
-		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.Time); err != nil {
+		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.BlockNumber); err != nil {
 			return nil, net, err, nil
 		}
 	} else if txType == types.Receive {
-		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.Time); err != nil {
+		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.BlockNumber); err != nil {
 			return nil, net, err, nil
 		}
 	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
@@ -322,11 +322,11 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		evm.Vote(evm.StateDB, caller.Address(), evm.Time)
 	}
 	if txType == types.Redeem {
-		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.Time)
+		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.BlockNumber)
 	} else if txType == types.Regular || txType == types.Mortgage {
-		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.Time)
+		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, uint(days), *evm.BlockNumber)
 	} else if txType == types.Reset {
-		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.Time)
+		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.ReceiveVoteAward {
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, toAddress) //2019.7.24 inb by ghy
 	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
@@ -340,7 +340,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.Time, toAddress)
 		//} //2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
-		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.Time)
+		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}

@@ -117,7 +117,7 @@ type Resource struct {
 	Used         *big.Int // used
 	Usableness   *big.Int // unuse
 	MortgagteINB *big.Int //
-	Date         *big.Int
+	Height       *big.Int
 }
 
 //Resource by zc
@@ -133,17 +133,17 @@ type Resource struct {
 //}
 
 type Store struct {
-	Nonce            uint64   // transaction of regular mortgaging
-	StartTime        big.Int  // start time
-	Days             uint     // duration of mortgaging
-	Value            big.Int  // amount of mortgaging
-	Received         big.Int  // amount of already received value
-	LastReceivedTime *big.Int // Last receive time
+	Nonce              uint64   // transaction of regular mortgaging
+	StartHeight        big.Int  // start time
+	Days               uint     // duration of mortgaging
+	Value              big.Int  // amount of mortgaging
+	Received           big.Int  // amount of already received value
+	LastReceivedHeight *big.Int // Last receive time
 }
 
 type Redeem struct {
-	StartTime *big.Int // start time
-	Value     *big.Int // amount of redeeming
+	StartHeight *big.Int // start time
+	Value       *big.Int // amount of redeeming
 }
 
 //Resource by zc
@@ -395,11 +395,11 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 
 	if duration > 0 {
 		store := Store{
-			Nonce:            self.data.Nonce,
-			StartTime:        sTime,
-			Days:             duration,
-			Value:            *amount,
-			LastReceivedTime: &sTime,
+			Nonce:              self.data.Nonce,
+			StartHeight:        sTime,
+			Days:               duration,
+			Value:              *amount,
+			LastReceivedHeight: &sTime,
 		}
 		stores := append(self.data.Stores, store)
 		regular := new(big.Int).Add(self.data.Regular, amount)
@@ -489,10 +489,10 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consens
 			}
 
 			timeNow := time
-			startTime := &v.StartTime
+			startTime := &v.StartHeight
 			//totalValue := v.Value.Uint64()
 			//receivedValue := v.Received.Uint64()
-			lastReceivedTime := v.LastReceivedTime
+			lastReceivedTime := v.LastReceivedHeight
 
 			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
 			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
@@ -545,7 +545,7 @@ func (self *stateObject) ReceiveLockedAward(nonce int, value *big.Int, isAll boo
 		for k, v := range self.data.Stores {
 			if nonce == int(v.Nonce) {
 				self.AddBalance(value)
-				self.data.Stores[k].LastReceivedTime = time
+				self.data.Stores[k].LastReceivedHeight = time
 				if isAll {
 					self.AddBalance(&v.Value)
 
@@ -627,8 +627,8 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	self.SetNet(self.UsedNet(), self.Net(), mortgaging)
 
 	redeem := Redeem{
-		StartTime: sTime,
-		Value:     new(big.Int).Add(self.GetRedeem(), amount),
+		StartHeight: sTime,
+		Value:       new(big.Int).Add(self.GetRedeem(), amount),
 	}
 	self.data.Redeems[0] = redeem
 	self.SetRedeems(self.data.Redeems)
@@ -638,8 +638,8 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 
 	value := self.GetRedeem()
 	redeem := Redeem{
-		StartTime: sTime,
-		Value:     big.NewInt(0),
+		StartHeight: sTime,
+		Value:       big.NewInt(0),
 	}
 	self.data.Redeems[0] = redeem
 	self.SetRedeems(self.data.Redeems)
@@ -709,13 +709,13 @@ func (self *stateObject) SetDate(update *big.Int) {
 
 	self.db.journal.append(dateChange{
 		account: &self.address,
-		prev:    new(big.Int).Set(self.data.Res.Date),
+		prev:    new(big.Int).Set(self.data.Res.Height),
 	})
 	self.setDate(update)
 }
 
 func (self *stateObject) setDate(update *big.Int) {
-	self.data.Res.Date = update
+	self.data.Res.Height = update
 }
 
 //achilles0718 regular mortgagtion
@@ -833,7 +833,7 @@ func (self *stateObject) GetRedeem() *big.Int {
 }
 
 func (self *stateObject) GetRedeemTime() *big.Int {
-	return self.data.Redeems[0].StartTime
+	return self.data.Redeems[0].StartHeight
 }
 
 func (self *stateObject) Regular() *big.Int {
@@ -841,7 +841,7 @@ func (self *stateObject) Regular() *big.Int {
 }
 
 func (self *stateObject) Date() *big.Int {
-	return self.data.Res.Date
+	return self.data.Res.Height
 }
 
 //Resource by zc

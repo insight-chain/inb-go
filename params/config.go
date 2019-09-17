@@ -154,13 +154,13 @@ var (
 		Circulation: big.NewInt(5e+8),
 		Net:         big.NewInt(86400 * 1024 * 1024 * 12.5),
 		//WeiOfUseNet:      big.NewInt(1e+16),
-		WeiOfUseNet:      big.NewInt(1e+4), // 2019.9.11 inb by ghy
+		WeiOfUseNet:      big.NewInt(1e+3), // 2019.9.11 inb by ghy
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
 		Days:             [3]uint{30, 180, 360},
-		ResetDuration:    big.NewInt(24 * 60 * 60),
-		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60),
+		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
+		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 	}
 )
 

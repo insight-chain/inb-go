@@ -712,7 +712,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.Reset) {
-		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(pool.chain.CurrentBlock().Time()) > 0 {
+		if big.NewInt(0).Add(pool.currentState.GetDate(from), params.TxConfig.ResetDuration).Cmp(pool.chain.CurrentBlock().Number()) > 0 {
 			return ErrBeforeResetTime
 		}
 	}
@@ -738,7 +738,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	if tx.WhichTypes(types.Receive) {
 		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from), params.TxConfig.RedeemDuration)
-		if timeLimit.Cmp(pool.chain.CurrentBlock().Time()) > 0 {
+		if timeLimit.Cmp(pool.chain.CurrentBlock().Number()) > 0 {
 
 			return errors.New(" before receive time ")
 		}
@@ -1542,8 +1542,8 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 
 			timeNow := pool.chain.CurrentBlock().Time()
 
-			startTime := &v.StartTime
-			lastReceivedTime := v.LastReceivedTime
+			startTime := &v.StartHeight
+			lastReceivedTime := v.LastReceivedHeight
 
 			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
 			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
