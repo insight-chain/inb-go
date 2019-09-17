@@ -114,10 +114,10 @@ type Account struct {
 }
 
 type Resource struct {
-	Used         *big.Int // used
-	Usableness   *big.Int // unuse
-	MortgagteINB *big.Int //
-	Height       *big.Int
+	Used     *big.Int // used
+	Usable   *big.Int // unuse
+	Mortgage *big.Int // total number of mortgage
+	Height   *big.Int
 }
 
 //Resource by zc
@@ -135,7 +135,7 @@ type Resource struct {
 type Store struct {
 	Nonce              uint64   // transaction of regular mortgaging
 	StartHeight        big.Int  // start time
-	Days               uint     // duration of mortgaging
+	LockHeights        *big.Int // duration of mortgaging
 	Value              big.Int  // amount of mortgaging
 	Received           big.Int  // amount of already received value
 	LastReceivedHeight *big.Int // Last receive time
@@ -159,11 +159,11 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Res.Used == nil {
 		data.Res.Used = new(big.Int)
 	}
-	if data.Res.Usableness == nil {
-		data.Res.Usableness = new(big.Int)
+	if data.Res.Usable == nil {
+		data.Res.Usable = new(big.Int)
 	}
-	if data.Res.MortgagteINB == nil {
-		data.Res.MortgagteINB = new(big.Int)
+	if data.Res.Mortgage == nil {
+		data.Res.Mortgage = new(big.Int)
 	}
 	if data.Stores == nil {
 		data.Stores = make([]Store, 0)
@@ -381,7 +381,7 @@ func (self *stateObject) setVoteRecord(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.Int) *big.Int {
+func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
 	if amount.Sign() == 0 {
 		return nil
 	}
@@ -393,11 +393,11 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration uint, sTime big.I
 	//mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
 	mortgageStateObject.AddBalance(amount)
 
-	if duration > 0 {
+	if duration.Cmp(big.NewInt(0)) > 0 {
 		store := Store{
 			Nonce:              self.data.Nonce,
 			StartHeight:        sTime,
-			Days:               duration,
+			LockHeights:        duration,
 			Value:              *amount,
 			LastReceivedHeight: &sTime,
 		}
@@ -459,7 +459,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consens
 
 	for _, v := range self.data.Stores {
 		if nonce == int(v.Nonce) {
-			switch v.Days {
+			switch v.LockHeights.Uint64() {
 			case 30:
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
@@ -494,7 +494,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, time *big.Int, consens
 			//receivedValue := v.Received.Uint64()
 			lastReceivedTime := v.LastReceivedHeight
 
-			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
+			daySeconds := new(big.Int).Mul(v.LockHeights, common.OneDaySecond)
 			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
 
 			totalValue := &v.Value
@@ -551,8 +551,8 @@ func (self *stateObject) ReceiveLockedAward(nonce int, value *big.Int, isAll boo
 
 					afterRegular := new(big.Int).Sub(self.data.Regular, &v.Value)
 					self.data.Regular = afterRegular
-					afterMortgagteINB := new(big.Int).Sub(self.data.Res.MortgagteINB, &v.Value)
-					self.data.Res.MortgagteINB = afterMortgagteINB
+					afterMortgagteINB := new(big.Int).Sub(self.data.Res.Mortgage, &v.Value)
+					self.data.Res.Mortgage = afterMortgagteINB
 
 					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
 
@@ -606,7 +606,7 @@ func (self *stateObject) ReceiveVoteAward(value *big.Int, time *big.Int) {
 }
 
 func (self *stateObject) Vote(time *big.Int) {
-	self.data.Voted = self.data.Res.MortgagteINB
+	self.data.Voted = self.data.Res.Mortgage
 	self.data.LastReceiveVoteAwardTime = time
 }
 
@@ -681,16 +681,16 @@ func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mort
 	self.db.journal.append(netChange{
 		account:      &self.address,
 		Used:         new(big.Int).Set(self.data.Res.Used),
-		Usableness:   new(big.Int).Set(self.data.Res.Usableness),
-		MortgagteINB: new(big.Int).Set(self.data.Res.MortgagteINB),
+		Usableness:   new(big.Int).Set(self.data.Res.Usable),
+		MortgagteINB: new(big.Int).Set(self.data.Res.Mortgage),
 	})
 	self.setNet(usedAmount, usableAmount, mortgageInb)
 }
 
 func (self *stateObject) setNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
 	self.data.Res.Used = usedAmount
-	self.data.Res.Usableness = usableAmount
-	self.data.Res.MortgagteINB = mortgageInb
+	self.data.Res.Usable = usableAmount
+	self.data.Res.Mortgage = mortgageInb
 }
 
 func (self *stateObject) SetRedeems(redeems []Redeem) {
@@ -819,13 +819,13 @@ func (self *stateObject) StoreLength() int {
 
 //Resource by zc
 func (self *stateObject) Net() *big.Int {
-	return self.data.Res.Usableness
+	return self.data.Res.Usable
 }
 func (self *stateObject) UsedNet() *big.Int {
 	return self.data.Res.Used
 }
 func (self *stateObject) MortgageOfNet() *big.Int {
-	return self.data.Res.MortgagteINB
+	return self.data.Res.Mortgage
 }
 
 func (self *stateObject) GetRedeem() *big.Int {
@@ -855,7 +855,7 @@ func (self *stateObject) Resource() Resource {
 }
 
 func (self *stateObject) MortgageOfINB() *big.Int {
-	return self.data.Res.MortgagteINB
+	return self.data.Res.Mortgage
 }
 
 //2019.6.28 inb by ghy end

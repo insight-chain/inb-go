@@ -651,7 +651,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			if accountInfo == nil {
 				return errors.New("error of candidates address")
 			}
-			if accountInfo.Res.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			if accountInfo.Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) == 1 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -756,7 +756,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if err != nil {
 			return err
 		}
-		if !params.Contains(uint(convert)) {
+		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" wrong duration of mortgagtion ")
 		}
 		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
@@ -1473,7 +1473,7 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
 				//2019.7.15 inb mod by ghy begin
-				if pool.currentState.GetAccountInfo(address).Res.MortgagteINB.Cmp(vdpos.BeVotedNeedINB) == 1 {
+				if pool.currentState.GetAccountInfo(address).Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
 				} else {
 					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -1511,7 +1511,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	LockedNumberOfDaysOneYear := new(big.Int)
 	for _, v := range account.Stores {
 		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
-			switch v.Days {
+			switch v.LockHeights.Uint64() {
 			case 30:
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
@@ -1545,7 +1545,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 			startTime := &v.StartHeight
 			lastReceivedTime := v.LastReceivedHeight
 
-			daySeconds := new(big.Int).Mul(big.NewInt(int64(v.Days)), common.OneDaySecond)
+			daySeconds := new(big.Int).Mul(v.LockHeights, common.OneDaySecond)
 			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
 
 			totalValue := &v.Value
