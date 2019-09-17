@@ -57,15 +57,20 @@ const (
 )
 
 type LightToken struct {
-	Name        string
-	Symbol      string
-	TotalSupply *big.Int
+	Address             common.Address
+	Name                string
+	Symbol              string
+	Decimals            uint8
+	TotalSupply         *big.Int
+	IssueAccountAddress common.Address
+	IssueTxHash         common.Hash
 }
 
 type LightTokenState struct {
-	LightTokenName string
-	Balance        *big.Int
-	State          uint8
+	LightTokenAddress common.Address
+	LightTokenName    string
+	Balance           *big.Int
+	State             uint8
 }
 
 type LightTokenAccount struct {
@@ -74,10 +79,11 @@ type LightTokenAccount struct {
 }
 
 type LightTokenChange struct {
-	Address        common.Address
-	LightTokenName string
-	ChangeBalance  *big.Int
-	ChangeType     LightTokenChangeType
+	AccountAddress    common.Address
+	LightTokenAddress common.Address
+	LightTokenName    string
+	ChangeBalance     *big.Int
+	ChangeType        LightTokenChangeType
 }
 
 type LightTokenChanges struct {
@@ -439,8 +445,8 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 	return nil
 }
 
-func (vc *VdposContext) GetLightToken(name string) (*LightToken, error) {
-	lightTokenRLP := vc.lightTokenTrie.Get([]byte(name))
+func (vc *VdposContext) GetLightToken(address common.Address) (*LightToken, error) {
+	lightTokenRLP := vc.lightTokenTrie.Get(address[:])
 	if lightTokenRLP != nil {
 		lightToken := new(LightToken)
 		if err := rlp.DecodeBytes(lightTokenRLP, lightToken); err != nil {
@@ -465,8 +471,8 @@ func (vc *VdposContext) GetLightTokenAccountByAddress(address common.Address) (*
 	}
 }
 
-func (vc *VdposContext) GetLightTokenBalanceByAddress(address common.Address, lightTokenName string) (*big.Int, error) {
-	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(address[:])
+func (vc *VdposContext) GetLightTokenBalanceByAddress(accountAddress common.Address, lightTokenAddress common.Address) (*big.Int, error) {
+	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(accountAddress[:])
 	if lightTokenAccountRLP == nil {
 		return big.NewInt(0), fmt.Errorf("this account has none of lightTokens")
 	} else {
@@ -474,7 +480,7 @@ func (vc *VdposContext) GetLightTokenBalanceByAddress(address common.Address, li
 		if err := rlp.DecodeBytes(lightTokenAccountRLP, lightTokenAccount); err != nil {
 			return big.NewInt(0), fmt.Errorf("failed to decode lightTokenAccount: %s", err)
 		}
-		place := vc.IsLightTokenExistInAccount(lightTokenName, lightTokenAccount.LightTokens)
+		place := vc.IsLightTokenExistInAccount(lightTokenAddress, lightTokenAccount.LightTokens)
 		if place == -1 {
 			return big.NewInt(0), fmt.Errorf("this account do not has this lightToken")
 		} else {
@@ -484,12 +490,12 @@ func (vc *VdposContext) GetLightTokenBalanceByAddress(address common.Address, li
 }
 
 func (vc *VdposContext) UpdateLightToken(lightToken *LightToken) error {
-	name := []byte(lightToken.Name)
+	address := lightToken.Address[:]
 	lightTokenRLP, err := rlp.EncodeToBytes(lightToken)
 	if err != nil {
 		return fmt.Errorf("failed to encode lightToken to rlp bytes: %s", err)
 	}
-	vc.lightTokenTrie.Update(name, lightTokenRLP)
+	vc.lightTokenTrie.Update(address, lightTokenRLP)
 	return nil
 }
 
@@ -497,22 +503,23 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 
 	for _, lightTokenChange := range lightTokenChanges.LTCs {
 
-		oldLightTokenAccountRLP := vc.lightTokenAccountTrie.Get(lightTokenChange.Address[:])
+		oldLightTokenAccountRLP := vc.lightTokenAccountTrie.Get(lightTokenChange.AccountAddress[:])
 		if oldLightTokenAccountRLP != nil {
 			lightTokenAccount := new(LightTokenAccount)
 			if err := rlp.DecodeBytes(oldLightTokenAccountRLP, lightTokenAccount); err != nil {
 				return fmt.Errorf("failed to decode lightTokenAccount: %s", err)
 			}
-			place := vc.IsLightTokenExistInAccount(lightTokenChange.LightTokenName, lightTokenAccount.LightTokens)
+			place := vc.IsLightTokenExistInAccount(lightTokenChange.LightTokenAddress, lightTokenAccount.LightTokens)
 			if lightTokenChange.ChangeType == Add {
 				if place != -1 {
 					balance := lightTokenAccount.LightTokens[place].Balance
 					lightTokenAccount.LightTokens[place].Balance = balance.Add(balance, lightTokenChange.ChangeBalance)
 				} else {
 					lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
-						LightTokenName: lightTokenChange.LightTokenName,
-						Balance:        lightTokenChange.ChangeBalance,
-						State:          0,
+						LightTokenAddress: lightTokenChange.LightTokenAddress,
+						LightTokenName:    lightTokenChange.LightTokenName,
+						Balance:           lightTokenChange.ChangeBalance,
+						State:             0,
 					})
 				}
 			} else if lightTokenChange.ChangeType == Sub {
@@ -534,21 +541,22 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 			if err != nil {
 				return fmt.Errorf("failed to encode lightTokenAccount to rlp bytes: %s", err)
 			}
-			vc.lightTokenAccountTrie.Update(lightTokenChange.Address[:], newLightTokenAccountRLP)
+			vc.lightTokenAccountTrie.Update(lightTokenChange.AccountAddress[:], newLightTokenAccountRLP)
 		} else {
 			if lightTokenChange.ChangeType == Add {
 				lightTokenAccount := new(LightTokenAccount)
-				lightTokenAccount.Address = lightTokenChange.Address
+				lightTokenAccount.Address = lightTokenChange.AccountAddress
 				lightTokenAccount.LightTokens = append(lightTokenAccount.LightTokens, LightTokenState{
-					LightTokenName: lightTokenChange.LightTokenName,
-					Balance:        lightTokenChange.ChangeBalance,
-					State:          0,
+					LightTokenAddress: lightTokenChange.LightTokenAddress,
+					LightTokenName:    lightTokenChange.LightTokenName,
+					Balance:           lightTokenChange.ChangeBalance,
+					State:             0,
 				})
 				newLightTokenAccountRLP, err := rlp.EncodeToBytes(lightTokenAccount)
 				if err != nil {
 					return fmt.Errorf("failed to encode lightTokenAccount to rlp bytes: %s", err)
 				}
-				vc.lightTokenAccountTrie.Update(lightTokenChange.Address[:], newLightTokenAccountRLP)
+				vc.lightTokenAccountTrie.Update(lightTokenChange.AccountAddress[:], newLightTokenAccountRLP)
 			} else if lightTokenChange.ChangeType == Sub {
 				log.Debug("Not found account,so do't need to sub")
 				continue
@@ -559,9 +567,9 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 	return nil
 }
 
-func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenName string, lightTokenStates []LightTokenState) int {
+func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenAddress common.Address, lightTokenStates []LightTokenState) int {
 	for i, lightTokenState := range lightTokenStates {
-		if lightTokenName == lightTokenState.LightTokenName {
+		if lightTokenAddress == lightTokenState.LightTokenAddress {
 			return i
 		}
 	}

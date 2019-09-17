@@ -124,7 +124,7 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 	return nodesInfo
 }
 
-func (api *API) GetLightTokenByName(name string) *types.LightToken {
+func (api *API) GetLightTokenByAddress(address common.Address) *types.LightToken {
 	header := api.chain.CurrentHeader()
 	if header == nil {
 		return nil
@@ -135,7 +135,7 @@ func (api *API) GetLightTokenByName(name string) *types.LightToken {
 		return nil
 	}
 
-	lightToken, err := vdposContext.GetLightToken(name)
+	lightToken, err := vdposContext.GetLightToken(address)
 	if err != nil {
 		return nil
 	} else {
@@ -143,7 +143,7 @@ func (api *API) GetLightTokenByName(name string) *types.LightToken {
 	}
 }
 
-func (api *API) GetLightTokenAccountByAddress(address common.Address) *types.LightTokenAccount {
+func (api *API) GetLightTokenAccountByAccountAddress(address common.Address) *types.LightTokenAccount {
 	header := api.chain.CurrentHeader()
 	if header == nil {
 		return nil
@@ -158,7 +158,7 @@ func (api *API) GetLightTokenAccountByAddress(address common.Address) *types.Lig
 	return lightTokenAccount
 }
 
-func (api *API) GetLightTokenBalanceByAddress(address common.Address, lightTokenName string) string {
+func (api *API) GetLightTokenBalanceByAddress(accountAddress common.Address, lightTokenAddress common.Address) string {
 	header := api.chain.CurrentHeader()
 	if header == nil {
 		return ""
@@ -169,6 +169,6 @@ func (api *API) GetLightTokenBalanceByAddress(address common.Address, lightToken
 		return ""
 	}
 
-	balance, _ := vdposContext.GetLightTokenBalanceByAddress(address, lightTokenName)
+	balance, _ := vdposContext.GetLightTokenBalanceByAddress(accountAddress, lightTokenAddress)
 	return balance.String()
 }
