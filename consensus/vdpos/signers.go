@@ -25,6 +25,7 @@ import (
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
+	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/trie"
 	"math/big"
@@ -95,9 +96,12 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 			return nil
 		}
 		address := tally.Address
-		stake := tally.Stake
-		tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
-		existTally = tallyIterator.Next()
+		regular := s.statedb.GetRegular(address)
+		if regular.Cmp(new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Inber))) >= 0 {
+			stake := tally.Stake
+			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+			existTally = tallyIterator.Next()
+		}
 	}
 
 	return tallySlice
@@ -117,26 +121,24 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 
 	// only recalculate signers from to tally per defaultLoopCntRecalculateSigners loop,
 	// other loop end just random the order of signers base on parent block hash
-	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*defaultLoopCntRecalculateSigners) == 0 {
+	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*s.config.LoopCntRecalculate) == 0 {
 		tallySlice := s.buildTallySlice()
-		sort.Sort(TallySlice(tallySlice))
-
-		// remove minimum tickets tally beyond candidateMaxLen
-		s.removeExtraCandidate(&tallySlice)
-
-		for _, item := range tallySlice {
-			log.Debug(item.addr.Hex())
-		}
-
-		poolLength := int(s.config.MaxSignerCount)
-		if poolLength > len(tallySlice) {
-			poolLength = len(tallySlice)
-		}
-		tallySliceOrder = tallySlice[:poolLength]
-		s.random(tallySliceOrder, seed)
-
-		for _, itemx := range tallySliceOrder {
-			log.Debug(itemx.addr.Hex())
+		if tallySlice != nil {
+			sort.Sort(TallySlice(tallySlice))
+			// remove minimum tickets tally beyond candidateMaxLen
+			s.removeExtraCandidate(&tallySlice)
+			for _, item := range tallySlice {
+				log.Debug(item.addr.Hex())
+			}
+			poolLength := int(s.config.MaxSignerCount)
+			if poolLength > len(tallySlice) {
+				poolLength = len(tallySlice)
+			}
+			tallySliceOrder = tallySlice[:poolLength]
+			s.random(tallySliceOrder, seed)
+			for _, itemx := range tallySliceOrder {
+				log.Debug(itemx.addr.Hex())
+			}
 		}
 	} else {
 		if s.SignersPool == nil {
@@ -165,7 +167,9 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 
 	// Set the top signers in random order base on parent block hash
 	if len(tallySliceOrder) == 0 {
-		return nil, errSignersPoolEmpty
+		//return nil, errSignersPoolEmpty
+		log.Error("signers pool is empty when createSignersPool")
+		return s.SignersPool, nil
 	}
 	for i := 0; i < int(s.config.MaxSignerCount); i++ {
 		topStakeAddress = append(topStakeAddress, tallySliceOrder[i%len(tallySliceOrder)].addr)

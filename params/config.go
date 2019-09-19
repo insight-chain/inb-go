@@ -42,11 +42,12 @@ var (
 		ConstantinopleBlock: big.NewInt(7080000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           2,
-			SignerPeriod:     2,
-			SignerBlocks:     6,
-			MaxSignerCount:   21,
-			GenesisTimestamp: 1554004800,
+			Period:             2,
+			SignerPeriod:       2,
+			SignerBlocks:       6,
+			LoopCntRecalculate: 350,
+			MaxSignerCount:     21,
+			GenesisTimestamp:   1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
 				common.UnprefixedAddress(common.HexToAddress("t04909b4e54395de9e313ad8a2254fe2dcda99e91c")),
@@ -76,11 +77,12 @@ var (
 		ConstantinopleBlock: big.NewInt(4230000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           2,
-			SignerPeriod:     2,
-			SignerBlocks:     6,
-			MaxSignerCount:   21,
-			GenesisTimestamp: 1554004800,
+			Period:             2,
+			SignerPeriod:       2,
+			SignerBlocks:       6,
+			LoopCntRecalculate: 350,
+			MaxSignerCount:     21,
+			GenesisTimestamp:   1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
 				common.UnprefixedAddress(common.HexToAddress("t04909b4e54395de9e313ad8a2254fe2dcda99e91c")),
@@ -255,14 +257,15 @@ type VdposLightConfig struct {
 
 // VdposConfig is the consensus engine configs for delegated-proof-of-stake based sealing.
 type VdposConfig struct {
-	Period           uint64                     `json:"period"`           // Number of seconds between blocks to enforce
-	SignerPeriod     uint64                     `json:"signerPeriod"`     // Number of seconds between two consecutive signers
-	SignerBlocks     uint64                     `json:"signerBlocks"`     // Number of blocks every signer created
-	MaxSignerCount   uint64                     `json:"maxSignersCount"`  // Max count of signers
-	GenesisTimestamp uint64                     `json:"genesisTimestamp"` // The LoopStartTime of first Block
-	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
-	PBFTEnable       bool                       `json:"pbft"`
-	Enodes           []common.EnodesInfo        `json:"enodes"` //inb by ghy
+	Period             uint64                     `json:"period"`             // number of seconds between blocks to enforce
+	SignerPeriod       uint64                     `json:"signerPeriod"`       // number of seconds between two consecutive signers
+	SignerBlocks       uint64                     `json:"signerBlocks"`       // number of blocks every signer created
+	LoopCntRecalculate uint64                     `json:"loopCntRecalculate"` // default loop count to recreate signers from top tally
+	MaxSignerCount     uint64                     `json:"maxSignersCount"`    // max count of signers
+	GenesisTimestamp   uint64                     `json:"genesisTimestamp"`   // the LoopStartTime of first Block
+	SelfVoteSigners    []common.UnprefixedAddress `json:"signers"`            // signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
+	PBFTEnable         bool                       `json:"pbft"`
+	Enodes             []common.EnodesInfo        `json:"enodes"` //inb by ghy
 
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
 }
