@@ -727,25 +727,24 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	for _, v := range account.Stores {
 		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
 			switch v.LockHeights.Uint64() {
-			case 30:
+			case params.HeightOf30Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
 				LockedDenominator = common.LockedDenominatorFor30days
 				LockedHundred = common.LockedHundredFor30days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor30days
-			case 90:
+			case params.HeightOf90Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor90days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor90days
 				LockedDenominator = common.LockedDenominatorFor90days
 				LockedHundred = common.LockedHundredFor90days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
-			case 180:
+			case params.HeightOf180Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor180days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
-				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
-			case 360:
+			case params.HeightOf360Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
 				LockedDenominator = common.LockedDenominatorFor360days
@@ -755,37 +754,40 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 				return errors.New("unknow times")
 			}
 
-			timeNow := pool.chain.CurrentHeader().Time
+			heightNow := pool.chain.CurrentHeader().Number
 
-			startTime := &v.StartHeight
+			startHeight := &v.StartHeight
 			lastReceivedTime := v.LastReceivedHeight
-
-			daySeconds := new(big.Int).Mul(v.LockHeights, common.OneDaySecond)
-			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
+			lockHeights := v.LockHeights
+			endTimeHeight := new(big.Int).Add(startHeight, lockHeights)
 
 			totalValue := &v.Value
 			receivedValue := &v.Received
 
-			if lastReceivedTime.Cmp(endTimeSecond) == 1 {
-				return errors.New("all the rewards are received")
-			}
-			if startTime.Cmp(lastReceivedTime) == 1 {
+			if startHeight.Cmp(lastReceivedTime) == 1 {
 				return errors.New("last receipt time and start time error")
 			}
-			if lastReceivedTime.Cmp(timeNow) == 1 {
+			if lastReceivedTime.Cmp(heightNow) == 1 {
 				return errors.New("last receipt time error")
 			}
-			if timeNow.Cmp(endTimeSecond) == 1 {
-				timeNow = endTimeSecond
+
+			if lastReceivedTime.Cmp(endTimeHeight) == 1 {
+				return errors.New("all the rewards are received")
 			}
 
-			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
+			if heightNow.Cmp(endTimeHeight) == 1 {
+				return nil
 
-			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, LockedRewardCycleSeconds)
+			}
+			heightNow = endTimeHeight
 
-			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
+			FromLastReceivedPassTimeHeight := new(big.Int).Sub(heightNow, lastReceivedTime)
 
-			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, LockedRewardCycleSeconds)
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeHeight, LockedRewardCycleSeconds)
+
+			FromStartPassTimeHeight := new(big.Int).Sub(heightNow, startHeight)
+
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeHeight, LockedRewardCycleSeconds)
 
 			if FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
 				return errors.New("have no rewards to received")
@@ -827,13 +829,13 @@ func (pool *TxPool) validateReceiveVoteAward(ctx context.Context, from common.Ad
 		return errors.New("please receive vote award after voting")
 	}
 
-	timeNow := pool.chain.CurrentHeader().Time
-	lastReceiveVoteAwardTime := account.LastReceiveVoteAwardTime
-	if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+	HeightNow := pool.chain.CurrentHeader().Number
+	lastReceiveVoteAwardTime := account.LastReceiveVoteAwardHeight
+	if HeightNow.Cmp(lastReceiveVoteAwardTime) != 1 {
 		return errors.New("last receive vote award time error")
 	}
 
-	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
+	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(HeightNow, lastReceiveVoteAwardTime)
 	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
 		consensus := pool.chain.CurrentHeader().GetSpecialConsensus()

@@ -1006,60 +1006,78 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	//2019.8.29 inb by ghy begin
 	//blockNumberOneYear := vdpos.OneYearBySec / int64(v.config.Period)
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
-	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+
+	minerReward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+
+	votingReward := new(big.Int).Div(vdpos.DefaultVotingRewardOneYear, vdpos.WeekNumberOfOneYear)
+
+	onlineReward := new(big.Int).Div(vdpos.DefaultOnlineRewardOneYear, vdpos.WeekNumberOfOneYear)
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
 		for _, v := range SpecialConsensus.SpecialNumer {
 			if header.Number.Cmp(v.Number) == 1 {
-				mul := new(big.Int).Mul(reward, SpecialConsensus.Molecule)
-				reward = new(big.Int).Div(mul, SpecialConsensus.Denominator)
+				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
+				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
+
+				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
+				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
+
+				onlineMul := new(big.Int).Mul(onlineReward, SpecialConsensus.Molecule)
+				onlineReward = new(big.Int).Div(onlineMul, SpecialConsensus.Denominator)
+
 			}
 
 		}
 
 	}
-	vdpos.DefaultMinerReward = reward
-	header.Reward = reward.String()
+	vdpos.DefaultMinerReward = minerReward
+	header.Reward = minerReward.String()
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		switch v.Name {
-		case "Foundation":
+		case state.Foundation:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := reward
+			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
-		case "MiningReward":
+		case state.MiningReward:
 			from := v.TotalAddress
 			to := header.Coinbase
-			value := reward
+			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx, newTx)
-		case "VerifyReward":
+		case state.VerifyReward:
 
-		case "VotingReward":
+		case state.VotingReward:
+			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+				from := v.TotalAddress
+				to := v.ToAddress
+				value := votingReward
+				//value := big.NewInt(int64(minerReward))
+				newTx := w.CreateTx(from, to, value)
+				localTxs[from] = append(localTxs[from], newTx)
+			}
+
+		case state.Team:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := reward
-			//value := big.NewInt(int64(reward))
+			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
-		case "Team":
+		case state.OnlineMarketing:
+			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+				from := v.TotalAddress
+				to := v.ToAddress
+				value := onlineReward
+				newTx := w.CreateTx(from, to, value)
+				localTxs[from] = append(localTxs[from], newTx)
+			}
+
+		case state.OfflineMarketing:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := reward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
-		case "OnlineMarketing":
-			from := v.TotalAddress
-			to := v.ToAddress
-			value := reward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
-		case "OfflineMarketing":
-			from := v.TotalAddress
-			to := v.ToAddress
-			value := new(big.Int).Div(reward, big.NewInt(2))
+			value := new(big.Int).Div(minerReward, big.NewInt(2))
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		default:

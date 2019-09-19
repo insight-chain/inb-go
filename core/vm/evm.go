@@ -245,7 +245,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 			if err != nil {
 				return nil, net, err, nil
 			}
-			err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.Time, evm.SpecialConsensus)
+			err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.BlockNumber, evm.SpecialConsensus)
 			if err != nil {
 				return nil, net, err, nil
 			}
@@ -285,7 +285,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 			return nil, net, err, nil
 		}
 	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
-		if err, VoteAward, toAddress = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.Time, evm.SpecialConsensus); err != nil {
+		if err, VoteAward, toAddress = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.BlockNumber, evm.SpecialConsensus); err != nil {
 
 			return nil, net, err, nil
 		}
@@ -319,7 +319,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	//Resource by zc
 
 	if txType == types.Vote {
-		evm.Vote(evm.StateDB, caller.Address(), evm.Time)
+		evm.Vote(evm.StateDB, caller.Address(), evm.BlockNumber)
 	}
 	if txType == types.Redeem {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.BlockNumber)
@@ -327,18 +327,11 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber)
 	} else if txType == types.Reset {
 		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
-	} else if txType == types.ReceiveVoteAward {
-		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.Time, toAddress) //2019.7.24 inb by ghy
-	} else if txType == types.ReceiveLockedAward { //2019.7.22 inb by ghy begin
-		// regular mortgagtion
-		//inputSlice := strings.Split(inputStr, ":")
-		//if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
-		//	IntNonce, err = strconv.Atoi(inputSlice[1])
-		//	if err != nil {
-		//		return nil, net, err, nil
-		//	}
-		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.Time, toAddress)
-		//} //2019.7.22 inb by ghy end
+	} else if txType == types.ReceiveVoteAward { //2019.7.22 inb by ghy begin
+		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.BlockNumber, toAddress)
+	} else if txType == types.ReceiveLockedAward {
+		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.BlockNumber, toAddress)
+		// //2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
 		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else {

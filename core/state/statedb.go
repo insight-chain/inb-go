@@ -542,16 +542,16 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) *big.Int {
 
 //2019.7.22 inb by ghy begin
 
-func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce int, time *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, is bool, toAddress common.Address) {
+func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce int, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, is bool, toAddress common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
 			if v.Name == OnlineMarketing {
-				err, value, is = stateObject.CanReceiveLockedAward(nonce, time, consensus)
+				err, value, is = stateObject.CanReceiveLockedAward(nonce, height, consensus)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
 				if totalBalance.Cmp(value) != 1 {
-					return errors.New("there are not enough inb in the voting account"), big.NewInt(0), false, common.Address{}
+					return errors.New("there are not enough inb in the online account"), big.NewInt(0), false, common.Address{}
 				}
 				return err, value, is, toAddress
 			}
@@ -568,12 +568,12 @@ func (self *StateDB) ReceiveLockedAward(addr common.Address, nonce int, value *b
 	}
 }
 
-func (self *StateDB) CanReceiveVoteAward(addr common.Address, time *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, toAddress common.Address) {
+func (self *StateDB) CanReceiveVoteAward(addr common.Address, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, toAddress common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
 			if v.Name == VotingReward {
-				err, value = stateObject.CanReceiveVoteAward(time)
+				err, value = stateObject.CanReceiveVoteAward(height)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
 				if totalBalance.Cmp(value) != 1 {
@@ -588,12 +588,12 @@ func (self *StateDB) CanReceiveVoteAward(addr common.Address, time *big.Int, con
 	return errors.New("errors of address"), big.NewInt(0), common.Address{}
 }
 
-func (self *StateDB) ReceiveVoteAward(addr common.Address, value *big.Int, time *big.Int, toAddress common.Address) {
+func (self *StateDB) ReceiveVoteAward(addr common.Address, value *big.Int, height *big.Int, toAddress common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 
 	if stateObject != nil {
 		self.SubBalance(toAddress, value)
-		stateObject.ReceiveVoteAward(value, time)
+		stateObject.ReceiveVoteAward(value, height)
 	}
 }
 
