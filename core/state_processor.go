@@ -149,6 +149,10 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 			log = &types.Log{From: Onlineaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.Mortgage:
 			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+		case types.InsteadMortgage:
+			log1 := &types.Log{From: msg.From(), To: *msg.To(), Amount: msg.Value(), Types: types.Ordinary}
+			receipt.Logs = append(receipt.Logs, log1)
+			log = &types.Log{From: *msg.To(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.Regular:
 			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.Receive:
