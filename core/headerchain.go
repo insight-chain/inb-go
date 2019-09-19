@@ -31,6 +31,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/rawdb"
+	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/log"
@@ -523,3 +524,10 @@ func (hc *HeaderChain) Engine() consensus.Engine { return hc.engine }
 func (hc *HeaderChain) GetBlock(hash common.Hash, number uint64) *types.Block {
 	return nil
 }
+
+// add by ssh 190918 begin
+func (hc *HeaderChain) StateAt(root common.Hash) (*state.StateDB, error) {
+	return nil, nil
+}
+
+// add by ssh 190918 end

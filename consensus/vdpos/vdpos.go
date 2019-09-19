@@ -56,7 +56,7 @@ var (
 	extraSeal                        = 65                                                             // fixed number of extra-data suffix bytes reserved for signer seal
 	uncleHash                        = types.CalcUncleHash(nil)                                       // always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)                                                  // default difficulty
-	defaultLoopCntRecalculateSigners = uint64(5)                                                      // default loop count to recreate signers from top tally
+	defaultLoopCntRecalculateSigners = uint64(350)                                                    // default loop count to recreate signers from top tally
 	selfVoteSignersStake1            = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18))        // default stake of selfVoteSigners in first LOOP
 	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // default stake of selfVoteSigners in first LOOP
 	DefaultMinerReward1              = big.NewInt(6341958396752917300)                                // default reward for miner in wei
@@ -106,7 +106,7 @@ var (
 	errInvalidSignersPool = errors.New("invalid signers pool")
 
 	// errSignersPoolEmpty is returned if no signer when calculate
-	errSignersPoolEmpty = errors.New("signers pool is empty")
+	//errSignersPoolEmpty = errors.New("signers pool is empty")
 )
 
 // SignerFn is a signer callback function to request a hash to be signed by a
@@ -140,6 +140,9 @@ func New(config *params.VdposConfig, db ethdb.Database) *Vdpos {
 	}
 	if conf.SignerBlocks == 0 {
 		conf.SignerBlocks = defaultSignerBlocks
+	}
+	if conf.LoopCntRecalculate == 0 {
+		conf.LoopCntRecalculate = defaultLoopCntRecalculateSigners
 	}
 	if conf.MaxSignerCount == 0 {
 		conf.MaxSignerCount = defaultMaxSignerCount
@@ -273,7 +276,11 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 	if err != nil {
 		return err
 	}
-	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
+	db, err := chain.StateAt(parent.Root)
+	if err != nil {
+		return err
+	}
+	snapContext := v.snapContext(v.config, db, parent, vdposContext, nil)
 
 	if number > v.config.MaxSignerCount*v.config.SignerBlocks {
 		parentHeaderExtra := HeaderExtra{}

@@ -1169,10 +1169,6 @@ func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.
 	loopStartTime := parentExtra.LoopStartTime
 	signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
-		//config.Period != config.SignerPeriod
-		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
-		//	return true
-		//}
 		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true
 		}
