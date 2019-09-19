@@ -1504,7 +1504,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 		return errors.New("no locked record")
 	}
 
-	LockedRewardCycleSeconds := new(big.Int)
+	LockedRewardCycleHeight := new(big.Int)
 	LockedRewardCycleTimes := new(big.Int)
 	LockedDenominator := new(big.Int)
 	LockedHundred := new(big.Int)
@@ -1512,26 +1512,26 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	for _, v := range account.Stores {
 		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
 			switch v.LockHeights.Uint64() {
-			case 30:
-				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
+			case params.HeightOf30Days.Uint64():
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
 				LockedDenominator = common.LockedDenominatorFor30days
 				LockedHundred = common.LockedHundredFor30days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor30days
-			case 90:
-				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor90days
+			case params.HeightOf90Days.Uint64():
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor90days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor90days
 				LockedDenominator = common.LockedDenominatorFor90days
 				LockedHundred = common.LockedHundredFor90days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
-			case 180:
-				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor180days
+			case params.HeightOf180Days.Uint64():
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor180days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
-			case 360:
-				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
+			case params.HeightOf360Days.Uint64():
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor360days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
 				LockedDenominator = common.LockedDenominatorFor360days
 				LockedHundred = common.LockedHundredFor360days
@@ -1540,66 +1540,58 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 				return errors.New("unknow times")
 			}
 
-			timeNow := pool.chain.CurrentBlock().Time()
+			heightNow := pool.chain.CurrentBlock().Header().Number
 
-			startTime := &v.StartHeight
-			lastReceivedTime := v.LastReceivedHeight
+			startHeight := &v.StartHeight
+			lastReceivedHeight := v.LastReceivedHeight
 
-			daySeconds := new(big.Int).Mul(v.LockHeights, common.OneDaySecond)
-			endTimeSecond := new(big.Int).Add(startTime, daySeconds)
+			lockHeights := v.LockHeights
+			endTimeHeight := new(big.Int).Add(startHeight, lockHeights)
 
 			totalValue := &v.Value
 			receivedValue := &v.Received
 
-			if lastReceivedTime.Cmp(endTimeSecond) == 1 {
-				return errors.New("all the rewards are received")
-			}
-			if startTime.Cmp(lastReceivedTime) == 1 {
+			if startHeight.Cmp(lastReceivedHeight) == 1 {
 				return errors.New("last receipt time and start time error")
 			}
-			if lastReceivedTime.Cmp(timeNow) == 1 {
+			if lastReceivedHeight.Cmp(heightNow) == 1 {
 				return errors.New("last receipt time error")
 			}
-			if timeNow.Cmp(endTimeSecond) == 1 {
-				timeNow = endTimeSecond
+			if lastReceivedHeight.Cmp(endTimeHeight) == 1 {
+				return errors.New("all the rewards are received")
 			}
 
-			FromLastReceivedPassTimeSecond := new(big.Int).Sub(timeNow, lastReceivedTime)
+			FromLastReceivedPassTimeHeight := new(big.Int).Sub(heightNow, lastReceivedHeight)
+			FromStartPassTimeHeight := new(big.Int).Sub(heightNow, startHeight)
 
-			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeSecond, LockedRewardCycleSeconds)
-
-			FromStartPassTimeSecond := new(big.Int).Sub(timeNow, startTime)
-
-			FromStartPassDays := new(big.Int).Div(FromStartPassTimeSecond, LockedRewardCycleSeconds)
-
-			if FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
-				return errors.New("have no rewards to received")
+			if heightNow.Cmp(endTimeHeight) >= 0 {
+				//HeightNow = endTimeHeight
+				FromLastReceivedPassTimeHeight = new(big.Int).Sub(endTimeHeight, lastReceivedHeight)
+				FromStartPassTimeHeight = new(big.Int).Sub(endTimeHeight, startHeight)
 			}
+
+			FromLastReceivedPassDays := new(big.Int).Div(FromLastReceivedPassTimeHeight, LockedRewardCycleHeight)
+
+			FromStartPassDays := new(big.Int).Div(FromStartPassTimeHeight, LockedRewardCycleHeight)
+
 			totalValue1 := new(big.Int).Mul(totalValue, LockedDenominator)
-			totalValue2 := new(big.Int).Div(totalValue1, LockedHundred)
-			totalValue3 := new(big.Int).Div(totalValue2, LockedNumberOfDaysOneYear)
-			MaxReceivedValueNow := new(big.Int).Mul(totalValue3, FromStartPassDays)
+			totalValue2 := new(big.Int).Mul(totalValue1, FromStartPassDays)
+			totalValue3 := new(big.Int).Div(totalValue2, LockedHundred)
+			MaxReceivedValueNow := new(big.Int).Div(totalValue3, LockedNumberOfDaysOneYear)
 			subValue := new(big.Int).Sub(MaxReceivedValueNow, receivedValue)
 
 			if subValue.Cmp(big.NewInt(0)) != 1 {
-				return errors.New("not receive vote award time")
-			} else {
-				consensus := pool.chain.CurrentBlock().SpecialConsensus()
-				for _, v := range consensus.SpecialConsensusAddress {
-					if v.Name == state.OnlineMarketing {
-						ToAddressInfo := pool.currentState.GetAccountInfo(v.ToAddress)
-						if ToAddressInfo.Balance.Cmp(subValue) != 1 {
-							return errors.New("there are not enough inb in the voting account")
-						}
-						return nil
-					}
-				}
-				return errors.New("have no online marketing account")
+				return errors.New("have no rewards to received")
 			}
 
+			if heightNow.Cmp(endTimeHeight) == -1 && FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
+				return errors.New("not block height to receive rewards")
+			}
+			return nil
 		}
 	}
-	return errors.New("no such locked record")
+	return errors.New("no such lock record")
+
 }
 
 func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
@@ -1611,30 +1603,30 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 		return errors.New("please receive vote award after voting")
 	}
 
-	timeNow := pool.chain.CurrentBlock().Time()
-	lastReceiveVoteAwardTime := account.LastReceiveVoteAwardTime
-	if timeNow.Cmp(lastReceiveVoteAwardTime) != 1 {
+	HeightNow := pool.chain.CurrentBlock().Header().Number
+	lastReceiveVoteAwardHeight := account.LastReceiveVoteAwardHeight
+	if HeightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
 		return errors.New("last receive vote award time error")
 	}
 
-	fromLastReceiveVoteAwardTimeToNowSeconds := new(big.Int).Sub(timeNow, lastReceiveVoteAwardTime)
-	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowSeconds, common.VoteRewardCycleSeconds)
+	fromLastReceiveVoteAwardTimeToNowHeight := new(big.Int).Sub(HeightNow, lastReceiveVoteAwardHeight)
+	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowHeight, common.VoteRewardCycleSeconds)
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
 		consensus := pool.chain.CurrentBlock().SpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
 			if v.Name == state.VotingReward {
 				votes := account.Voted
 				votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
-				votes2 := new(big.Int).Div(votes1, common.VoteHundred)
-				votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYear)
-				value := new(big.Int).Mul(votes3, cycles)
+				votes2 := new(big.Int).Mul(votes1, cycles)
+				votes3 := new(big.Int).Div(votes2, common.VoteHundred)
+				value := new(big.Int).Div(votes3, common.VoteNumberOfDaysOneYear)
 				ToAddressInfo := pool.currentState.GetAccountInfo(v.ToAddress)
-				if ToAddressInfo.Balance.Cmp(value) != 1 {
+
+				if ToAddressInfo != nil && ToAddressInfo.Balance.Cmp(value) != 1 {
 					return errors.New("there are not enough inb in the voting account")
 				}
 			}
 		}
-
 		return nil
 	}
 

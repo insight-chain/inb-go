@@ -19,7 +19,6 @@ package types
 import (
 	"container/heap"
 	"errors"
-	"fmt"
 	"io"
 	"math/big"
 	"sync/atomic"
@@ -727,20 +726,28 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	}
 	SpecialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
 	//rewardInt, _ := strconv.Atoi(header.Reward)
-	//reward := big.NewInt(int64(rewardInt))
+	//minerReward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
-	reward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+
+	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+
+	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
 		for _, v := range SpecialConsensus.SpecialNumer {
 			if header.Number.Cmp(v.Number) == 1 {
-				mul := new(big.Int).Mul(reward, SpecialConsensus.Molecule)
-				reward = new(big.Int).Div(mul, SpecialConsensus.Denominator)
+				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
+				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
+
+				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
+				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
+
+				onlineMul := new(big.Int).Mul(onlineReward, SpecialConsensus.Molecule)
+				onlineReward = new(big.Int).Div(onlineMul, SpecialConsensus.Denominator)
 			}
-
 		}
-
 	}
 	type SpecialConsensusInfo struct {
 		Name         string
@@ -760,17 +767,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	}
 
 	for _, v := range txs {
-		//fmt.Println(k, "验证from", common.BytesToAddress(v.Data()).String())
-		//fmt.Println(k, "验证to", v.To().String())
-		//fmt.Println(k, "验证to", *v.To())
-		//fmt.Println(k, "验证to", *v.data.Recipient)
-		//fmt.Println(k, "验证value", v.Value())
-		//fmt.Println("区块value", reward)
-		//fmt.Println("区块高度", header.Number)
-		//fmt.Println("区块coinbase", header.Coinbase.String())
-		//if specialConsensu[common.BytesToAddress(v.Data())] !nil {
-		//	return errors.New("total address can not touch!")
-		//}
+
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
 			return errors.New("can not transfer to special consensus address")
 		}
@@ -778,70 +775,39 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 		if info != nil {
 			switch info.Name {
 			case "Foundation":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(minerReward) != 0 {
 					return errors.New("Foundation special tx is not allowed")
 				}
 				info.num++
 			case "MiningReward":
-				if *v.data.Recipient != header.Coinbase || v.Value().Cmp(reward) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "header.Coinbas", header.Coinbase.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
+				if *v.data.Recipient != header.Coinbase || v.Value().Cmp(minerReward) != 0 {
 					return errors.New("MiningReward special tx is not allowed")
 				}
 				info.num++
 			case "VerifyReward":
 				return errors.New("VerifyReward special tx is not allowed")
 			case "VotingReward":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
 					return errors.New("VotingReward special tx is not allowed")
 				}
 				info.num++
 			case "Team":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(minerReward) != 0 {
 					return errors.New("team special tx is not allowed")
 				}
 				info.num++
 			case "OnlineMarketing":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(reward) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
 					return errors.New("OnlineMarketing special tx is not allowed")
 				}
 				info.num++
 			case "OfflineMarketing":
-				halfReword := new(big.Int).Div(reward, big.NewInt(2))
+				halfReword := new(big.Int).Div(minerReward, big.NewInt(2))
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(halfReword) != 0 {
-					fmt.Println(header.Number, "*v.data.Recipient", v.data.Recipient.String())
-					fmt.Println(header.Number, "*v.To()", v.To().String())
-					fmt.Println(header.Number, "info.toAddress", info.toAddress.String())
-					fmt.Println(header.Number, "v.Value()", v.Value())
-					fmt.Println(header.Number, "reward", reward)
 					return errors.New("OfflineMarketing special tx is not allowed")
 				}
 				info.num++
 			default:
-				fmt.Println(info.Name)
 				return errors.New("other tx can not allowed")
 			}
 			//specialConsensu[common.BytesToAddress(v.Data())]++
