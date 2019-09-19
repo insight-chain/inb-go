@@ -40,7 +40,7 @@ type StateDB interface {
 	GetRedeemTime(addr common.Address) *big.Int
 	GetRegular(addr common.Address) *big.Int
 	GetRedeem(addr common.Address) *big.Int
-	MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int
+	MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int
 	ResetNet(addr common.Address, update *big.Int) *big.Int
 	Receive(addr common.Address, sTime *big.Int) *big.Int
 	Redeem(addr common.Address, amount *big.Int, sTime *big.Int)
@@ -50,8 +50,8 @@ type StateDB interface {
 	//GetStateObject(address common.Address, num *big.Int, variety int)
 	//Resource by zc
 	//2019.7.22 inb by ghy begin
-	CanReceiveLockedAward(common.Address, int, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address)
-	ReceiveLockedAward(common.Address, int, *big.Int, bool, *big.Int, common.Address)
+	CanReceiveLockedAward(common.Address, common.Hash, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address)
+	ReceiveLockedAward(common.Address, common.Hash, *big.Int, bool, *big.Int, common.Address)
 
 	CanReceiveVoteAward(common.Address, *big.Int, types.SpecialConsensus) (error, *big.Int, common.Address)
 	ReceiveVoteAward(common.Address, *big.Int, *big.Int, common.Address)

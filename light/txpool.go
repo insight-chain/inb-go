@@ -527,18 +527,29 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		}
 	}
 
+	if tx.WhichTypes(types.InsteadMortgage) {
+		durations := strings.Split(inputStr, ":")
+		if len(durations) <= 1 {
+			return errors.New(" can't resolve field of input transaction ")
+		}
+		convert, err := strconv.Atoi(durations[1])
+		if err != nil {
+			return err
+		}
+		if !params.Contains(big.NewInt(int64(convert))) {
+			return errors.New(" wrong duration of mortgagtion ")
+		}
+		if count := currentState.StoreLength(*tx.To()); count >= params.TxConfig.RegularLimit {
+			return core.ErrCountLimit
+		}
+	}
+
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
 		instrNet, _ := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
 		usableMorgageNetOfInb := currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return core.ErrOverAuableNetValue
-		}
-	}
-
-	if tx.WhichTypes(types.Regular) {
-		if count := currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
-			return core.ErrCountLimit
 		}
 	}
 
@@ -725,7 +736,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	LockedHundred := new(big.Int)
 	LockedNumberOfDaysOneYear := new(big.Int)
 	for _, v := range account.Stores {
-		if strconv.Itoa(int(v.Nonce)) == receivebonus[1] {
+		if v.Hash == common.HexToHash(receivebonus[1]) {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days

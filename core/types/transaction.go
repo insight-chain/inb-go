@@ -38,28 +38,31 @@ var (
 type TxType uint8
 
 const (
-	_ TxType = iota
-	Ordinary
-	Mortgage
-	Regular
-	Redeem
-	Vote
-	Reset
-	Receive
-	ReceiveLockedAward
-	ReceiveVoteAward
-	UpdateNodeInformation
+	_                     TxType = iota
+	Ordinary                     //1
+	Mortgage                     //2
+	Regular                      //3
+	Redeem                       //4
+	Vote                         //5
+	Reset                        //6
+	Receive                      //7
+	ReceiveLockedAward           //8
+	ReceiveVoteAward             //9
+	UpdateNodeInformation        //10
 
-	SpecilaTx
-	Contract
-	IssueLightToken
-	TransferLightToken
+	SpecilaTx          //11
+	Contract           //12
+	IssueLightToken    //13
+	TransferLightToken //14
+
+	InsteadMortgage //15
 )
 
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract && txType != IssueLightToken && txType != TransferLightToken {
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract &&
+		txType != IssueLightToken && txType != TransferLightToken && txType != InsteadMortgage {
 		flag = false
 	}
 	return flag
@@ -265,7 +268,7 @@ func (tx *Transaction) isContract() bool {
 
 func (tx *Transaction) NoNeedUseNet() bool {
 	flag := false
-	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecilaTx) || tx.WhichTypes(Redeem)) {
+	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecilaTx) || tx.WhichTypes(Redeem) || tx.WhichTypes(InsteadMortgage)) {
 		flag = true
 	}
 	return flag
@@ -337,6 +340,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		data:       tx.data.Payload,
 		checkNonce: true,
 		types:      tx.data.Types,
+		hash:       tx.Hash(),
 	}
 
 	var err error
@@ -555,6 +559,8 @@ type Message struct {
 	receive    *big.Int
 	//achilles repayment
 	resourcePayer common.Address
+	//20190919 added replacement mortgage
+	hash common.Hash
 }
 
 func NewMessage(from common.Address, to *common.Address, nonce uint64, amount *big.Int, gasLimit uint64, data []byte, checkNonce bool, txType TxType) Message {
@@ -586,6 +592,9 @@ func (m Message) WhichTypes(txType TxType) bool { return m.types == txType }
 
 //achilles repayment add apis
 func (m Message) ResourcePayer() common.Address { return m.resourcePayer }
+
+//20190919 added replacement mortgage
+func (m Message) Hash() common.Hash { return m.hash }
 func (m Message) IsRePayment() bool {
 	var resourcePayer common.Address
 	if resourcePayer != m.resourcePayer {

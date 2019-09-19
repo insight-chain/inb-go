@@ -143,12 +143,16 @@ var (
 	// adding flags to the config to also have to set these fields.
 	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, MaxSignerCount: 21, GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
-	TestRules       = TestChainConfig.Rules(new(big.Int))
-	HeightOf30Days  = big.NewInt(30 * 60 * 60 * 24 / 2)
-	HeightOf90Days  = big.NewInt(90 * 60 * 60 * 24 / 2)
-	HeightOf180Days = big.NewInt(180 * 60 * 60 * 24 / 2)
-	HeightOf360Days = big.NewInt(360 * 60 * 60 * 24 / 2)
+	TestChainConfig  = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
+	TestRules        = TestChainConfig.Rules(new(big.Int))
+	HeightOf30Days   = big.NewInt(30 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf90Days   = big.NewInt(90 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf180Days  = big.NewInt(180 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf360Days  = big.NewInt(360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf720Days  = big.NewInt(2 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf1080Days = big.NewInt(3 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf1800Days = big.NewInt(5 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf3600Days = big.NewInt(10 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
 )
 var (
 	TxConfig = &CommonConfig{
@@ -164,7 +168,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
-		Days:             [4]*big.Int{HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days},
+		Days:             [8]*big.Int{HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
 		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 	}
@@ -230,7 +234,7 @@ type CommonConfig struct {
 
 	ResetDuration  *big.Int // duration of resetting nets
 	RegularLimit   int      // max value for regular mortgaging
-	Days           [4]*big.Int
+	Days           [8]*big.Int
 	RedeemDuration *big.Int //duration of redeeming
 }
 

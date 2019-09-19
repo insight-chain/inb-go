@@ -46,11 +46,9 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		beneficiary = *author
 	}
 	return vm.Context{
-		CanTransfer: CanTransfer,
-		Transfer:    Transfer,
-		//Resource by zc
+		CanTransfer:      CanTransfer,
+		Transfer:         Transfer,
 		MortgageTransfer: MortgageTransfer,
-		//Resource by zc
 		GetHash:          GetHashFn(header, chain),
 		Origin:           msg.From(),
 		Coinbase:         beneficiary,
@@ -60,18 +58,20 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Difficulty:       new(big.Int).Set(header.Difficulty),
 		GasLimit:         header.ResLimit,
 		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:           CanMortgage,
-		CanRedeem:             CanRedeem,
-		CanReset:              CanReset,
-		CanReceive:            CanReceive,
-		RedeemTransfer:        RedeemTransfer,
-		ResetTransfer:         ResetTransfer,
-		ReceiveTransfer:       ReceiveTransfer,
-		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
-		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
-		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
-		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
-		Vote:                  Vote,                      //2019.7.24 inb by ghy
+		CanMortgage:             CanMortgage,
+		CanRedeem:               CanRedeem,
+		CanReset:                CanReset,
+		CanReceive:              CanReceive,
+		RedeemTransfer:          RedeemTransfer,
+		ResetTransfer:           ResetTransfer,
+		ReceiveTransfer:         ReceiveTransfer,
+		CanReceiveLockedAward:   CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:      ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:     CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:        ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                    Vote,                      //2019.7.24 inb by ghy
+		InsteadMortgageTransfer: InsteadMortgageTransfer,   //20190919 added replacement mortgage
+		CanInsteadMortgage:      CanInsteadMortgage,
 	}
 }
 
@@ -114,10 +114,17 @@ func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) 
 }
 
 //Resource by zc
-func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
+func MortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int {
 	// db.AddBalance(recipient, amount)
 	db.SubBalance(sender, amount)
-	return db.MortgageNet(sender, amount, duration, sTime)
+	return db.MortgageNet(sender, amount, duration, sTime, hash)
+}
+
+func InsteadMortgageTransfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int {
+	// db.AddBalance(recipient, amount)
+	db.SubBalance(sender, amount)
+	db.AddBalance(recipient, amount)
+	return db.MortgageNet(recipient, amount, duration, sTime, hash)
 }
 
 //achilles0719 regular mortgagtion
@@ -128,12 +135,12 @@ func ResetTransfer(db vm.StateDB, sender common.Address, update *big.Int) *big.I
 //Resource by zc
 
 //2019.7.22 inb by ghy begin
-func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, time *big.Int, specialConsensus types.SpecialConsensus) (error, *big.Int, bool, common.Address) {
+func CanReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce common.Hash, time *big.Int, specialConsensus types.SpecialConsensus) (error, *big.Int, bool, common.Address) {
 	return db.CanReceiveLockedAward(from, nonce, time, specialConsensus)
 
 }
 
-func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce int, values *big.Int, isAll bool, time *big.Int, toAddress common.Address) {
+func ReceiveLockedAwardFunc(db vm.StateDB, from common.Address, nonce common.Hash, values *big.Int, isAll bool, time *big.Int, toAddress common.Address) {
 	db.ReceiveLockedAward(from, nonce, values, isAll, time, toAddress)
 }
 
@@ -184,6 +191,26 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *
 		return errors.New(" the value for mortgaging is too low ")
 	}
 	if db.GetBalance(addr).Cmp(amount) < 0 {
+		return errors.New(" insufficient balance ")
+	}
+	return nil
+}
+
+func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int, duration *big.Int) error {
+	if duration.Cmp(big.NewInt(0)) > 0 {
+		if count := db.StoreLength(to); count >= params.TxConfig.RegularLimit {
+			return errors.New(" exceeds mortgagtion count limit ")
+		}
+		if !params.Contains(duration) {
+			return errors.New(" wrong duration of mortgagtion ")
+		}
+	}
+
+	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
+	if temp.Cmp(big.NewInt(0)) <= 0 {
+		return errors.New(" the value for mortgaging is too low ")
+	}
+	if db.GetBalance(from).Cmp(amount) < 0 {
 		return errors.New(" insufficient balance ")
 	}
 	return nil

@@ -524,10 +524,10 @@ func (self *StateDB) SetBalance(addr common.Address, amount *big.Int) {
 }
 
 //achilles set nets for mortgaging
-func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
+func (self *StateDB) MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		return stateObject.MortgageNet(amount, duration, sTime)
+		return stateObject.MortgageNet(amount, duration, sTime, hash)
 	}
 	return nil
 }
@@ -542,7 +542,7 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) *big.Int {
 
 //2019.7.22 inb by ghy begin
 
-func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce int, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, is bool, toAddress common.Address) {
+func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce common.Hash, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, is bool, toAddress common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
@@ -560,7 +560,7 @@ func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce int, heigh
 	return errors.New("errors of address"), big.NewInt(0), false, common.Address{}
 }
 
-func (self *StateDB) ReceiveLockedAward(addr common.Address, nonce int, value *big.Int, isAll bool, time *big.Int, toAddress common.Address) {
+func (self *StateDB) ReceiveLockedAward(addr common.Address, nonce common.Hash, value *big.Int, isAll bool, time *big.Int, toAddress common.Address) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		self.SubBalance(toAddress, value)

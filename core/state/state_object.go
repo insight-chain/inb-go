@@ -133,12 +133,12 @@ type Resource struct {
 //}
 
 type Store struct {
-	Nonce              uint64   // transaction of regular mortgaging
-	StartHeight        big.Int  // start time
-	LockHeights        *big.Int // duration of mortgaging
-	Value              big.Int  // amount of mortgaging
-	Received           big.Int  // amount of already received value
-	LastReceivedHeight *big.Int // Last receive time
+	Hash               common.Hash // transaction of regular mortgaging
+	StartHeight        big.Int     // start time
+	LockHeights        *big.Int    // duration of mortgaging
+	Value              big.Int     // amount of mortgaging
+	Received           big.Int     // amount of already received value
+	LastReceivedHeight *big.Int    // Last receive time
 }
 
 type Redeem struct {
@@ -381,7 +381,7 @@ func (self *stateObject) setVoteRecord(amount *big.Int) {
 }
 
 //achilles MortgageNet add nets from c's resource
-func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime big.Int) *big.Int {
+func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int {
 	if amount.Sign() == 0 {
 		return nil
 	}
@@ -395,7 +395,7 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		store := Store{
-			Nonce:              self.data.Nonce,
+			Hash:               hash,
 			StartHeight:        sTime,
 			LockHeights:        duration,
 			Value:              *amount,
@@ -444,7 +444,7 @@ func (self *stateObject) ResetNet(update *big.Int) *big.Int {
 }
 
 //2019.7.22 inb by ghy begin
-func (self *stateObject) CanReceiveLockedAward(nonce int, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, isAll bool) {
+func (self *stateObject) CanReceiveLockedAward(nonce common.Hash, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, isAll bool) {
 	if self.data.Voted.Cmp(big.NewInt(0)) != 1 {
 		return errors.New("can only receive locked rewards after voting"), big.NewInt(0), false
 	}
@@ -458,7 +458,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, height *big.Int, conse
 	LockedNumberOfDaysOneYear := new(big.Int)
 
 	for _, v := range self.data.Stores {
-		if nonce == int(v.Nonce) {
+		if nonce == v.Hash {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor30days
@@ -544,11 +544,11 @@ func (self *stateObject) CanReceiveLockedAward(nonce int, height *big.Int, conse
 
 }
 
-func (self *stateObject) ReceiveLockedAward(nonce int, value *big.Int, isAll bool, height *big.Int) {
+func (self *stateObject) ReceiveLockedAward(nonce common.Hash, value *big.Int, isAll bool, height *big.Int) {
 
 	if len(self.data.Stores) > 0 {
 		for k, v := range self.data.Stores {
-			if nonce == int(v.Nonce) {
+			if nonce == v.Hash {
 				self.AddBalance(value)
 				self.data.Stores[k].LastReceivedHeight = height
 				if isAll {

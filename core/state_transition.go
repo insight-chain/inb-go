@@ -80,6 +80,7 @@ type Message interface {
 	ResourcePayer() common.Address
 	IsRePayment() bool
 	Receive() *big.Int
+	Hash() common.Hash
 }
 
 // IntrinsicGas computes the 'intrinsic gas' for a message with the given data.
@@ -289,7 +290,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types())
+		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types(), st.msg.Hash())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
