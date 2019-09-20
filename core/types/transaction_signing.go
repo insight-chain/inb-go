@@ -270,7 +270,7 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	}
 	var addr common.Address
 	//achilles0814 add a prefix to the address
-	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[12:]...)
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[13:]...)
 	copy(addr[:], newAddrBytes)
 	//copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil

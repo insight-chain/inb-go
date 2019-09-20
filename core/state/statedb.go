@@ -61,7 +61,7 @@ const (
 	unMortgageNet //3
 
 	MasterAccount    string = "0x1000000000000000000000000000000000000000"   // account record value of circulation
-	MortgageAccount  string = "0x953000000000000000000000000000000000000000" // account record value of mortgaging
+	MortgageAccount  string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
 	BonusAccount     string = "0x3000000000000000000000000000000000000000"   // account record value of Bonus
 	MarketingAccount string = "0x5000000000000000000000000000000000000000"   // account record value of Marketing
 	Foundation       string = "Foundation"                                   // account record value of Foundation
@@ -72,13 +72,13 @@ const (
 	OnlineMarketing  string = "OnlineMarketing"                              // account record value of OnlineMarketing
 	OfflineMarketing string = "OfflineMarketing"                             // account record value of OfflineMarketing
 
-	FoundationAccount       string = "0x951100000000000000000000000000000000000000" // account record value of Foundation
-	MiningRewardAccount     string = "0x951310000000000000000000000000000000000000" // account record value of Mining
-	VerifyRewardAccount     string = "0x951330000000000000000000000000000000000000" // account record value of Verify
-	VotingRewardAccount     string = "0x951350000000000000000000000000000000000000" // account record value of Voting
-	TeamAccount             string = "0x951500000000000000000000000000000000000000" // account record value of team
-	OnlineMarketingAccount  string = "0x951710000000000000000000000000000000000000" // account record value of OnlineMarketing
-	OfflineMarketingAccount string = "0x951730000000000000000000000000000000000000" // account record value of OfflineMarketing
+	FoundationAccount       string = "0x9511000000000000000000000000000000000000" // account record value of Foundation
+	MiningRewardAccount     string = "0x9513100000000000000000000000000000000000" // account record value of Mining
+	VerifyRewardAccount     string = "0x9513300000000000000000000000000000000000" // account record value of Verify
+	VotingRewardAccount     string = "0x9513500000000000000000000000000000000000" // account record value of Voting
+	TeamAccount             string = "0x9515000000000000000000000000000000000000" // account record value of team
+	OnlineMarketingAccount  string = "0x9517100000000000000000000000000000000000" // account record value of OnlineMarketing
+	OfflineMarketingAccount string = "0x9517300000000000000000000000000000000000" // account record value of OfflineMarketing
 )
 
 //Resource by zc
