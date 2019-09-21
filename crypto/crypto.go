@@ -75,7 +75,7 @@ func Keccak512(data ...[]byte) []byte {
 func CreateAddress(b common.Address, nonce uint64) common.Address {
 	data, _ := rlp.EncodeToBytes([]interface{}{b, nonce})
 	//achilles0814 add a prefix to the address
-	newAddrBytes := append(PrefixToAddress, Keccak256(data)[12:]...)
+	newAddrBytes := append(PrefixToAddress, Keccak256(data)[13:]...)
 	//return common.BytesToAddress(Keccak256(data)[12:])
 	return common.BytesToAddress(newAddrBytes)
 }
@@ -84,7 +84,7 @@ func CreateAddress(b common.Address, nonce uint64) common.Address {
 // contract code hash and a salt.
 func CreateAddress2(b common.Address, salt [32]byte, inithash []byte) common.Address {
 	//achilles0814 add a prefix to the address
-	newAddrBytes := append(PrefixToAddress, Keccak256([]byte{0xff}, b.Bytes(), salt[:], inithash)[12:]...)
+	newAddrBytes := append(PrefixToAddress, Keccak256([]byte{0xff}, b.Bytes(), salt[:], inithash)[13:]...)
 	return common.BytesToAddress(newAddrBytes)
 }
 
@@ -209,7 +209,7 @@ func ValidateSignatureValues(v byte, r, s *big.Int, homestead bool) bool {
 func PubkeyToAddress(p ecdsa.PublicKey) common.Address {
 	pubBytes := FromECDSAPub(&p)
 	//achilles0814 add a prefix to the address
-	newAddrBytes := append(PrefixToAddress, Keccak256(pubBytes[1:])[12:]...)
+	newAddrBytes := append(PrefixToAddress, Keccak256(pubBytes[1:])[13:]...)
 	//return common.BytesToAddress(Keccak256(pubBytes[1:])[12:])
 	return common.BytesToAddress(newAddrBytes)
 }
