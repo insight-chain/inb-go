@@ -100,8 +100,8 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 		if regular.Cmp(new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Inber))) >= 0 {
 			stake := tally.Stake
 			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
-			existTally = tallyIterator.Next()
 		}
+		existTally = tallyIterator.Next()
 	}
 
 	return tallySlice
