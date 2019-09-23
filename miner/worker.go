@@ -621,12 +621,13 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// 2019.8.29 inb by ghy begin
-			//if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
-			if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
-				fmt.Println(err)
-				return
+			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
+				parentBlock := w.chain.GetBlock(block.ParentHash(), block.NumberU64()-1)
+				if err := types.ValidateTx(block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
+					fmt.Println(err)
+					return
+				}
 			}
-			//}
 			// 2019.8.29 inb by ghy end
 
 			// Commit block and state to database.
