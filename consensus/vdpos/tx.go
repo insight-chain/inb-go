@@ -50,10 +50,6 @@ const (
 	PosEventIssueLightTokenSymbol      = 1
 	PosEventIssueLightTokenDecimals    = 2
 	PosEventIssueLightTokenTotalSupply = 3
-
-	PosEventTransferLightTokenSplitLen = 2
-	PosEventTransferLightTokenAddress  = 0
-	PosEventTransferLightTokenValue    = 1
 )
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
