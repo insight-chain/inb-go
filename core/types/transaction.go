@@ -733,6 +733,7 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 	if len(txs) == 0 {
 		return nil
 	}
+	to := header.Coinbase
 	SpecialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//minerReward := big.NewInt(int64(rewardInt))
@@ -774,7 +775,13 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 		totalConsensus.num = 1
 		specialConsensu[v.TotalAddress] = totalConsensus
 	}
-
+	type HeaderExtra struct {
+		LoopStartTime        uint64
+		SignersPool          []common.Address
+		SignerMissing        []common.Address
+		ConfirmedBlockNumber uint64
+		Enodes               []common.EnodeInfo
+	}
 	for _, v := range txs {
 
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
@@ -789,7 +796,19 @@ func ValidateTx(txs Transactions, header *Header, Period uint64) error {
 				}
 				info.num++
 			case "MiningReward":
-				if *v.data.Recipient != header.Coinbase || v.Value().Cmp(minerReward) != 0 {
+				b := header.Extra[32 : len(header.Extra)-65]
+				headerExtra := HeaderExtra{}
+				val := &headerExtra
+				err := rlp.DecodeBytes(b, val)
+				if err == nil {
+					for _, v := range val.Enodes {
+						if v.Address == header.Coinbase && v.ReceiveAccount != "" {
+							address := common.HexToAddress(v.ReceiveAccount)
+							to = address
+						}
+					}
+				}
+				if *v.data.Recipient != to || v.Value().Cmp(minerReward) != 0 {
 					return errors.New("MiningReward special tx is not allowed")
 				}
 				info.num++

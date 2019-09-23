@@ -297,6 +297,13 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 
 		}
 		head.SpecialConsensus = encodeToBytes
+
+		//encodeToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		//if err != nil {
+		//
+		//}
+		//key := common.BytesToHash(encodeToBytes)
+		//head.SpecialConsensus = key
 	}
 
 	if g.ResLimit == 0 {
@@ -432,7 +439,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
@@ -485,12 +492,15 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 			enode.Id = v.Id
 			enode.Ip = v.Ip
 			enode.Port = v.Port
+			enode.ReceiveAccount = v.ReceiveAccount
+
 			headE.Enodes = append(headE.Enodes, *enode)
 
 			//vdposContext, _ := types.NewVdposContext(db)
 			dc.UpdateTallysByNodeInfo(v)
 		}
 		//2019.9.4 inb by ghy end
+
 	}
 
 	return dc, headE

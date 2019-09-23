@@ -411,6 +411,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			enode.Port = v.Port
 			enode.Ip = v.Ip
 			enode.Id = v.Id
+			enode.ReceiveAccount = v.ReceiveAccount
 			currentHeaderExtra.Enodes = append(currentHeaderExtra.Enodes, *enode)
 		}
 		//currentHeaderExtra.Enodes = v.config.Enodes

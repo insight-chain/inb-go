@@ -124,6 +124,7 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+//2019.9.20 inb by ghy begin
 func (h *Header) GetSpecialConsensus() SpecialConsensus {
 	SpecialConsensus := SpecialConsensus{}
 
@@ -134,6 +135,26 @@ func (h *Header) GetSpecialConsensus() SpecialConsensus {
 	}
 	return SpecialConsensus
 }
+
+//func (h *Header) GetEnodesInfoByAddress(address common.Address) *common.EnodeInfo {
+//
+//	b := h.Extra[32 : len(h.Extra)-65]
+//	headerExtra := vdpos.HeaderExtra{}
+//	val := &headerExtra
+//	err := rlp.DecodeBytes(b, val)
+//	if err == nil {
+//		for _, v := range val.Enodes {
+//			if v.Address == address {
+//				return &v
+//			}
+//		}
+//	} else {
+//		return nil
+//	}
+//	return nil
+//}
+
+//2019.9.20 inb by ghy end
 
 // Size returns the approximate memory used by all internal contents. It is used
 // to approximate and limit the memory consumption of various caches.

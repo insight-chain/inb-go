@@ -638,7 +638,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//	}
 	//
 	//}
-
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
 		var candidatesSlice []common.Address
@@ -651,7 +650,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			if accountInfo == nil {
 				return errors.New("error of candidates address")
 			}
-			if accountInfo.Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			if accountInfo.Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) >= 0 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -1541,7 +1540,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
-			case params.HeightOf360Days.Uint64():
+			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor360days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
 				LockedDenominator = common.LockedDenominatorFor360days
@@ -1598,6 +1597,15 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 			if heightNow.Cmp(endTimeHeight) == -1 && FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
 				return errors.New("not block height to receive rewards")
 			}
+			for _, v := range pool.chain.CurrentBlock().Header().GetSpecialConsensus().SpecialConsensusAddress {
+				if v.Name == state.OnlineMarketing {
+					if pool.currentState.GetBalance(v.ToAddress).Cmp(subValue) != 1 {
+						return errors.New("there are not enough inb in the online account")
+					}
+					return nil
+				}
+			}
+
 			return nil
 		}
 	}
@@ -1623,7 +1631,7 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 	fromLastReceiveVoteAwardTimeToNowHeight := new(big.Int).Sub(HeightNow, lastReceiveVoteAwardHeight)
 	cycles := new(big.Int).Div(fromLastReceiveVoteAwardTimeToNowHeight, common.VoteRewardCycleSeconds)
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
-		consensus := pool.chain.CurrentBlock().SpecialConsensus()
+		consensus := pool.chain.CurrentBlock().Header().GetSpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
 			if v.Name == state.VotingReward {
 				votes := account.Voted
@@ -1631,9 +1639,8 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 				votes2 := new(big.Int).Mul(votes1, cycles)
 				votes3 := new(big.Int).Div(votes2, common.VoteHundred)
 				value := new(big.Int).Div(votes3, common.VoteNumberOfDaysOneYear)
-				ToAddressInfo := pool.currentState.GetAccountInfo(v.ToAddress)
 
-				if ToAddressInfo != nil && ToAddressInfo.Balance.Cmp(value) != 1 {
+				if pool.currentState.GetBalance(v.ToAddress).Cmp(value) != 1 {
 					return errors.New("there are not enough inb in the voting account")
 				}
 			}
