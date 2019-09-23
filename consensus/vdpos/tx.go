@@ -33,18 +33,17 @@ import (
 )
 
 const (
-	PosEventDeclareInfoSplitLen       = 4
+	PosEventDeclareInfoSplitLen       = 3
 	PosEventDeclareInfoId             = 0
 	PosEventDeclareInfoIp             = 1
 	PosEventDeclareInfoPort           = 2
 	PosEventDeclareInfoReceiveAccount = 3
 	PosEventDeclareInfoName           = 4
 	PosEventDeclareInfoNation         = 5
-	PosEventDeclareInfoCity           = 6
-	PosEventDeclareInfoImage          = 7
-	PosEventDeclareInfoWebsite        = 8
-	PosEventDeclareInfoEmail          = 9
-	PosEventDeclareInfoData           = 10
+	PosEventDeclareInfoImage          = 6
+	PosEventDeclareInfoWebsite        = 7
+	PosEventDeclareInfoEmail          = 8
+	PosEventDeclareInfoData           = 9
 
 	PosEventIssueLightTokenSplitLen    = 4
 	PosEventIssueLightTokenName        = 0
@@ -182,19 +181,21 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
 		enodeInfo := common.EnodeInfo{
-			Id:             midEnodeInfo[PosEventDeclareInfoId],
-			Ip:             midEnodeInfo[PosEventDeclareInfoIp],
-			Port:           midEnodeInfo[PosEventDeclareInfoPort],
-			Address:        declarer,
-			ReceiveAccount: midEnodeInfo[PosEventDeclareInfoReceiveAccount],
+			Id:      midEnodeInfo[PosEventDeclareInfoId],
+			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+			Port:    midEnodeInfo[PosEventDeclareInfoPort],
+			Address: declarer,
 		}
 
 		enodeInfoTrie := &common.EnodesInfo{
-			Id:             midEnodeInfo[PosEventDeclareInfoId],
-			Ip:             midEnodeInfo[PosEventDeclareInfoIp],
-			Port:           midEnodeInfo[PosEventDeclareInfoPort],
-			Address:        declarer,
-			ReceiveAccount: midEnodeInfo[PosEventDeclareInfoReceiveAccount],
+			Id:      midEnodeInfo[PosEventDeclareInfoId],
+			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+			Port:    midEnodeInfo[PosEventDeclareInfoPort],
+			Address: declarer,
+		}
+		if len(midEnodeInfo) >= 4 {
+			enodeInfo.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
+			enodeInfoTrie.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
 		}
 		//inb by ghy begin
 		if len(midEnodeInfo) >= 5 {
@@ -206,21 +207,18 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 		}
 
 		if len(midEnodeInfo) >= 7 {
-			enodeInfoTrie.City = midEnodeInfo[PosEventDeclareInfoCity]
-		}
-		if len(midEnodeInfo) >= 8 {
 			enodeInfoTrie.Image = midEnodeInfo[PosEventDeclareInfoImage]
 
 		}
-		if len(midEnodeInfo) >= 9 {
+		if len(midEnodeInfo) >= 8 {
 			enodeInfoTrie.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
 		}
-		if len(midEnodeInfo) >= 10 {
+		if len(midEnodeInfo) >= 9 {
 			enodeInfoTrie.Email = midEnodeInfo[PosEventDeclareInfoEmail]
 		}
 
 		data := `{`
-		if len(midEnodeInfo) >= 11 {
+		if len(midEnodeInfo) >= 10 {
 			enodeData := strings.Split(midEnodeInfo[PosEventDeclareInfoData], "-")
 			for _, v := range enodeData {
 				split := strings.Split(v, "/")
