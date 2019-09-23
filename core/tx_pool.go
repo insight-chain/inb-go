@@ -827,7 +827,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 		}
 
-		if tx.Value().Cmp(big.NewInt(1000)) < 0 || tx.Value().Cmp(big.NewInt(10000)) > 0 {
+		if tx.Value().Cmp(new(big.Int).Mul(big.NewInt(1000), big.NewInt(params.Inber))) < 0 || tx.Value().Cmp(new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))) > 0 {
 			return errors.New("issue token must sub 1000~10000 inb")
 		}
 	}
