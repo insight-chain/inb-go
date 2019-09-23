@@ -85,13 +85,9 @@ var (
 	// making the transaction invalid, rather a DOS protection.
 	ErrOversizedData = errors.New("oversized data")
 	//Resource by zc
-	ErrOverUnMortgageInbOfCpuValue = errors.New("over MortgageInbOfCpu number")
-	ErrOverUnMortgageInbOfNetValue = errors.New("over MortgageInbOfNet number")
-	ErrOverAuableCpuValue          = errors.New("over AuableCpu number")
-	ErrOverAuableNetValue          = errors.New("over AuableNet number")
-	ErrOverBalanceValue            = errors.New("Balance is not enough ")
-	ErrBeforeResetTime             = errors.New("before reset time")
-	ErrParameterError              = errors.New("Parameter error")
+	ErrOverResValue    = errors.New("not enough res")
+	ErrBeforeResetTime = errors.New("before reset time")
+	ErrParameterError  = errors.New("parameter error")
 
 	//achilles0718 regular mortgagtion
 	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
@@ -788,7 +784,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
-			return ErrOverAuableNetValue
+			return ErrOverResValue
 		}
 	}
 
@@ -811,7 +807,57 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return errors.New(" insufficient available mortgage ")
 		}
 	}
-	//Resource by zc
+
+	// add by ssh 190921 begin
+	if tx.WhichTypes(types.IssueLightToken) {
+		lightTokenInfo := strings.Split(inputStr, "~")
+		if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
+			return errors.New("issue lightToken need 4 parameter")
+		} else {
+			decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
+			decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+			if err != nil {
+				return errors.New("decimals is not uint8")
+			} else if decimalsNum > 5 {
+				return errors.New("decimals must from 0~5")
+			}
+			totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
+			_, ok := new(big.Int).SetString(totalSupplyStr, 10)
+			if !ok {
+				return errors.New("unable to convert totalSupply string to big integer")
+			}
+		}
+
+		if tx.Value().Cmp(big.NewInt(1000)) < 0 || tx.Value().Cmp(big.NewInt(10000)) > 0 {
+			return errors.New("issue token must sub 1000~10000 inb")
+		}
+	}
+
+	if tx.WhichTypes(types.TransferLightToken) {
+		lightTokenAddress := common.HexToAddress(inputStr)
+		vdposContext := pool.chain.CurrentBlock().VdposContext
+
+		// check up if lightToken exist
+		lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
+		if lightTokenExist == nil {
+			return errors.New("this lightToken do not exist")
+		} else {
+			if err != nil {
+				return errors.New("err in vdposContext.GetLightToken()")
+			}
+		}
+
+		senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(from, lightTokenAddress)
+		if err != nil {
+			return errors.New("err in vdposContext.GetLightTokenBalanceByAddress()")
+		} else {
+			if senderBalance.Cmp(tx.Value()) == -1 {
+				return errors.New("not enough lightToken balance to transfer")
+			}
+		}
+	}
+	// add by ssh 190921 end
+
 	return nil
 }
 

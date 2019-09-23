@@ -157,6 +157,8 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.Receive:
 			log = &types.Log{From: common.HexToAddress(state.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
+		case types.IssueLightToken:
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.SShtestAccount), Amount: msg.Value(), Types: msg.Types()}
 		default:
 			break
 		}
