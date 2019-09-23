@@ -409,9 +409,10 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 	if !(big.NewInt(0).Cmp(self.Date()) < 0) {
 		self.SetDate(&sTime)
 	}
+
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
-
+	self.Vote(&sTime)
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
 		HeightNow := sTime
 		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
@@ -425,7 +426,6 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 			votes2 := new(big.Int).Div(votes1, common.VoteHundredForChange)
 			votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYearForChange)
 			value := new(big.Int).Mul(votes3, cycles)
-			self.Vote(&HeightNow)
 			self.ReceiveVoteAward(value, &HeightNow)
 		}
 	}
@@ -478,7 +478,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce common.Hash, height *big.In
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
-			case params.HeightOf360Days.Uint64():
+			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor360days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
 				LockedDenominator = common.LockedDenominatorFor360days
@@ -658,7 +658,7 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
-
+	self.Vote(sTime)
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
 		HeightNow := sTime
 		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
@@ -672,7 +672,6 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 			votes2 := new(big.Int).Div(votes1, common.VoteHundredForChange)
 			votes3 := new(big.Int).Div(votes2, common.VoteNumberOfDaysOneYearForChange)
 			value := new(big.Int).Mul(votes3, cycles)
-			self.Vote(HeightNow)
 			self.ReceiveVoteAward(value, HeightNow)
 		}
 	}

@@ -406,7 +406,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			return errors.New("can not transfer to special consensus address")
 		}
 	}
-
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
 		var candidatesSlice []common.Address
@@ -782,7 +781,6 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	if len(account.Stores) <= 0 {
 		return errors.New("no locked record")
 	}
-
 	LockedRewardCycleSeconds := new(big.Int)
 	LockedRewardCycleTimes := new(big.Int)
 	LockedDenominator := new(big.Int)
@@ -808,7 +806,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
-			case params.HeightOf360Days.Uint64():
+			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
 				LockedDenominator = common.LockedDenominatorFor360days

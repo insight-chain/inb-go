@@ -56,7 +56,6 @@ var (
 
 	// 2019.7.22 inb by ghy end
 	//
-
 )
 
 // Declare :
@@ -64,10 +63,11 @@ var (
 // Sender of tx is Signer or Candidate
 
 type EnodeInfo struct {
-	Address Address `json:"address"`
-	Id      string  `json:"id"`
-	Ip      string  `json:"ip"`
-	Port    string  `json:"port"`
+	Address        Address `json:"address"`
+	ReceiveAccount string  `json:"receiveAccount"`
+	Id             string  `json:"id"`
+	Ip             string  `json:"ip"`
+	Port           string  `json:"port"`
 	//inb by ghy begin
 	//Name    string `json:"name"`
 	//Nation  string `json:"nation"`
@@ -80,11 +80,16 @@ type EnodeInfo struct {
 	//inb by ghy end
 }
 
+func (node *EnodeInfo) GetReceiveAccount() Address {
+	return HexToAddress(node.ReceiveAccount)
+}
+
 type EnodesInfo struct {
-	Address Address `json:"address"`
-	Id      string  `json:"id"`
-	Ip      string  `json:"ip"`
-	Port    string  `json:"port"`
+	Address        Address `json:"address"`
+	ReceiveAccount string  `json:"receiveAccount"`
+	Id             string  `json:"id"`
+	Ip             string  `json:"ip"`
+	Port           string  `json:"port"`
 	//inb by ghy begin
 	Name    string `json:"name"`
 	Nation  string `json:"nation"`
@@ -93,6 +98,6 @@ type EnodesInfo struct {
 	Website string `json:"website"`
 	Email   string `json:"email"`
 	Data    string `json:"data"`
-	Vote    uint64 `json:"vote"`
+
 	//inb by ghy end
 }

@@ -1044,6 +1044,20 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case state.MiningReward:
 			from := v.TotalAddress
 			to := header.Coinbase
+
+			b := header.Extra[32 : len(header.Extra)-65]
+			headerExtra := vdpos.HeaderExtra{}
+			val := &headerExtra
+			err := rlp.DecodeBytes(b, val)
+			if err == nil {
+				for _, v := range val.Enodes {
+					if v.Address == header.Coinbase && v.ReceiveAccount != "" {
+						address := common.HexToAddress(v.ReceiveAccount)
+						to = address
+					}
+				}
+			}
+
 			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx, newTx)
