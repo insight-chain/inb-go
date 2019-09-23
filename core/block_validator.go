@@ -54,6 +54,8 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 	}
 	// Header validity is known at this point, check the uncles and transactions
 	header := block.Header()
+
+	parentBlock := v.bc.GetBlock(block.ParentHash(), block.NumberU64()-1)
 	if err := v.engine.VerifyUncles(v.bc, block); err != nil {
 		return err
 	}
@@ -61,7 +63,8 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 		return fmt.Errorf("uncle root hash mismatch: have %x, want %x", hash, header.UncleHash)
 	}
 	// 2019.8.29 inb by ghy begin
-	if err := types.ValidateTx(block.Transactions(), header, v.config.Vdpos.Period); err != nil {
+	if err := types.ValidateTx(block.Transactions(), header, parentBlock.Header(), v.config.Vdpos.Period); err != nil {
+		fmt.Println(err)
 		return err
 	}
 	// 2019.8.29 inb by ghy end
