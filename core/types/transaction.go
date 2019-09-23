@@ -784,6 +784,10 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		totalConsensus.totalAddress = v.TotalAddress
 		totalConsensus.num = 1
 		specialConsensu[v.TotalAddress] = totalConsensus
+
+		if v.Name == "MiningReward" || v.Name == "OnlineMarketing" {
+			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{num: 1}
+		}
 	}
 
 	for _, v := range txs {

@@ -609,31 +609,27 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if nil != tx.To() && (v.TotalAddress == *tx.To() || v.TotalAddress == tx.From()) {
 			return errors.New("can not transfer to special consensus address")
 		}
+
+		if v.Name == state.VotingReward || v.Name == state.OnlineMarketing {
+			if nil != tx.To() && (v.ToAddress == *tx.To() || v.ToAddress == tx.From()) {
+				return errors.New("can not transfer online or voting address")
+			}
+		}
 	}
 
 	//achilles config validate candidates size
 
-	//if tx.WhichTypes(types.UpdateNodeInformation) {
-	//	tx.Data()
-	//	if len(inputStr) >= len(vdpos.InbPrefix) {
-	//		txDataInfo := strings.Split(inputStr, "|")
-	//		if len(txDataInfo) >= vdpos.InbMinSplitLen {
-	//			if txDataInfo[vdpos.PosPrefix] == vdpos.InbPrefix {
-	//				if txDataInfo[vdpos.PosVersion] == vdpos.InbVersion {
-	//					// process vote event
-	//					if txDataInfo[vdpos.PosCategory] == vdpos.InbCategoryEvent {
-	//						if len(txDataInfo) > vdpos.InbMinSplitLen {
-	//							// check is vote or not
-	//							if txDataInfo[vdpos.PosEventVote] == vdpos.InbEventDeclare {
-	//							}
-	//						}
-	//					}
-	//				}
-	//			}
-	//		}
-	//	}
-	//
-	//}
+	if tx.WhichTypes(types.UpdateNodeInformation) {
+		fmt.Println(len(inputStr))
+		if len(inputStr) > 600 {
+			return errors.New("date over size")
+		}
+		if pool.currentState.GetMortgageInbOfINB(tx.From()).Cmp(vdpos.BeVotedNeedINB) == -1 {
+			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
+		}
+
+	}
+
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
 		var candidatesSlice []common.Address
@@ -642,11 +638,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		for _, value := range candidatesStr {
 			address := common.HexToAddress(value)
 			//2019.7.15 inb mod by ghy begin
-			accountInfo := pool.currentState.GetAccountInfo(address)
-			if accountInfo == nil {
-				return errors.New("error of candidates address")
-			}
-			if accountInfo.Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) >= 0 {
+			if pool.currentState.GetMortgageInbOfINB(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -1651,8 +1643,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 					return nil
 				}
 			}
-
-			return nil
+			return errors.New("can not find online account")
 		}
 	}
 	return errors.New("no such lock record")

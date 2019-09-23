@@ -412,8 +412,9 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
-	self.Vote(&sTime)
+
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
+		self.Vote(&sTime)
 		HeightNow := sTime
 		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
 		if HeightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
@@ -658,8 +659,9 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
-	self.Vote(sTime)
+
 	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
+		self.Vote(sTime)
 		HeightNow := sTime
 		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
 		if HeightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
