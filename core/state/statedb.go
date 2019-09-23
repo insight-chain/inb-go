@@ -51,19 +51,8 @@ var (
 
 //Resource by zc
 const (
-	//MortgageCpu
-	mortgageCpu = iota //0
-	//MortgageNet
-	mortgageNet //1
-	//unMortgageCpu
-	unMortgageCpu //2
-	//unMortgageNet
-	unMortgageNet //3
-
-	MasterAccount    string = "0x1000000000000000000000000000000000000000" // account record value of circulation
+	MasterAccount    string = "0x9510000000000000000000000000000000000000" // account record value of circulation
 	MortgageAccount  string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
-	BonusAccount     string = "0x3000000000000000000000000000000000000000" // account record value of Bonus
-	MarketingAccount string = "0x5000000000000000000000000000000000000000" // account record value of Marketing
 	Foundation       string = "Foundation"                                 // account record value of Foundation
 	MiningReward     string = "MiningReward"                               // account record value of Mining
 	VerifyReward     string = "VerifyReward"                               // account record value of Verify
@@ -71,15 +60,6 @@ const (
 	Team             string = "Team"                                       // account record value of team
 	OnlineMarketing  string = "OnlineMarketing"                            // account record value of OnlineMarketing
 	OfflineMarketing string = "OfflineMarketing"                           // account record value of OfflineMarketing
-
-	FoundationAccount       string = "0x9511000000000000000000000000000000000000" // account record value of Foundation
-	MiningRewardAccount     string = "0x9513100000000000000000000000000000000000" // account record value of Mining
-	VerifyRewardAccount     string = "0x9513300000000000000000000000000000000000" // account record value of Verify
-	VotingRewardAccount     string = "0x9513500000000000000000000000000000000000" // account record value of Voting
-	TeamAccount             string = "0x9515000000000000000000000000000000000000" // account record value of team
-	OnlineMarketingAccount  string = "0x9517100000000000000000000000000000000000" // account record value of OnlineMarketing
-	OfflineMarketingAccount string = "0x9517300000000000000000000000000000000000" // account record value of OfflineMarketing
-	SShtestAccount          string = "0x9500000000000000000000000000000000000000"
 )
 
 //Resource by zc

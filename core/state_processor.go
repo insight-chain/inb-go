@@ -132,21 +132,21 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	//switch msg.Types() {}
 	//2019.8.29 inb by ghy begin
 	if receive != nil && receive.Cmp(big.NewInt(0)) == 1 {
-		Votingaddress := common.Address{}
-		Onlineaddress := common.Address{}
+		votingAddress := common.Address{}
+		onlineAddress := common.Address{}
 		//log := &types.Log{}
 		for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-			if v.Name == "VotingReward" {
-				Votingaddress = v.ToAddress
-			} else if v.Name == "OnlineMarketing" {
-				Onlineaddress = v.ToAddress
+			if v.Name == state.VotingReward {
+				votingAddress = v.ToAddress
+			} else if v.Name == state.OnlineMarketing {
+				onlineAddress = v.ToAddress
 			}
 		}
 		switch msg.Types() {
 		case types.ReceiveVoteAward:
-			log = &types.Log{From: Votingaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: votingAddress, To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.ReceiveLockedAward:
-			log = &types.Log{From: Onlineaddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: onlineAddress, To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.Mortgage:
 			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.InsteadMortgage:
@@ -158,7 +158,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		case types.Receive:
 			log = &types.Log{From: common.HexToAddress(state.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.IssueLightToken:
-			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.SShtestAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: onlineAddress, Amount: msg.Value(), Types: msg.Types()}
 		default:
 			break
 		}

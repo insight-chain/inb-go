@@ -357,7 +357,12 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	} else if txType == types.Receive {
 		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.IssueLightToken {
-		evm.Transfer(evm.StateDB, caller.Address(), common.HexToAddress(state.SShtestAccount), value)
+		for _, v := range evm.SpecialConsensus.SpecialConsensusAddress {
+			if v.Name == state.OnlineMarketing {
+				evm.Transfer(evm.StateDB, caller.Address(), v.ToAddress, value)
+				break
+			}
+		}
 	} else if txType == types.TransferLightToken {
 		// do nothing when transferLightToken
 	} else {
