@@ -79,6 +79,7 @@ const (
 	TeamAccount             string = "0x951500000000000000000000000000000000000000" // account record value of team
 	OnlineMarketingAccount  string = "0x951710000000000000000000000000000000000000" // account record value of OnlineMarketing
 	OfflineMarketingAccount string = "0x951730000000000000000000000000000000000000" // account record value of OfflineMarketing
+	SShtestAccount          string = "0x9500000000000000000000000000000000000000"
 )
 
 //Resource by zc

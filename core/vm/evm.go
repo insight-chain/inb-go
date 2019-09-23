@@ -17,6 +17,7 @@
 package vm
 
 import (
+	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
@@ -311,6 +312,8 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 			return nil, net, err, nil
 		}
+	} else if txType == types.Vote || txType == types.TransferLightToken {
+		// do nothing because we don't need to check up value when vote or transferLightToken
 	} else {
 		// Fail if we're trying to transfer more than the available balance
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
@@ -338,8 +341,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 	if txType == types.Vote {
 		evm.Vote(evm.StateDB, caller.Address(), evm.BlockNumber)
-	}
-	if txType == types.Redeem {
+	} else if txType == types.Redeem {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.BlockNumber)
 	} else if txType == types.Regular || txType == types.Mortgage {
 		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber, hash)
@@ -351,9 +353,13 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.BlockNumber, toAddress)
 	} else if txType == types.ReceiveLockedAward {
 		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.BlockNumber, toAddress)
-		// //2019.7.22 inb by ghy end
+		//2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
 		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
+	} else if txType == types.IssueLightToken {
+		evm.Transfer(evm.StateDB, caller.Address(), common.HexToAddress(state.SShtestAccount), value)
+	} else if txType == types.TransferLightToken {
+		// do nothing when transferLightToken
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}
@@ -391,6 +397,8 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		return ret, contract.Gas, err, VoteAward
 	case types.ReceiveLockedAward:
 		return ret, contract.Gas, err, LockedAward
+	case types.IssueLightToken:
+		return ret, contract.Gas, err, big.NewInt(1)
 	default:
 		return ret, contract.Gas, err, nets
 	}

@@ -549,7 +549,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		instrNet, _ := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
 		usableMorgageNetOfInb := currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
-			return core.ErrOverAuableNetValue
+			return core.ErrOverResValue
 		}
 	}
 
@@ -572,6 +572,59 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			return errors.New(" insufficient available mortgage ")
 		}
 	}
+
+	// add by ssh 190921 begin
+	if tx.WhichTypes(types.IssueLightToken) {
+		lightTokenInfo := strings.Split(inputStr, "~")
+		if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
+			return errors.New("issue lightToken need 4 parameter")
+		} else {
+			decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
+			decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+			if err != nil {
+				return errors.New("decimals is not uint8")
+			} else if decimalsNum > 5 {
+				return errors.New("decimals must from 0~5")
+			}
+			totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
+			_, ok := new(big.Int).SetString(totalSupplyStr, 10)
+			if !ok {
+				return errors.New("unable to convert totalSupply string to big integer")
+			}
+		}
+
+		if tx.Value().Cmp(big.NewInt(1000)) < 0 || tx.Value().Cmp(big.NewInt(10000)) > 0 {
+			return errors.New("issue token must sub 1000~10000 inb")
+		}
+	}
+
+	if tx.WhichTypes(types.TransferLightToken) {
+		lightTokenAddress := common.HexToAddress(inputStr)
+		vdposContext, err := types.NewVdposContextFromProto(pool.chain.chainDb, pool.chain.hc.CurrentHeader().VdposContext)
+		if err != nil {
+			return err
+		}
+		// check up if lightToken exist
+		lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
+		if lightTokenExist == nil {
+			return errors.New("this lightToken do not exist")
+		} else {
+			if err != nil {
+				return errors.New("err in vdposContext.GetLightToken()")
+			}
+		}
+
+		senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(from, lightTokenAddress)
+		if err != nil {
+			return errors.New("err in vdposContext.GetLightTokenBalanceByAddress()")
+		} else {
+			if senderBalance.Cmp(tx.Value()) == -1 {
+				return errors.New("not enough lightToken balance to transfer")
+			}
+		}
+	}
+	// add by ssh 190921 end
+
 	return currentState.Error()
 }
 
