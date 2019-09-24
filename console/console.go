@@ -126,20 +126,20 @@ func (c *Console) init(preload []string) error {
 	if err := c.jsre.Compile("web3.js", jsre.Web3_JS); err != nil {
 		return fmt.Errorf("web3.js: %v", err)
 	}
-	if _, err := c.jsre.Run("var Web3 = require('web3');"); err != nil {
-		return fmt.Errorf("web3 require: %v", err)
+	if _, err := c.jsre.Run("var Web3i = require('web3');"); err != nil {
+		return fmt.Errorf("web3i require: %v", err)
 	}
-	if _, err := c.jsre.Run("var web3 = new Web3(jeth);"); err != nil {
-		return fmt.Errorf("web3 provider: %v", err)
+	if _, err := c.jsre.Run("var web3i = new Web3i(jeth);"); err != nil {
+		return fmt.Errorf("web3i provider: %v", err)
 	}
 	// Load the supported APIs into the JavaScript runtime environment
 	apis, err := c.client.SupportedModules()
 	if err != nil {
 		return fmt.Errorf("api modules: %v", err)
 	}
-	flatten := "var inb = web3.inb; var personal = web3.personal; "
+	flatten := "var inb = web3i.inb; var personal = web3i.personal; "
 	for api := range apis {
-		if api == "web3" {
+		if api == "web3i" {
 			continue // manually mapped or ignore
 		}
 		if file, ok := web3ext.Modules[api]; ok {
@@ -147,10 +147,10 @@ func (c *Console) init(preload []string) error {
 			if err = c.jsre.Compile(fmt.Sprintf("%s.js", api), file); err != nil {
 				return fmt.Errorf("%s.js: %v", api, err)
 			}
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
-		} else if obj, err := c.jsre.Run("web3." + api); err == nil && obj.IsObject() {
+			flatten += fmt.Sprintf("var %s = web3i.%s; ", api, api)
+		} else if obj, err := c.jsre.Run("web3i." + api); err == nil && obj.IsObject() {
 			// Enable web3.js built-in extension if available.
-			flatten += fmt.Sprintf("var %s = web3.%s; ", api, api)
+			flatten += fmt.Sprintf("var %s = web3i.%s; ", api, api)
 		}
 	}
 	if _, err = c.jsre.Run(flatten); err != nil {
@@ -253,21 +253,28 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	}
 	// Chunck data to relevant part for autocompletion
 	// E.g. in case of nested lines eth.getBalance(eth.coinb<tab><tab>
+	fmt.Printf(" 1 AutoCompleteInput line string = %v, pos = %d, len(line) = %d" ,line, pos,len(line))
 	start := pos - 1
 	for ; start > 0; start-- {
+
+		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
+		if start >= 4 && line[start-4:start+1] == "web3i" {
+			start -= 4
+			pos -= 1
+			fmt.Printf(" 3 start = %d  ", start)
+			continue
+		}
+
 		// Skip all methods and namespaces (i.e. including the dot)
 		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
 			continue
 		}
-		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
-		if start >= 3 && line[start-3:start] == "web3" {
-			start -= 3
-			continue
-		}
+
 		// We've hit an unexpected character, autocomplete form here
 		start++
 		break
 	}
+	fmt.Printf(" 5 start = %v , pos = %d , line = %v , line[start:pos] = %v , line[:start] = %v , line[pos:] = %v",start,pos,line,line[start:pos],line[:start],line[pos:])
 	return line[:start], c.jsre.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
@@ -277,7 +284,7 @@ func (c *Console) Welcome() {
 	// Print some generic Geth metadata
 	fmt.Fprintf(c.printer, "Welcome to the Ginb JavaScript console!\n\n")
 	c.jsre.Run(`
-		console.log("instance: " + web3.version.node);
+		console.log("instance: " + web3i.version.node);
 		console.log("coinbase: " + inb.coinbase);
 		console.log("at block: " + inb.blockNumber + " (" + new Date(1000 * inb.getBlock(inb.blockNumber).timestamp) + ")");
 		console.log(" datadir: " + admin.datadir);

@@ -158,7 +158,7 @@ var (
 	TxConfig = &CommonConfig{
 		UseNet:        300,
 		UseCpu:        50,
-		CandidateSize: 30,
+		CandidateSize: 10,
 		//Wei:              big.NewInt(1e+18),
 		Wei:         big.NewInt(1e+5),
 		Circulation: big.NewInt(5e+8),

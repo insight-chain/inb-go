@@ -2528,7 +2528,7 @@ var BigNumber = require('bignumber.js');
 
 
 
-function Web3 (provider) {
+function Web3i (provider) {
     this._requestManager = new RequestManager(provider);
     this.currentProvider = provider;
     this.inb = new Eth(this);
@@ -2552,48 +2552,48 @@ function Web3 (provider) {
 }
 
 // expose providers on the class
-Web3.providers = {
+Web3i.providers = {
     HttpProvider: HttpProvider,
     IpcProvider: IpcProvider
 };
 
-Web3.prototype.setProvider = function (provider) {
+Web3i.prototype.setProvider = function (provider) {
     this._requestManager.setProvider(provider);
     this.currentProvider = provider;
 };
 
-Web3.prototype.reset = function (keepIsSyncing) {
+Web3i.prototype.reset = function (keepIsSyncing) {
     this._requestManager.reset(keepIsSyncing);
     this.settings = new Settings();
 };
 
-Web3.prototype.BigNumber = BigNumber;
-Web3.prototype.toHex = utils.toHex;
-Web3.prototype.toAscii = utils.toAscii;
-Web3.prototype.toUtf8 = utils.toUtf8;
-Web3.prototype.fromAscii = utils.fromAscii;
-Web3.prototype.fromUtf8 = utils.fromUtf8;
-Web3.prototype.toDecimal = utils.toDecimal;
-Web3.prototype.fromDecimal = utils.fromDecimal;
-Web3.prototype.toBigNumber = utils.toBigNumber;
-Web3.prototype.toWei = utils.toWei;
-Web3.prototype.fromWei = utils.fromWei;
-Web3.prototype.isAddress = utils.isAddress;
-Web3.prototype.isChecksumAddress = utils.isChecksumAddress;
-Web3.prototype.toChecksumAddress = utils.toChecksumAddress;
-Web3.prototype.isIBAN = utils.isIBAN;
-Web3.prototype.padLeft = utils.padLeft;
-Web3.prototype.padRight = utils.padRight;
+Web3i.prototype.BigNumber = BigNumber;
+Web3i.prototype.toHex = utils.toHex;
+Web3i.prototype.toAscii = utils.toAscii;
+Web3i.prototype.toUtf8 = utils.toUtf8;
+Web3i.prototype.fromAscii = utils.fromAscii;
+Web3i.prototype.fromUtf8 = utils.fromUtf8;
+Web3i.prototype.toDecimal = utils.toDecimal;
+Web3i.prototype.fromDecimal = utils.fromDecimal;
+Web3i.prototype.toBigNumber = utils.toBigNumber;
+Web3i.prototype.toWei = utils.toWei;
+Web3i.prototype.fromWei = utils.fromWei;
+Web3i.prototype.isAddress = utils.isAddress;
+Web3i.prototype.isChecksumAddress = utils.isChecksumAddress;
+Web3i.prototype.toChecksumAddress = utils.toChecksumAddress;
+Web3i.prototype.isIBAN = utils.isIBAN;
+Web3i.prototype.padLeft = utils.padLeft;
+Web3i.prototype.padRight = utils.padRight;
 
 
-Web3.prototype.sha3 = function(string, options) {
+Web3i.prototype.sha3 = function(string, options) {
     return '0x' + sha3(string, options);
 };
 
 /**
  * Transforms direct icap to address
  */
-Web3.prototype.fromICAP = function (icap) {
+Web3i.prototype.fromICAP = function (icap) {
     var iban = new Iban(icap);
     return iban.address();
 };
@@ -2602,7 +2602,7 @@ var properties = function () {
     return [
         new Property({
             name: 'version.node',
-            getter: 'web3_clientVersion'
+            getter: 'web3i_clientVersion'
         }),
         new Property({
             name: 'version.network',
@@ -2622,15 +2622,15 @@ var properties = function () {
     ];
 };
 
-Web3.prototype.isConnected = function(){
+Web3i.prototype.isConnected = function(){
     return (this.currentProvider && this.currentProvider.isConnected());
 };
 
-Web3.prototype.createBatch = function () {
+Web3i.prototype.createBatch = function () {
     return new Batch(this);
 };
 
-module.exports = Web3;
+module.exports = Web3i;
 
 
 },{"./utils/sha3":19,"./utils/utils":20,"./version.json":21,"./web3/batch":24,"./web3/extend":28,"./web3/httpprovider":32,"./web3/iban":33,"./web3/ipcprovider":34,"./web3/methods/db":37,"./web3/methods/eth":38,"./web3/methods/net":39,"./web3/methods/personal":40,"./web3/methods/shh":41,"./web3/methods/swarm":42,"./web3/property":45,"./web3/requestmanager":46,"./web3/settings":47,"bignumber.js":"bignumber.js"}],23:[function(require,module,exports){
@@ -13670,14 +13670,14 @@ module.exports = BigNumber; // jshint ignore:line
 
 
 },{}],"web3":[function(require,module,exports){
-var Web3 = require('./lib/web3');
+var Web3i = require('./lib/web3');
 
 // dont override global variable
-if (typeof window !== 'undefined' && typeof window.Web3 === 'undefined') {
-    window.Web3 = Web3;
+if (typeof window !== 'undefined' && typeof window.Web3i === 'undefined') {
+    window.Web3i = Web3i;
 }
 
-module.exports = Web3;
+module.exports = Web3i;
 
 },{"./lib/web3":22}]},{},["web3"])
 //# sourceMappingURL=web3-light.js.map
