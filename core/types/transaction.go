@@ -752,11 +752,11 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	foundationReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 	verifyReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 	teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 
 	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
-	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(7e+6), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
@@ -852,8 +852,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 				info.num++
 			case "OfflineMarketing":
-				halfReword := new(big.Int).Div(offlineReward, big.NewInt(2))
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(halfReword) != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(offlineReward) != 0 {
 					return errors.New("OfflineMarketing special tx is not allowed")
 				}
 				info.num++

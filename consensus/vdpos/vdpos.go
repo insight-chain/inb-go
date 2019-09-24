@@ -47,11 +47,11 @@ const (
 var (
 	DefaultVerifyRewardOneYear     = new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(params.Inber))
 	DefaultTeamRewardOneYear       = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
-	DefaultOfflineRewardOneYear    = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultOfflineRewardOneYear    = new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(params.Inber))
 	DefaultFoundationRewardOneYear = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
 	DefaultMiningRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
 	DefaultVotingRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
-	DefaultOnlineRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultOnlineRewardOneYear     = new(big.Int).Mul(big.NewInt(7e+6), big.NewInt(params.Inber))
 	WeekNumberOfOneYear            = new(big.Int).Div(big.NewInt(365), big.NewInt(7))
 	//OneWeekHeight                    = new(big.Int).Mul(big.NewInt(86400/2), big.NewInt(7))
 	OneYearBySec                     = int64(365 * 86400)

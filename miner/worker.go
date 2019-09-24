@@ -1102,11 +1102,11 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 				newTx := w.CreateTx(from, to, value)
 				localTxs[from] = append(localTxs[from], newTx)
 			}
-
 		case state.OfflineMarketing:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := new(big.Int).Div(offlineReward, big.NewInt(2))
+			//value := new(big.Int).Div(offlineReward, big.NewInt(2))
+			value := offlineReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		default:
