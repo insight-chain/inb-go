@@ -606,22 +606,6 @@ func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) string {
 	}
 	return total.String()
 
-	//Foundation := (state.GetBalance(common.HexToAddress(st.FoundationAccount)))
-	//MiningReward := (state.GetBalance(common.HexToAddress(st.MiningRewardAccount)))
-	//VerifyReward := (state.GetBalance(common.HexToAddress(st.VerifyRewardAccount)))
-	//VotingReward := (state.GetBalance(common.HexToAddress(st.VotingRewardAccount)))
-	//Team := (state.GetBalance(common.HexToAddress(st.TeamAccount)))
-	//OnlineMarketing := (state.GetBalance(common.HexToAddress(st.OnlineMarketingAccount)))
-	//OfflineMarketing := (state.GetBalance(common.HexToAddress(st.OfflineMarketingAccount)))
-	//total1 := new(big.Int).Sub(total, Foundation)
-	//total2 := new(big.Int).Sub(total1, MiningReward)
-	//total3 := new(big.Int).Sub(total2, VerifyReward)
-	//total4 := new(big.Int).Sub(total3, VotingReward)
-	//total5 := new(big.Int).Sub(total4, Team)
-	//total6 := new(big.Int).Sub(total5, OnlineMarketing)
-	//total7 := new(big.Int).Sub(total6, OfflineMarketing)
-	//return total7.String()
-
 }
 
 // 2019.7.31 inb by ghy begin

@@ -748,11 +748,15 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//minerReward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
-	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	foundationReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	verifyReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 
-	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
-	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
@@ -760,6 +764,18 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
+
+				FoundationMul := new(big.Int).Mul(foundationReward, SpecialConsensus.Molecule)
+				foundationReward = new(big.Int).Div(FoundationMul, SpecialConsensus.Denominator)
+
+				VerifyMul := new(big.Int).Mul(verifyReward, SpecialConsensus.Molecule)
+				verifyReward = new(big.Int).Div(VerifyMul, SpecialConsensus.Denominator)
+
+				TeamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
+				teamReward = new(big.Int).Div(TeamMul, SpecialConsensus.Denominator)
+
+				OfflineMul := new(big.Int).Mul(offlineReward, SpecialConsensus.Molecule)
+				offlineReward = new(big.Int).Div(OfflineMul, SpecialConsensus.Denominator)
 
 				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
 				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
@@ -799,7 +815,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		if info != nil {
 			switch info.Name {
 			case "Foundation":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(minerReward) != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(foundationReward) != 0 {
 					return errors.New("Foundation special tx is not allowed")
 				}
 				info.num++
@@ -826,7 +842,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 				info.num++
 			case "Team":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(minerReward) != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(teamReward) != 0 {
 					return errors.New("team special tx is not allowed")
 				}
 				info.num++
@@ -836,7 +852,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 				info.num++
 			case "OfflineMarketing":
-				halfReword := new(big.Int).Div(minerReward, big.NewInt(2))
+				halfReword := new(big.Int).Div(offlineReward, big.NewInt(2))
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(halfReword) != 0 {
 					return errors.New("OfflineMarketing special tx is not allowed")
 				}

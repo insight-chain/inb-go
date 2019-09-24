@@ -45,11 +45,14 @@ const (
 )
 
 var (
-	DefaultInbIncreaseOneYear1 = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(1e+18))
-	DefaultInbIncreaseOneYear  = new(big.Int).Mul(big.NewInt(2e+8), big.NewInt(params.Inber))
-	DefaultVotingRewardOneYear = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
-	DefaultOnlineRewardOneYear = new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(params.Inber))
-	WeekNumberOfOneYear        = new(big.Int).Div(big.NewInt(365), big.NewInt(7))
+	DefaultVerifyRewardOneYear     = new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(params.Inber))
+	DefaultTeamRewardOneYear       = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultOfflineRewardOneYear    = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultFoundationRewardOneYear = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultMiningRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultVotingRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	DefaultOnlineRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
+	WeekNumberOfOneYear            = new(big.Int).Div(big.NewInt(365), big.NewInt(7))
 	//OneWeekHeight                    = new(big.Int).Mul(big.NewInt(86400/2), big.NewInt(7))
 	OneYearBySec                     = int64(365 * 86400)
 	defaultBlockPeriod               = uint64(2)                                                      // default minimum difference between two consecutive block's timestamps
@@ -60,12 +63,9 @@ var (
 	extraSeal                        = 65                                                             // fixed number of extra-data suffix bytes reserved for signer seal
 	uncleHash                        = types.CalcUncleHash(nil)                                       // always Keccak256(RLP([])) as uncles are meaningless outside of PoW.
 	defaultDifficulty                = big.NewInt(1)                                                  // default difficulty
-	defaultLoopCntRecalculateSigners = uint64(350)                                                    // default loop count to recreate signers from top tally
-	selfVoteSignersStake1            = new(big.Int).Mul(big.NewInt(500000), big.NewInt(1e+18))        // default stake of selfVoteSigners in first LOOP
+	defaultLoopCntRecalculateSigners = uint64(350)                                                    // default stake of selfVoteSigners in first LOOP
 	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // default stake of selfVoteSigners in first LOOP
-	DefaultMinerReward1              = big.NewInt(6341958396752917300)                                // default reward for miner in wei
-	DefaultMinerReward               = big.NewInt(634195)                                             // default reward for miner in wei
-	BeVotedNeedINB1                  = new(big.Int).Mul(big.NewInt(100000), big.NewInt(1e+18))        // default min mortgage INB of candidates
+	DefaultMinerReward               = big.NewInt(63419)                                              // default min mortgage INB of candidates
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(100000), big.NewInt(params.Inber)) // default min mortgage INB of candidates
 
 )
@@ -739,10 +739,10 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 
 //header.Reward = DefaultMinerReward.String()
 //reward := new(big.Int).Set(DefaultMinerReward)
-//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, new)
+//reward := new(big.Int).Div(DefaultMiningRewardOneYear, new)
 //inb by ssh 190627
 //blockNumberOneYear := OneYearBySec / int64(v.config.Period)
-//reward := new(big.Int).Div(DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+//reward := new(big.Int).Div(DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
 ////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
 ////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
 ////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)

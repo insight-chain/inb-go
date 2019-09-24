@@ -15,14 +15,14 @@ var (
 	//vote
 	VoteRewardCycleSeconds  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	VoteRewardCycleTimes    = big.NewInt(7)
-	VoteDenominator         = big.NewInt(9)
+	VoteDenominator         = big.NewInt(5)
 	VoteHundred             = big.NewInt(100)
 	VoteNumberOfDaysOneYear = big.NewInt(365)
 
 	//Mortgage,unMortgage,change vote
 	VoteRewardCycleSecondsForChange  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	VoteRewardCycleTimesForChange    = big.NewInt(1)
-	VoteDenominatorForChange         = big.NewInt(9)
+	VoteDenominatorForChange         = big.NewInt(5)
 	VoteHundredForChange             = big.NewInt(100)
 	VoteNumberOfDaysOneYearForChange = big.NewInt(365)
 

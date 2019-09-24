@@ -1008,10 +1008,13 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	//blockNumberOneYear := vdpos.OneYearBySec / int64(v.config.Period)
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
 
-	minerReward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+	minerReward := new(big.Int).Div(vdpos.DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
+	foundationReward := new(big.Int).Div(vdpos.DefaultFoundationRewardOneYear, big.NewInt(blockNumberOneYear))
+	verifyReward := new(big.Int).Div(vdpos.DefaultVerifyRewardOneYear, big.NewInt(blockNumberOneYear))
+	teamReward := new(big.Int).Div(vdpos.DefaultTeamRewardOneYear, big.NewInt(blockNumberOneYear))
+	offlineReward := new(big.Int).Div(vdpos.DefaultOfflineRewardOneYear, big.NewInt(blockNumberOneYear))
 
 	votingReward := new(big.Int).Div(vdpos.DefaultVotingRewardOneYear, vdpos.WeekNumberOfOneYear)
-
 	onlineReward := new(big.Int).Div(vdpos.DefaultOnlineRewardOneYear, vdpos.WeekNumberOfOneYear)
 
 	SpecialConsensus := header.GetSpecialConsensus()
@@ -1020,6 +1023,18 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
+
+				FoundationMul := new(big.Int).Mul(foundationReward, SpecialConsensus.Molecule)
+				foundationReward = new(big.Int).Div(FoundationMul, SpecialConsensus.Denominator)
+
+				VerifyMul := new(big.Int).Mul(verifyReward, SpecialConsensus.Molecule)
+				verifyReward = new(big.Int).Div(VerifyMul, SpecialConsensus.Denominator)
+
+				TeamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
+				teamReward = new(big.Int).Div(TeamMul, SpecialConsensus.Denominator)
+
+				OfflineMul := new(big.Int).Mul(offlineReward, SpecialConsensus.Molecule)
+				offlineReward = new(big.Int).Div(OfflineMul, SpecialConsensus.Denominator)
 
 				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
 				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
@@ -1039,7 +1054,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case state.Foundation:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := minerReward
+			value := foundationReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		case state.MiningReward:
@@ -1058,7 +1073,6 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 					}
 				}
 			}
-
 			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx, newTx)
@@ -1077,7 +1091,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case state.Team:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := minerReward
+			value := teamReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		case state.OnlineMarketing:
@@ -1092,7 +1106,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case state.OfflineMarketing:
 			from := v.TotalAddress
 			to := v.ToAddress
-			value := new(big.Int).Div(minerReward, big.NewInt(2))
+			value := new(big.Int).Div(offlineReward, big.NewInt(2))
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		default:
