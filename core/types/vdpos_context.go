@@ -389,13 +389,9 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 			mortgage := new(big.Int)
 			regular := new(big.Int)
 			if state == nil {
-				fmt.Println("state==nil,我来也")
 				mortgage.SetUint64(0)
 				regular.SetUint64(0)
 			} else {
-				fmt.Println("state!=nil,我来也")
-				fmt.Println(state.GetMortgageInbOfINB(candidate).String())
-				fmt.Println(state.GetRegular(candidate).String())
 				mortgage.Set(state.GetMortgageInbOfINB(candidate))
 				regular.Set(state.GetRegular(candidate))
 			}
