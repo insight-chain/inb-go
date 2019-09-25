@@ -802,14 +802,17 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		specialConsensu[v.TotalAddress] = totalConsensus
 
 		if v.Name == "MiningReward" || v.Name == "OnlineMarketing" {
-			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{num: 1}
+			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{Name: "special"}
 		}
 	}
 
 	for _, v := range txs {
 
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
-			return errors.New("can not transfer recipient special consensus address")
+			if specialConsensu[*v.To()].Name != "special" && specialConsensu[*v.data.Recipient].Name != "special" {
+				return errors.New("can not transfer recipient special consensus address")
+			}
+
 		}
 		info := specialConsensu[common.BytesToAddress(v.Data())]
 		if info != nil {
