@@ -805,6 +805,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{Name: "special"}
 		}
 	}
+	specialConsensu[common.HexToAddress(common.MortgageAccount)] = &SpecialConsensusInfo{num: 1}
 
 	for _, v := range txs {
 
