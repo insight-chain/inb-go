@@ -802,14 +802,17 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		specialConsensu[v.TotalAddress] = totalConsensus
 
 		if v.Name == "MiningReward" || v.Name == "OnlineMarketing" {
-			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{num: 1}
+			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{Name: "special"}
 		}
 	}
 
 	for _, v := range txs {
 
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
-			return errors.New("can not transfer recipient special consensus address")
+			if specialConsensu[*v.To()].Name != "special" && specialConsensu[*v.data.Recipient].Name != "special" {
+				return errors.New("can not transfer recipient special consensus address")
+			}
+
 		}
 		info := specialConsensu[common.BytesToAddress(v.Data())]
 		if info != nil {
@@ -837,7 +840,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 			case "VerifyReward":
 				return errors.New("VerifyReward special tx is not allowed")
 			case "VotingReward":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%20 != 0 {
 					return errors.New("VotingReward special tx is not allowed")
 				}
 				info.num++
@@ -847,7 +850,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 				info.num++
 			case "OnlineMarketing":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%20 != 0 {
 					return errors.New("OnlineMarketing special tx is not allowed")
 				}
 				info.num++
@@ -866,7 +869,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 
 	for _, v := range specialConsensu {
 		if v.num > 2 {
-			return errors.New("a block can only have one special tx ")
+			return errors.New("a block can only have one special type tx ")
 		}
 	}
 	return nil

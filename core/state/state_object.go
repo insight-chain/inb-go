@@ -461,7 +461,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce common.Hash, height *big.In
 	for _, v := range self.data.Stores {
 		if nonce == v.Hash {
 			switch v.LockHeights.Uint64() {
-			case params.HeightOf30Days.Uint64():
+			case params.HeightOf30Days.Uint64(), 100:
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
 				LockedDenominator = common.LockedDenominatorFor30days
