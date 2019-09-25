@@ -253,28 +253,25 @@ func (c *Console) AutoCompleteInput(line string, pos int) (string, []string, str
 	}
 	// Chunck data to relevant part for autocompletion
 	// E.g. in case of nested lines eth.getBalance(eth.coinb<tab><tab>
-	fmt.Printf(" 1 AutoCompleteInput line string = %v, pos = %d, len(line) = %d" ,line, pos,len(line))
 	start := pos - 1
 	for ; start > 0; start-- {
-
-		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
-		if start >= 4 && line[start-4:start+1] == "web3i" {
-			start -= 4
-			pos -= 1
-			fmt.Printf(" 3 start = %d  ", start)
-			continue
-		}
-
 		// Skip all methods and namespaces (i.e. including the dot)
 		if line[start] == '.' || (line[start] >= 'a' && line[start] <= 'z') || (line[start] >= 'A' && line[start] <= 'Z') {
 			continue
 		}
 
+		// Handle web3 in a special way (i.e. other numbers aren't auto completed)
+		if start >= 4 && line[start-4:start] == "web3i" {
+			start -= 4
+			continue
+		}
 		// We've hit an unexpected character, autocomplete form here
 		start++
 		break
 	}
-	fmt.Printf(" 5 start = %v , pos = %d , line = %v , line[start:pos] = %v , line[:start] = %v , line[pos:] = %v",start,pos,line,line[start:pos],line[:start],line[pos:])
+	if line == "web3i" {
+		start = pos
+	}
 	return line[:start], c.jsre.CompleteKeywords(line[start:pos]), line[pos:]
 }
 
