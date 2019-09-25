@@ -603,6 +603,10 @@ func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) string {
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		total = new(big.Int).Sub(total, state.GetBalance(v.TotalAddress))
+
+		if v.Name == st.VotingReward || v.Name == st.OnlineMarketing {
+			total = new(big.Int).Sub(total, state.GetBalance(v.ToAddress))
+		}
 	}
 	return total.String()
 

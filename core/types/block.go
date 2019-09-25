@@ -19,7 +19,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -127,11 +126,8 @@ func (h *Header) Hash() common.Hash {
 //2019.9.20 inb by ghy begin
 func (h *Header) GetSpecialConsensus() SpecialConsensus {
 	SpecialConsensus := SpecialConsensus{}
-
-	err := rlp.DecodeBytes(h.SpecialConsensus, &SpecialConsensus)
-	if err != nil {
-		fmt.Println(err)
-		return SpecialConsensus
+	if h.SpecialConsensus != nil {
+		rlp.DecodeBytes(h.SpecialConsensus, &SpecialConsensus)
 	}
 	return SpecialConsensus
 }
