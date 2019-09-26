@@ -28,7 +28,7 @@ import (
 )
 
 type GetState interface {
-	GetMortgageInbOfINB(addr common.Address) *big.Int
+	GetMortgage(addr common.Address) *big.Int
 	GetRegular(addr common.Address) *big.Int
 }
 
@@ -328,7 +328,7 @@ func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetSta
 		if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 			return fmt.Errorf("failed to decode tally: %s", err)
 		}
-		tally.Mortgage = state.GetMortgageInbOfINB(addr)
+		tally.Mortgage = state.GetMortgage(addr)
 		tally.Regular = state.GetRegular(addr)
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
 		if err != nil {
@@ -392,7 +392,7 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 				mortgage.SetUint64(0)
 				regular.SetUint64(0)
 			} else {
-				mortgage.Set(state.GetMortgageInbOfINB(candidate))
+				mortgage.Set(state.GetMortgage(candidate))
 				regular.Set(state.GetRegular(candidate))
 			}
 

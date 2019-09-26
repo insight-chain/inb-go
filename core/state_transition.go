@@ -119,8 +119,8 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 	return gas, nil
 }
 
-func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error) {
-	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet), nil
+func IntrinsicNet(data []byte, contractCreation bool) uint64 {
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
 }
 
 // NewStateTransition initialises and returns a new state transition object.
@@ -257,12 +257,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
+	//homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil && msg.Types() == types.Contract
 
 	// Pay intrinsic gas
 	////achilles replace gas with net
-	net, err := IntrinsicNet(st.data, contractCreation, homestead)
+	net := IntrinsicNet(st.data, contractCreation)
 	//gas, err := IntrinsicGas(st.data, contractCreation, homestead)
 	//if err != nil {
 	//	return nil, 0, false, err

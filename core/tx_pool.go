@@ -624,7 +624,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if len(inputStr) > 600 {
 			return errors.New("date over size")
 		}
-		if pool.currentState.GetMortgageInbOfINB(tx.From()).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		if pool.currentState.GetMortgage(tx.From()).Cmp(vdpos.BeVotedNeedINB) == -1 {
 			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
 		}
 
@@ -638,7 +638,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		for _, value := range candidatesStr {
 			address := common.HexToAddress(value)
 			//2019.7.15 inb mod by ghy begin
-			if pool.currentState.GetMortgageInbOfINB(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
+			if pool.currentState.GetMortgage(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -770,7 +770,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet, _ := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
+		instrNet := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
 
 		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
 
@@ -791,7 +791,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		mortgageInb := pool.currentState.GetMortgageInbOfNet(netPayment)
+		mortgageInb := pool.currentState.GetMortgage(netPayment)
 		mortgageInb.Sub(mortgageInb, pool.currentState.GetRegular(netPayment))
 		mortgageInb.Sub(mortgageInb, pool.currentState.GetRedeem(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {

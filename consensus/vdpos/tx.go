@@ -107,9 +107,8 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
-			if state.GetMortgageInbOfINB(txSender).Cmp(BeVotedNeedINB) == 1 {
+			if state.GetMortgage(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
-
 			} else {
 				log.Error("Update node info account mortgage less than %v inb", BeVotedNeedINB)
 				continue
@@ -153,7 +152,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
-	stake := state.GetMortgageInbOfINB(voter)
+	stake := state.GetMortgage(voter)
 	v.lock.RUnlock()
 
 	vote := &types.Votes{
@@ -263,7 +262,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
 		if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Redeem) {
 			v.lock.RLock()
-			stake := state.GetMortgageInbOfINB(txSender)
+			stake := state.GetMortgage(txSender)
 			v.lock.RUnlock()
 			err := vdposContext.UpdateTallysByNewState(txSender, state)
 			if err != nil {
@@ -277,7 +276,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	}
 	if tx.WhichTypes(types.ReceiveLockedAward) {
 		v.lock.RLock()
-		stake := state.GetMortgageInbOfINB(txSender)
+		stake := state.GetMortgage(txSender)
 		v.lock.RUnlock()
 		err := vdposContext.UpdateTallysByNewState(txSender, state)
 		if err != nil {
@@ -291,7 +290,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	if tx.WhichTypes(types.InsteadMortgage) {
 		txReceiver := *tx.To()
 		v.lock.RLock()
-		stake := state.GetMortgageInbOfINB(txReceiver)
+		stake := state.GetMortgage(txReceiver)
 		v.lock.RUnlock()
 		err := vdposContext.UpdateTallysByNewState(txReceiver, state)
 		if err != nil {

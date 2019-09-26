@@ -35,7 +35,7 @@ type StateDB interface {
 	AddNet(addr common.Address, amount *big.Int)
 	UseNet(addr common.Address, amount *big.Int)
 	GetNet(addr common.Address) *big.Int
-	GetMortgageInbOfNet(addr common.Address) *big.Int
+	GetMortgage(addr common.Address) *big.Int
 	GetDate(addr common.Address) *big.Int
 	GetRedeemTime(addr common.Address) *big.Int
 	GetRegular(addr common.Address) *big.Int

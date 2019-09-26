@@ -343,19 +343,20 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
-	stateObject := self.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.MortgageOfINB()
-	}
-	return common.Big0
-}
+//
+//func (self *StateDB) GetMortgage(addr common.Address) *big.Int {
+//	stateObject := self.getStateObject(addr)
+//	if stateObject != nil {
+//		return stateObject.MortgageOfRes()
+//	}
+//	return common.Big0
+//}
 
 //2019.6.28 inb by ghy end
-func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
+func (self *StateDB) GetMortgage(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.MortgageOfNet()
+		return stateObject.MortgageOfRes()
 	}
 	return common.Big0
 }

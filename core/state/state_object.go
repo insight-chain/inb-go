@@ -386,10 +386,10 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 		return nil
 	}
 	netUse := self.db.ConvertToNets(amount)
-	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfNet(), amount))
+	self.SetNet(self.UsedNet(), new(big.Int).Add(self.Net(), netUse), new(big.Int).Add(self.MortgageOfRes(), amount))
 
 	mortgageStateObject := self.db.GetMortgageStateObject()
-	//mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfNet(), amount)
+	//mortgage := new(big.Int).Add(mortgageStateObject.MortgageOfRes(), amount)
 	//mortgageStateObject.SetNet(mortgageStateObject.UsedNet(), mortgageStateObject.Net(), mortgage)
 	mortgageStateObject.AddBalance(amount)
 
@@ -435,11 +435,11 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 }
 
 func (self *stateObject) ResetNet(update *big.Int) *big.Int {
-	//available := new(big.Int).Sub(self.MortgageOfNet(), self.GetRedeem())
-	netUse := self.db.ConvertToNets(self.MortgageOfNet())
+	//available := new(big.Int).Sub(self.MortgageOfRes(), self.GetRedeem())
+	netUse := self.db.ConvertToNets(self.MortgageOfRes())
 	netUsed := big.NewInt(0)
 
-	self.SetNet(netUsed, netUse, self.MortgageOfINB())
+	self.SetNet(netUsed, netUse, self.MortgageOfRes())
 	self.SetDate(update)
 	return netUse
 }
@@ -566,7 +566,7 @@ func (self *stateObject) ReceiveLockedAward(nonce common.Hash, value *big.Int, i
 					if mortgageStateObject.Balance().Cmp(value) < 0 {
 						return
 					}
-					//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+					//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfRes(), value)
 					mortgageStateObject.SubBalance(value)
 
 				} else {
@@ -622,13 +622,13 @@ func (self *stateObject) Redeem(amount *big.Int, sTime *big.Int) {
 	if amount.Sign() == 0 {
 		return
 	}
-	available := new(big.Int).Sub(self.MortgageOfNet(), self.Regular())
+	available := new(big.Int).Sub(self.MortgageOfRes(), self.Regular())
 	available.Sub(available, self.GetRedeem())
 	if available.Cmp(amount) < 0 {
 		return
 	}
 	// freeze inb of redeeming
-	mortgaging := new(big.Int).Sub(self.MortgageOfNet(), amount)
+	mortgaging := new(big.Int).Sub(self.MortgageOfRes(), amount)
 	self.SetNet(self.UsedNet(), self.Net(), mortgaging)
 
 	redeem := Redeem{
@@ -654,7 +654,7 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 	if mortgageStateObject.Balance().Cmp(value) < 0 {
 		return nil
 	}
-	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfNet(), value)
+	//balance := new(big.Int).Sub(mortgageStateObject.MortgageOfRes(), value)
 	mortgageStateObject.SubBalance(value)
 
 	//2019.8.29 inb by ghy begin
@@ -829,7 +829,7 @@ func (self *stateObject) Net() *big.Int {
 func (self *stateObject) UsedNet() *big.Int {
 	return self.data.Res.Used
 }
-func (self *stateObject) MortgageOfNet() *big.Int {
+func (self *stateObject) MortgageOfRes() *big.Int {
 	return self.data.Res.Mortgage
 }
 
@@ -859,9 +859,10 @@ func (self *stateObject) Resource() Resource {
 	return self.data.Res
 }
 
-func (self *stateObject) MortgageOfINB() *big.Int {
-	return self.data.Res.Mortgage
-}
+//
+//func (self *stateObject) MortgageOfINB() *big.Int {
+//	return self.data.Res.Mortgage
+//}
 
 //2019.6.28 inb by ghy end
 // Never called, but must be present to allow stateObject to be used

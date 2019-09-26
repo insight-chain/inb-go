@@ -545,7 +545,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet, _ := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract, pool.homestead)
+		instrNet := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
 		usableMorgageNetOfInb := currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return core.ErrOverResValue
@@ -564,7 +564,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		mortgageInb := currentState.GetMortgageInbOfNet(netPayment)
+		mortgageInb := currentState.GetMortgage(netPayment)
 		mortgageInb.Sub(mortgageInb, currentState.GetRegular(netPayment))
 		mortgageInb.Sub(mortgageInb, currentState.GetRedeem(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {
