@@ -169,8 +169,8 @@ var (
 		NetRatio:         3,
 		RegularLimit:     5,
 		Days:             [9]*big.Int{big.NewInt(100), HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
-		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
-		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
+		ResetDuration:    big.NewInt(5 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
+		RedeemDuration:   big.NewInt(10 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 	}
 )
 
