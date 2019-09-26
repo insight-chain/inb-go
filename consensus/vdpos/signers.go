@@ -96,8 +96,8 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 			return nil
 		}
 		address := tally.Address
-		regular := s.statedb.GetRegular(address)
-		if regular.Cmp(new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Inber))) >= 0 {
+		regular := tally.Regular
+		if regular.Cmp(new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Inber))) >= 0 {
 			stake := tally.Stake
 			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
 		}

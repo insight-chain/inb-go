@@ -636,7 +636,7 @@ func (s *PublicBlockChainAPI) GetMortgage(ctx context.Context, address common.Ad
 	if state == nil || err != nil {
 		return nil, err
 	}
-	return (*hexutil.Big)(state.GetMortgageInbOfNet(address)), state.Error()
+	return (*hexutil.Big)(state.GetMortgage(address)), state.Error()
 }
 
 //mortageNet
@@ -1441,11 +1441,10 @@ type SendTxArgs struct {
 	Nonce *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data  *hexutil.Bytes `json:"data"`
-	Input *hexutil.Bytes `json:"input"`
-	Types types.TxType   `json:"txType"`
-	//ResourcePayer *common.Address `json:"resourcePayer"`
-
+	Data          *hexutil.Bytes  `json:"data"`
+	Input         *hexutil.Bytes  `json:"input"`
+	Types         types.TxType    `json:"txType"`
+	ResourcePayer *common.Address `json:"resourcePayer"`
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1509,9 +1508,9 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil && args.Types != types.Contract {
 		return types.NewNilToTransaction(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input, args.Types)
 	}
-	// 	if args.ResourcePayer != nil {
-	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
-	// 	}
+	if args.ResourcePayer != nil {
+		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types, args.ResourcePayer)
+	}
 	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types)
 }

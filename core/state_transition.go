@@ -30,6 +30,9 @@ import (
 
 var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
+
+	multiple = big.NewInt(63)
+
 )
 
 /*
@@ -116,8 +119,8 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 	return gas, nil
 }
 
-func IntrinsicNet(data []byte, contractCreation, homestead bool) (uint64, error) {
-	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet), nil
+func IntrinsicNet(data []byte, contractCreation bool) uint64 {
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
 }
 
 // NewStateTransition initialises and returns a new state transition object.
@@ -254,12 +257,12 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	msg := st.msg
 	sender := vm.AccountRef(msg.From())
-	homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
+	//homestead := st.evm.ChainConfig().IsHomestead(st.evm.BlockNumber)
 	contractCreation := msg.To() == nil && msg.Types() == types.Contract
 
 	// Pay intrinsic gas
 	////achilles replace gas with net
-	net, err := IntrinsicNet(st.data, contractCreation, homestead)
+	net := IntrinsicNet(st.data, contractCreation)
 	//gas, err := IntrinsicGas(st.data, contractCreation, homestead)
 	//if err != nil {
 	//	return nil, 0, false, err
@@ -285,12 +288,24 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 		// error.
 		vmerr error
 	)
+
+	getNet := st.state.GetNet(netPayment)
+
+
+	if getNet.Cmp(big.NewInt(3174))>0{
+		getNet = big.NewInt(3174)
+	}
+
+	netpool := big.NewInt(0).Mul(getNet,multiple)
+
+
+
 	if contractCreation {
-		ret, _, st.net, vmerr = evm.Create(sender, st.data, st.net, st.value)
+		ret, _, st.net, vmerr = evm.Create(sender, st.data, netpool.Uint64(), st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, st.net, st.value, st.msg.Types(), st.msg.Hash())
+		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data,netpool.Uint64(), st.value, st.msg.Types(), st.msg.Hash())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
@@ -306,7 +321,15 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 	//st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
 
 	//return ret, st.gasUsed(), vmerr != nil, err
-	return ret, net, vmerr != nil, err, receive
+
+	evmUsedNet := big.NewInt(0).Sub(netpool, big.NewInt(0).SetUint64(st.net))
+
+	usednet := big.NewInt(0).Div(evmUsedNet, multiple)
+
+	st.state.UseNet(netPayment,usednet)
+	usedNet = big.NewInt(0).Add(usednet,big.NewInt(0).SetUint64(net)).Uint64()
+
+	return ret, usedNet, vmerr != nil, err, receive
 }
 
 func (st *StateTransition) refundGas() {

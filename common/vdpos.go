@@ -107,6 +107,8 @@ var (
 
 	// 2019.7.22 inb by ghy end
 	//
+
+	MortgageAccount string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
 )
 
 // Declare :

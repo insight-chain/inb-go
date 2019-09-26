@@ -439,7 +439,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
@@ -471,10 +471,10 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 				vote := &types.Votes{
 					Voter:     voter,
 					Candidate: candidates,
-					//Stake:     state.GetMortgageInbOfNet(voter),
+					//Stake:     state.GetMortgage(voter),
 					Stake: big.NewInt(1),
 				}
-				err = dc.UpdateTallysByVotes(vote)
+				err = dc.UpdateTallysByVotes(vote, nil)
 				if err != nil {
 					return nil, nil
 				}

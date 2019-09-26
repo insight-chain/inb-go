@@ -107,9 +107,8 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
-			if state.GetMortgageInbOfNet(txSender).Cmp(BeVotedNeedINB) == 1 {
+			if state.GetMortgage(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
-
 			} else {
 				log.Error("Update node info account mortgage less than %v inb", BeVotedNeedINB)
 				continue
@@ -153,7 +152,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
-	stake := state.GetMortgageInbOfNet(voter)
+	stake := state.GetMortgage(voter)
 	v.lock.RUnlock()
 
 	vote := &types.Votes{
@@ -162,7 +161,7 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 		Stake:     stake,
 	}
 
-	err := vdposContext.UpdateTallysByVotes(vote)
+	err := vdposContext.UpdateTallysByVotes(vote, state)
 	if err != nil {
 		return err
 	}
@@ -259,18 +258,50 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txData
 
 // inb by ssh 190904 begin
 func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transaction, txSender common.Address, vdposContext *types.VdposContext) error {
-	// process 3 kinds of transactions which relate to voter
+	// process 5 kinds of transactions which relate to voter
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
 		if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Redeem) {
 			v.lock.RLock()
-			stake := state.GetMortgageInbOfNet(txSender)
+			stake := state.GetMortgage(txSender)
 			v.lock.RUnlock()
-			err := vdposContext.UpdateTallysAndVotesByMPV(txSender, stake)
+			err := vdposContext.UpdateTallysByNewState(txSender, state)
+			if err != nil {
+				return err
+			}
+			err = vdposContext.UpdateTallysAndVotesByMPV(txSender, stake)
 			if err != nil {
 				return err
 			}
 		}
 	}
+	if tx.WhichTypes(types.ReceiveLockedAward) {
+		v.lock.RLock()
+		stake := state.GetMortgage(txSender)
+		v.lock.RUnlock()
+		err := vdposContext.UpdateTallysByNewState(txSender, state)
+		if err != nil {
+			return err
+		}
+		err = vdposContext.UpdateTallysAndVotesByMPV(txSender, stake)
+		if err != nil {
+			return err
+		}
+	}
+	if tx.WhichTypes(types.InsteadMortgage) {
+		txReceiver := *tx.To()
+		v.lock.RLock()
+		stake := state.GetMortgage(txReceiver)
+		v.lock.RUnlock()
+		err := vdposContext.UpdateTallysByNewState(txReceiver, state)
+		if err != nil {
+			return err
+		}
+		err = vdposContext.UpdateTallysAndVotesByMPV(txReceiver, stake)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

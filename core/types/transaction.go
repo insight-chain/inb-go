@@ -19,6 +19,7 @@ package types
 import (
 	"container/heap"
 	"errors"
+	"github.com/insight-chain/inb-go/params"
 	"io"
 	"math/big"
 	"sync/atomic"
@@ -100,7 +101,7 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	Repayment *payment `json:"repayment" rlp:"-"`
+	Repayment *payment `json:"repayment" rlp:"nil"`
 }
 
 //payment the real account that pay resources for transactions
@@ -465,8 +466,12 @@ type TxByPrice Transactions
 func (s TxByPrice) Len() int { return len(s) }
 
 //achilles190806 remove unused column gasprice todo should return false
-func (s TxByPrice) Less(i, j int) bool { return false }
-func (s TxByPrice) Swap(i, j int)      { s[i], s[j] = s[j], s[i] }
+func (s TxByPrice) Less(i, j int) bool {
+	iRes := intrinsicNet(s[i].Data(), s[j].To() == nil && s[i].Types() == Contract)
+	jRes := intrinsicNet(s[j].Data(), s[j].To() == nil && s[j].Types() == Contract)
+	return iRes < jRes
+}
+func (s TxByPrice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 
 func (s *TxByPrice) Push(x interface{}) {
 	*s = append(*s, x.(*Transaction))
@@ -478,6 +483,10 @@ func (s *TxByPrice) Pop() interface{} {
 	x := old[n-1]
 	*s = old[0 : n-1]
 	return x
+}
+
+func intrinsicNet(data []byte, contractCreation bool) uint64 {
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
 }
 
 // TransactionsByPriceAndNonce represents a set of transactions that can return
@@ -805,6 +814,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{Name: "special"}
 		}
 	}
+	specialConsensu[common.HexToAddress(common.MortgageAccount)] = &SpecialConsensusInfo{num: 1}
 
 	for _, v := range txs {
 

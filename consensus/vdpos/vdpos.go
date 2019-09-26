@@ -280,11 +280,8 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 	if err != nil {
 		return err
 	}
-	db, err := chain.StateAt(parent.Root)
-	if err != nil {
-		return err
-	}
-	snapContext := v.snapContext(v.config, db, parent, vdposContext, nil)
+
+	snapContext := v.snapContext(v.config, nil, parent, vdposContext, nil)
 
 	if number > v.config.MaxSignerCount*v.config.SignerBlocks {
 		parentHeaderExtra := HeaderExtra{}
@@ -400,7 +397,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 					Stake:     selfVoteSignersStake,
 					//Stake: big.NewInt(1),
 				}
-				vdposContext.UpdateTallysByVotes(vote)
+				vdposContext.UpdateTallysByVotes(vote, state)
 				vdposContext.UpdateVotes(vote)
 				alreadyVote[voter] = struct{}{}
 			}

@@ -217,7 +217,7 @@ func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int,
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	mortgaging := db.GetMortgageInbOfNet(addr)
+	mortgaging := db.GetMortgage(addr)
 	regular := db.GetRegular(addr)
 	value := db.GetRedeem(addr)
 

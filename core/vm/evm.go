@@ -321,7 +321,15 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		}
 	}
 
-	if !evm.StateDB.Exist(addr) {
+	// add by ssh 190925 begin
+	// check up if the tx need 'to' address
+	flag := true
+	if txType != types.Ordinary && txType != types.SpecilaTx && txType != types.TransferLightToken && txType != types.InsteadMortgage {
+		flag = false
+	}
+	//if !evm.StateDB.Exist(addr) {
+	if !evm.StateDB.Exist(addr) && flag {
+		// add by ssh 190925 end
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {
 			precompiles = PrecompiledContractsByzantium

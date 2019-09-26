@@ -148,15 +148,15 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		case types.ReceiveLockedAward:
 			log = &types.Log{From: onlineAddress, To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.Mortgage:
-			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.InsteadMortgage:
 			log1 := &types.Log{From: msg.From(), To: *msg.To(), Amount: msg.Value(), Types: types.Ordinary}
 			receipt.Logs = append(receipt.Logs, log1)
-			log = &types.Log{From: *msg.To(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: *msg.To(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.Regular:
-			log = &types.Log{From: msg.From(), To: common.HexToAddress(state.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
 		case types.Receive:
-			log = &types.Log{From: common.HexToAddress(state.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: common.HexToAddress(common.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
 		case types.IssueLightToken:
 			log = &types.Log{From: msg.From(), To: onlineAddress, Amount: msg.Value(), Types: msg.Types()}
 		default:
