@@ -1144,12 +1144,26 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 				return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
 			}
 		}
+
 		txs := b.Transactions()
-		transactions := make([]interface{}, len(txs))
+		transactions := make([]interface{}, 0)
 		var err error
-		for i, tx := range txs {
-			if transactions[i], err = formatTx(tx); err != nil {
-				return nil, err
+		var fmtTx interface{}
+		testAccounts := common.NewTestTransactions()
+		for _, tx := range txs {
+			flag := true
+			for _, v := range testAccounts {
+				if tx.From() == v {
+					flag = false
+					break
+				}
+			}
+			if flag {
+				if fmtTx, err = formatTx(tx); err != nil {
+					return nil, err
+				} else {
+					transactions = append(transactions, fmtTx)
+				}
 			}
 		}
 		fields["transactions"] = transactions
