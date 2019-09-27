@@ -1079,7 +1079,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 		case state.VerifyReward:
 
 		case state.VotingReward:
-			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+			if header.Number.Uint64()%20 == 0 {
 				from := v.TotalAddress
 				to := v.ToAddress
 				value := votingReward
@@ -1095,7 +1095,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		case state.OnlineMarketing:
-			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+			if header.Number.Uint64()%20 == 0 {
 				from := v.TotalAddress
 				to := v.ToAddress
 				value := onlineReward

@@ -168,7 +168,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
-		Days:             [8]*big.Int{HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
+		Days:             [9]*big.Int{big.NewInt(100), HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
 		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 	}
@@ -234,7 +234,7 @@ type CommonConfig struct {
 
 	ResetDuration  *big.Int // duration of resetting nets
 	RegularLimit   int      // max value for regular mortgaging
-	Days           [8]*big.Int
+	Days           [9]*big.Int
 	RedeemDuration *big.Int //duration of redeeming
 }
 
