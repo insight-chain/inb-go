@@ -48,11 +48,11 @@ var (
 	LockedNumberOfDaysOneYearFor180days = big.NewInt(365)
 
 	//locked 360days
-	LockedRewardCycleSecondsFor360days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
-	LockedRewardCycleTimesFor360days    = big.NewInt(7)
-	LockedDenominatorFor360days         = big.NewInt(9)
-	LockedHundredFor360days             = big.NewInt(100)
-	LockedNumberOfDaysOneYearFor360days = big.NewInt(365)
+	LockedRewardCycleSecondsForMoreThan360days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
+	LockedRewardCycleTimesForMoreThan360days    = big.NewInt(7)
+	LockedDenominatorForMoreThan360days         = big.NewInt(9)
+	LockedHundredForMoreThan360days             = big.NewInt(100)
+	LockedNumberOfDaysOneYearForMoreThan360days = big.NewInt(365)
 
 	// 2019.7.22 inb by ghy end
 	//

@@ -1577,11 +1577,11 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 				LockedHundred = common.LockedHundredFor180days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
 			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
-				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor360days
-				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
-				LockedDenominator = common.LockedDenominatorFor360days
-				LockedHundred = common.LockedHundredFor360days
-				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsForMoreThan360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesForMoreThan360days
+				LockedDenominator = common.LockedDenominatorForMoreThan360days
+				LockedHundred = common.LockedHundredForMoreThan360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearForMoreThan360days
 			default:
 				return errors.New("unknow times")
 			}
