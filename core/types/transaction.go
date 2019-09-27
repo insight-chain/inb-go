@@ -101,7 +101,7 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	Repayment *payment `json:"repayment" rlp:"nil"`
+	Repayment *payment `json:"repayment" rlp:"-"`
 }
 
 //payment the real account that pay resources for transactions
