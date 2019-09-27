@@ -789,7 +789,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	for _, v := range account.Stores {
 		if v.Hash == common.HexToHash(receivebonus[1]) {
 			switch v.LockHeights.Uint64() {
-			case params.HeightOf30Days.Uint64(), 100:
+			case params.HeightOf30Days.Uint64(), 1000:
 				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor30days
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor30days
 				LockedDenominator = common.LockedDenominatorFor30days
