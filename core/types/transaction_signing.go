@@ -89,8 +89,8 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	var flag *big.Int
-	if tx.data.Repayment != nil && (tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag) {
+	flag := new(big.Int)
+	if !tx.IsRepayment() || ( tx.data.Repayment.Vp.Cmp(flag) == 0 || tx.data.Repayment.Rp.Cmp(flag) == 0 || tx.data.Repayment.Sp.Cmp(flag) == 0)  {
 		tx.from.Store(sigCache{signer: signer, from: addr})
 	}
 	return addr, nil
@@ -142,8 +142,8 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return HomesteadSigner{}.Sender(tx)
 	}
 	//achilles repayment add apis
-	var flag *big.Int
-	if tx.IsRepayment() && tx.data.Repayment.Vp != flag && tx.data.Repayment.Rp != flag && tx.data.Repayment.Sp != flag {
+	flag := new(big.Int)
+	if tx.IsRepayment() && tx.data.Repayment.Vp.Cmp(flag) != 0 && tx.data.Repayment.Rp.Cmp(flag) != 0 && tx.data.Repayment.Sp.Cmp(flag) != 0 {
 		if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
 		}

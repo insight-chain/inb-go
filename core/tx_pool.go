@@ -770,11 +770,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
-
-		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-
-		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
+		intrinsicRes := IntrinsicRes(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
+		res := pool.currentState.GetNet(netPayment)
+		if res.Cmp(big.NewInt(int64(intrinsicRes))) < 0 {
 			return ErrOverResValue
 		}
 	}

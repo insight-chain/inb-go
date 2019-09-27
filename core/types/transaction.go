@@ -101,11 +101,11 @@ type txdata struct {
 	//Vp          *big.Int       `json:"v" gencodec:"required"`
 	//Rp          *big.Int       `json:"r" gencodec:"required"`
 	//Sp          *big.Int       `json:"s" gencodec:"required"`
-	Repayment *payment `json:"repayment" rlp:"nil"`
+	Repayment *Payment `json:"repayment" rlp:"nil"`
 }
 
 //payment the real account that pay resources for transactions
-type payment struct {
+type Payment struct {
 	//payment address
 	ResourcePayer *common.Address `json:"resourcePayer" gencodec:"required"`
 	// payment signature values
@@ -146,9 +146,14 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
-	var rePayment *payment
+	var rePayment *Payment
 	if nil != resourcePayer {
-		rePayment.ResourcePayer = resourcePayer
+		rePayment = &Payment{
+			ResourcePayer: resourcePayer,
+			Vp:            nil,
+			Rp:            nil,
+			Sp:            nil,
+		}
 	}
 	d := txdata{
 		AccountNonce: nonce,
@@ -255,7 +260,13 @@ func (tx *Transaction) Value() *big.Int  { return new(big.Int).Set(tx.data.Amoun
 func (tx *Transaction) Nonce() uint64    { return tx.data.AccountNonce }
 func (tx *Transaction) CheckNonce() bool { return true }
 
-func (tx *Transaction) ResourcePayer() common.Address { return *tx.data.Repayment.ResourcePayer }
+func (tx *Transaction) ResourcePayer() common.Address {
+	var addr common.Address
+	if tx.IsRepayment() {
+		return *tx.data.Repayment.ResourcePayer
+	}
+	return addr
+}
 func (tx *Transaction) Types() TxType                 { return tx.data.Types }
 func (tx *Transaction) WhichTypes(types TxType) bool  { return tx.data.Types == types }
 
@@ -342,6 +353,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		checkNonce: true,
 		types:      tx.data.Types,
 		hash:       tx.Hash(),
+		resourcePayer: tx.ResourcePayer(),
 	}
 
 	var err error
@@ -358,7 +370,8 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	}
 	cpy := &Transaction{data: tx.data}
 	//achilles repayment
-	if tx.IsRepayment() && tx.data.V.BitLen() != 0 && tx.data.S.BitLen() != 0 && tx.data.R.BitLen() != 0 {
+	flag := new(big.Int)
+	if tx.IsRepayment() && tx.data.V.Cmp(flag) != 0 && tx.data.R.Cmp(flag) != 0 && tx.data.S.Cmp(flag) != 0 {
 		cpy.data.Repayment.Rp, cpy.data.Repayment.Sp, cpy.data.Repayment.Vp = r, s, v
 		return cpy, nil
 	}
@@ -389,7 +402,7 @@ func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int
 
 //
 func (tx *Transaction) SetPayment() {
-	tx.data.Repayment = &payment{
+	tx.data.Repayment = &Payment{
 		ResourcePayer: nil,
 		Vp:            nil,
 		Rp:            nil,
@@ -399,9 +412,9 @@ func (tx *Transaction) SetPayment() {
 
 //
 func (tx *Transaction) RemovePaymentSignatureValues() {
-	tx.data.Repayment.Vp = nil
-	tx.data.Repayment.Rp = nil
-	tx.data.Repayment.Sp = nil
+	tx.data.Repayment.Vp = new(big.Int)
+	tx.data.Repayment.Rp = new(big.Int)
+	tx.data.Repayment.Sp = new(big.Int)
 }
 
 //achilles

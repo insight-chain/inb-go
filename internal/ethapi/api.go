@@ -1710,24 +1710,6 @@ func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, d
 		return nil, fmt.Errorf("resourcePayer not specified")
 	}
 	resourcePayer = tx.ResourcePayer()
-	//recover signature from v,r,s
-	v, r, ss := tx.RawSignatureValues()
-	vb := byte(v.Uint64() - 27)
-	sig := make([]byte, 65)
-	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
-	sig[64] = vb
-	//vrify sender signature
-	if len(sig) != 65 {
-		return nil, fmt.Errorf("signature must be 65 bytes long")
-	}
-	/*if sig[64] != 27 && sig[64] != 28 {
-		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
-	}*/
-	//rpk, err := crypto.SigToPub(signHash(data), sig)
-	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
-	//	return nil, fmt.Errorf("verify error")
-	//}
 	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
 	from, err := types.Sender(signer, tx)
 	if err != nil {
