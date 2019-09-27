@@ -145,14 +145,14 @@ var (
 
 	TestChainConfig  = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
 	TestRules        = TestChainConfig.Rules(new(big.Int))
-	HeightOf30Days   = big.NewInt(30 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf90Days   = big.NewInt(90 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf180Days  = big.NewInt(180 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf360Days  = big.NewInt(360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf720Days  = big.NewInt(2 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf1080Days = big.NewInt(3 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf1800Days = big.NewInt(5 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
-	HeightOf3600Days = big.NewInt(10 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf30Days   = big.NewInt(30 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf90Days   = big.NewInt(90 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf180Days  = big.NewInt(180 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf360Days  = big.NewInt(360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf720Days  = big.NewInt(2 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf1080Days = big.NewInt(3 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf1800Days = big.NewInt(5 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
+	HeightOf3600Days = big.NewInt(10 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period) / 1000)
 )
 var (
 	TxConfig = &CommonConfig{
@@ -168,7 +168,7 @@ var (
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
-		Days:             [9]*big.Int{big.NewInt(100), HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
+		Days:             [9]*big.Int{big.NewInt(1000), HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
 		ResetDuration:    big.NewInt(5 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 		RedeemDuration:   big.NewInt(10 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 	}
