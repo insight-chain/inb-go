@@ -267,8 +267,8 @@ func (tx *Transaction) ResourcePayer() common.Address {
 	}
 	return addr
 }
-func (tx *Transaction) Types() TxType                 { return tx.data.Types }
-func (tx *Transaction) WhichTypes(types TxType) bool  { return tx.data.Types == types }
+func (tx *Transaction) Types() TxType                { return tx.data.Types }
+func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
 
 func (tx *Transaction) isContract() bool {
 	flag := false
@@ -306,11 +306,11 @@ func (tx *Transaction) To() *common.Address {
 
 // vdpos by ssh 190902 begin
 // From return the account who send the transaction.
-func (tx *Transaction) From() common.Address {
-	signer := NewEIP155Signer(tx.ChainId())
-	from, _ := signer.Sender(tx)
-	return from
-}
+//func (tx *Transaction) From() common.Address {
+//	signer := NewEIP155Signer(tx.ChainId())
+//	from, _ := Sender(signer, tx)
+//	return from
+//}
 
 // vdpos by ssh 190902 end
 
@@ -347,12 +347,12 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		nonce: tx.data.AccountNonce,
 		//net: tx.data.Net,
 		//gasPrice:   new(big.Int).Set(tx.data.Price),
-		to:         tx.data.Recipient,
-		amount:     tx.data.Amount,
-		data:       tx.data.Payload,
-		checkNonce: true,
-		types:      tx.data.Types,
-		hash:       tx.Hash(),
+		to:            tx.data.Recipient,
+		amount:        tx.data.Amount,
+		data:          tx.data.Payload,
+		checkNonce:    true,
+		types:         tx.data.Types,
+		hash:          tx.Hash(),
 		resourcePayer: tx.ResourcePayer(),
 	}
 

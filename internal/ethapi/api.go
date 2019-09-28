@@ -1152,8 +1152,10 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		testAccounts := common.NewTestTransactions()
 		for _, tx := range txs {
 			flag := true
+			signer := types.NewEIP155Signer(tx.ChainId())
+			from, _ := types.Sender(signer, tx)
 			for _, v := range testAccounts {
-				if tx.From() == v {
+				if from == v {
 					flag = false
 					break
 				}

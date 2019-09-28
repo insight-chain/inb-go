@@ -367,6 +367,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
+	to := tx.To()
 	if from, err = types.Sender(pool.signer, tx); err != nil {
 		return core.ErrInvalidSender
 	}
@@ -402,7 +403,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//}
 
 	for _, v := range pool.chain.CurrentHeader().GetSpecialConsensus().SpecialConsensusAddress {
-		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
+		if v.TotalAddress == *to || v.TotalAddress == from {
 			return errors.New("can not transfer to special consensus address")
 		}
 	}
@@ -538,14 +539,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" wrong duration of mortgagtion ")
 		}
-		if count := currentState.StoreLength(*tx.To()); count >= params.TxConfig.RegularLimit {
+		if count := currentState.StoreLength(*to); count >= params.TxConfig.RegularLimit {
 			return core.ErrCountLimit
 		}
 	}
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet := core.IntrinsicRes(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
+		instrNet := core.IntrinsicRes(tx.Data(), to == nil && tx.Types() == types.Contract)
 		usableMorgageNetOfInb := currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return core.ErrOverResValue
