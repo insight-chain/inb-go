@@ -273,7 +273,7 @@ func ConnectAllSuperNodes(n *Node) {
 					}
 				}
 			}
-			time.Sleep(50 * 60 * 3 * time.Second)
+			time.Sleep(350 * 18 * 2 * time.Second)
 		}
 	}
 

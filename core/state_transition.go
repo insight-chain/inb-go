@@ -119,7 +119,7 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 	return gas, nil
 }
 
-func IntrinsicNet(data []byte, contractCreation bool) uint64 {
+func IntrinsicRes(data []byte, contractCreation bool) uint64 {
 	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
 }
 
@@ -262,7 +262,7 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	// Pay intrinsic gas
 	////achilles replace gas with net
-	net := IntrinsicNet(st.data, contractCreation)
+	net := IntrinsicRes(st.data, contractCreation)
 	//gas, err := IntrinsicGas(st.data, contractCreation, homestead)
 	//if err != nil {
 	//	return nil, 0, false, err

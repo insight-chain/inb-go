@@ -599,6 +599,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
+	to := tx.To()
+	from, err := types.Sender(pool.signer, tx)
+	if err != nil {
+		return ErrInvalidSender
+	}
 	// Ensure the transaction doesn't exceed the current block limit gas.
 	//achilles replace gas with net
 	//if pool.currentMaxGas < tx.Gas() {
@@ -606,12 +611,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//}
 
 	for _, v := range pool.chain.CurrentBlock().SpecialConsensus().SpecialConsensusAddress {
-		if nil != tx.To() && (v.TotalAddress == *tx.To() || v.TotalAddress == tx.From()) {
+		if nil != to && (v.TotalAddress == *to || v.TotalAddress == from) {
 			return errors.New("can not transfer to special consensus address")
 		}
 
 		if v.Name == state.VotingReward || v.Name == state.OnlineMarketing {
-			if nil != tx.To() && (v.ToAddress == *tx.To() || v.ToAddress == tx.From()) {
+			if nil != to && (v.ToAddress == *to || v.ToAddress == from) {
 				return errors.New("can not transfer online or voting address")
 			}
 		}
@@ -624,7 +629,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if len(inputStr) > 600 {
 			return errors.New("date over size")
 		}
-		if pool.currentState.GetMortgage(tx.From()).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		if pool.currentState.GetMortgage(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
 			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
 		}
 
@@ -664,10 +669,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		tx.RemovePaymentSignatureValues()
 	}
 	// Make sure the transaction is signed properly
-	from, err := types.Sender(pool.signer, tx)
-	if err != nil {
-		return ErrInvalidSender
-	}
+
 	if from[0] != crypto.PrefixToAddress[0] {
 		return ErrInvalidAddress
 	}
@@ -770,11 +772,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet := IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
-
-		usableMorgageNetOfInb := pool.currentState.GetNet(netPayment)
-
-		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
+		intrinsicRes := IntrinsicRes(tx.Data(), to == nil && tx.Types() == types.Contract)
+		res := pool.currentState.GetNet(netPayment)
+		if res.Cmp(big.NewInt(int64(intrinsicRes))) < 0 {
 			return ErrOverResValue
 		}
 	}
@@ -1579,11 +1579,11 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 				LockedHundred = common.LockedHundredFor180days
 				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor180days
 			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
-				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor360days
-				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
-				LockedDenominator = common.LockedDenominatorFor360days
-				LockedHundred = common.LockedHundredFor360days
-				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+				LockedRewardCycleHeight = common.LockedRewardCycleSecondsForMoreThan360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesForMoreThan360days
+				LockedDenominator = common.LockedDenominatorForMoreThan360days
+				LockedHundred = common.LockedHundredForMoreThan360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearForMoreThan360days
 			default:
 				return errors.New("unknow times")
 			}

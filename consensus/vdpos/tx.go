@@ -343,6 +343,7 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 			IssueTxHash:         txHash,
 			Owner:               txSender,
 			PayForInb:           tx.Value(),
+			Type:                1,
 		}
 		//lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
 		//if lightTokenExist != nil {

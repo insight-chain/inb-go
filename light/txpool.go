@@ -367,6 +367,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 
 	// Validate the transaction sender and it's sig. Throw
 	// if the from fields is invalid.
+	to := tx.To()
 	if from, err = types.Sender(pool.signer, tx); err != nil {
 		return core.ErrInvalidSender
 	}
@@ -402,7 +403,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//}
 
 	for _, v := range pool.chain.CurrentHeader().GetSpecialConsensus().SpecialConsensusAddress {
-		if v.TotalAddress == *tx.To() || v.TotalAddress == tx.From() {
+		if v.TotalAddress == *to || v.TotalAddress == from {
 			return errors.New("can not transfer to special consensus address")
 		}
 	}
@@ -538,14 +539,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" wrong duration of mortgagtion ")
 		}
-		if count := currentState.StoreLength(*tx.To()); count >= params.TxConfig.RegularLimit {
+		if count := currentState.StoreLength(*to); count >= params.TxConfig.RegularLimit {
 			return core.ErrCountLimit
 		}
 	}
 
 	// No need to consume resources
 	if tx.NoNeedUseNet() {
-		instrNet := core.IntrinsicNet(tx.Data(), tx.To() == nil && tx.Types() == types.Contract)
+		instrNet := core.IntrinsicRes(tx.Data(), to == nil && tx.Types() == types.Contract)
 		usableMorgageNetOfInb := currentState.GetNet(netPayment)
 		if usableMorgageNetOfInb.Cmp(big.NewInt(int64(instrNet))) < 0 {
 			return core.ErrOverResValue
@@ -806,12 +807,13 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor180days
 				LockedDenominator = common.LockedDenominatorFor180days
 				LockedHundred = common.LockedHundredFor180days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor90days
 			case params.HeightOf360Days.Uint64(), params.HeightOf720Days.Uint64(), params.HeightOf1080Days.Uint64(), params.HeightOf1800Days.Uint64(), params.HeightOf3600Days.Uint64():
-				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsFor360days
-				LockedRewardCycleTimes = common.LockedRewardCycleTimesFor360days
-				LockedDenominator = common.LockedDenominatorFor360days
-				LockedHundred = common.LockedHundredFor360days
-				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearFor360days
+				LockedRewardCycleSeconds = common.LockedRewardCycleSecondsForMoreThan360days
+				LockedRewardCycleTimes = common.LockedRewardCycleTimesForMoreThan360days
+				LockedDenominator = common.LockedDenominatorForMoreThan360days
+				LockedHundred = common.LockedHundredForMoreThan360days
+				LockedNumberOfDaysOneYear = common.LockedNumberOfDaysOneYearForMoreThan360days
 			default:
 				return errors.New("unknow times")
 			}

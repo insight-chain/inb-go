@@ -73,6 +73,7 @@ type LightToken struct {
 	IssueTxHash         common.Hash
 	Owner               common.Address
 	PayForInb           *big.Int
+	Type                uint8
 }
 
 type ApproveInfo struct {
