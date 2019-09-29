@@ -609,7 +609,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//if pool.currentMaxGas < tx.Gas() {
 	//	return ErrGasLimit
 	//}
-	fmt.Printf(" from = %s =================", from.Hex())
 	for _, v := range pool.chain.CurrentBlock().SpecialConsensus().SpecialConsensusAddress {
 		if nil != to && (v.TotalAddress == *to || v.TotalAddress == from) {
 			return errors.New("can not transfer to special consensus address")
