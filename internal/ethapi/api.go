@@ -157,10 +157,10 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	var format = func(tx *types.Transaction) string {
 		if to := tx.To(); to != nil {
 			//return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
-			return fmt.Sprintf("%s: %v wei + %v net ", tx.To().Hex(), tx.Value(), tx.Gas())
+			return fmt.Sprintf("%s: %v wei + %v res ", tx.To().Hex(), tx.Value(), tx.Gas())
 		}
 		//return fmt.Sprintf("contract creation: %v wei + %v gas ", tx.Value(), tx.Gas(), tx.GasPrice())
-		return fmt.Sprintf("contract creation: %v wei + %v gas", tx.Value(), tx.Gas())
+		return fmt.Sprintf("contract creation: %v wei + %v res", tx.Value(), tx.Gas())
 	}
 	// Flatten the pending transactions
 	for account, txs := range pending {

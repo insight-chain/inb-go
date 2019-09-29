@@ -94,13 +94,7 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash `json:"hash" rlp:"-"`
 	Types TxType       `json:"txType" gencodec:"required"`
-	//achilles
-	//payment the real account that pay resources for transactions
-	//PaymentFrom common.Address `json:"paymentFrom" gencodec:"required"`
-	//// payment signature values
-	//Vp          *big.Int       `json:"v" gencodec:"required"`
-	//Rp          *big.Int       `json:"r" gencodec:"required"`
-	//Sp          *big.Int       `json:"s" gencodec:"required"`
+
 	Repayment *Payment `json:"repayment" rlp:"nil"`
 }
 
@@ -499,7 +493,10 @@ func (s *TxByPrice) Pop() interface{} {
 }
 
 func intrinsicNet(data []byte, contractCreation bool) uint64 {
-	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
+	if contractCreation {
+		return params.TxConfig.NetRatio * (uint64(len(data)) + params.ContractRes)
+	}
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxRes)
 }
 
 // TransactionsByPriceAndNonce represents a set of transactions that can return

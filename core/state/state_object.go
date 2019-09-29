@@ -108,7 +108,6 @@ type Account struct {
 	//Recommender common.Address
 	Redeems                    []Redeem // redeeming nets
 	Regular                    *big.Int //  total of regular mortgaging
-	Profit                     *big.Int // incentive earnings
 	Voted                      *big.Int //current vote to someone else number
 	LastReceiveVoteAwardHeight *big.Int
 }
@@ -165,6 +164,9 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Res.Mortgage == nil {
 		data.Res.Mortgage = new(big.Int)
 	}
+	if data.Res.Height == nil {
+		data.Res.Height = new(big.Int)
+	}
 	if data.Stores == nil {
 		data.Stores = make([]Store, 0)
 	}
@@ -173,6 +175,12 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	}
 	if data.Regular == nil {
 		data.Regular = new(big.Int)
+	}
+	if data.LastReceiveVoteAwardHeight == nil {
+		data.LastReceiveVoteAwardHeight = new(big.Int)
+	}
+	if data.Voted == nil {
+		data.Voted = new(big.Int)
 	}
 	//Resource by zc
 	return &stateObject{

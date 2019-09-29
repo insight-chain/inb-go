@@ -32,7 +32,6 @@ var (
 	errInsufficientBalanceForGas = errors.New("insufficient balance to pay for gas")
 
 	multiple = big.NewInt(63)
-
 )
 
 /*
@@ -120,7 +119,10 @@ func IntrinsicGas(data []byte, contractCreation, homestead bool) (uint64, error)
 }
 
 func IntrinsicRes(data []byte, contractCreation bool) uint64 {
-	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxNet)
+	if contractCreation {
+		return params.TxConfig.NetRatio * (uint64(len(data)) + params.ContractRes)
+	}
+	return params.TxConfig.NetRatio * (uint64(len(data)) + params.TxRes)
 }
 
 // NewStateTransition initialises and returns a new state transition object.
@@ -291,21 +293,18 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	getNet := st.state.GetNet(netPayment)
 
-
-	if getNet.Cmp(big.NewInt(3174))>0{
+	if getNet.Cmp(big.NewInt(3174)) > 0 {
 		getNet = big.NewInt(3174)
 	}
 
-	netpool := big.NewInt(0).Mul(getNet,multiple)
-
-
+	netpool := big.NewInt(0).Mul(getNet, multiple)
 
 	if contractCreation {
 		ret, _, st.net, vmerr = evm.Create(sender, st.data, netpool.Uint64(), st.value)
 	} else {
 		// Increment the nonce for the next transaction
 		st.state.SetNonce(msg.From(), st.state.GetNonce(sender.Address())+1)
-		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data,netpool.Uint64(), st.value, st.msg.Types(), st.msg.Hash())
+		ret, st.net, vmerr, receive = evm.NewCall(sender, st.to(), st.data, netpool.Uint64(), st.value, st.msg.Types(), st.msg.Hash())
 	}
 	if vmerr != nil {
 		log.Debug("VM returned with error", "err", vmerr)
@@ -326,8 +325,8 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedNet uint64, failed bo
 
 	usednet := big.NewInt(0).Div(evmUsedNet, multiple)
 
-	st.state.UseNet(netPayment,usednet)
-	usedNet = big.NewInt(0).Add(usednet,big.NewInt(0).SetUint64(net)).Uint64()
+	st.state.UseNet(netPayment, usednet)
+	usedNet = big.NewInt(0).Add(usednet, big.NewInt(0).SetUint64(net)).Uint64()
 
 	return ret, usedNet, vmerr != nil, err, receive
 }
