@@ -251,7 +251,7 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	root := statedb.IntermediateRoot(false)
 
 	// add by ssh 190815 begin
-	vdposContext, headE := initGenesisVdposContext(g, db)
+	vdposContext, headerExtra := initGenesisVdposContext(g, db)
 	vdposContextProto := vdposContext.ToProto()
 	head := &types.Header{
 		Number:           new(big.Int).SetUint64(g.Number),
@@ -274,35 +274,35 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	// inb by ssh 190724
 	if g.Config.Vdpos != nil {
 		//inb by ghy begin
-		//headE:=new(vdpos.HeaderExtra)
-		//headE.Enode=g.Config.Vdpos.Enode
+		//headerExtra:=new(vdpos.HeaderExtra)
+		//headerExtra.Enode=g.Config.Vdpos.Enode
 
 		//for i,v:=range g.Config.Vdpos.Enodes{
 		//	marshal, _:= json.Marshal(v.Data)
 		//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
 
-		//headE.Enodes = g.Config.Vdpos.Enodes
+		//headerExtra.Enodes = g.Config.Vdpos.Enodes
 
 		if len(head.Extra) < 32 {
 			head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
 		}
 		head.Extra = head.Extra[:32]
-		toBytes, _ := rlp.EncodeToBytes(headE)
-		head.Extra = append(head.Extra, toBytes...)
+		extraByte, _ := rlp.EncodeToBytes(headerExtra)
+		head.Extra = append(head.Extra, extraByte...)
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
 
 		//inb by ghy end
-		encodeToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
 		if err != nil {
 
 		}
-		head.SpecialConsensus = encodeToBytes
+		head.SpecialConsensus = encodeSpecialConsensusToBytes
 
-		//encodeToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		//encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
 		//if err != nil {
 		//
 		//}
-		//key := common.BytesToHash(encodeToBytes)
+		//key := common.BytesToHash(encodeSpecialConsensusToBytes)
 		//head.SpecialConsensus = key
 	}
 
@@ -439,7 +439,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
@@ -461,7 +461,7 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 	if err != nil {
 		return nil, nil
 	}
-	headE := new(vdpos.HeaderExtra)
+	headerExtra := new(vdpos.HeaderExtra)
 	if g.Config != nil && g.Config.Vdpos != nil && g.Config.Vdpos.SelfVoteSigners != nil {
 		alreadyVote := make(map[common.Address]struct{})
 		for _, unPrefixVoter := range g.Config.Vdpos.SelfVoteSigners {
@@ -494,7 +494,7 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 			enode.Port = v.Port
 			enode.ReceiveAccount = v.ReceiveAccount
 
-			headE.Enodes = append(headE.Enodes, *enode)
+			headerExtra.Enodes = append(headerExtra.Enodes, *enode)
 
 			//vdposContext, _ := types.NewVdposContext(db)
 			dc.UpdateTallysByNodeInfo(v)
@@ -503,5 +503,5 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 
 	}
 
-	return dc, headE
+	return dc, headerExtra
 }
