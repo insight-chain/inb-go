@@ -94,7 +94,6 @@ type txdata struct {
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash `json:"hash" rlp:"-"`
 	Types TxType       `json:"txType" gencodec:"required"`
-
 	Repayment *Payment `json:"repayment" rlp:"nil"`
 }
 
@@ -860,7 +859,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 			case "VerifyReward":
 				return errors.New("VerifyReward special tx is not allowed")
 			case "VotingReward":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%20 != 0 {
 					return errors.New("VotingReward special tx is not allowed")
 				}
 				info.num++
@@ -870,7 +869,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 				info.num++
 			case "OnlineMarketing":
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
+				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%20 != 0 {
 					return errors.New("OnlineMarketing special tx is not allowed")
 				}
 				info.num++
@@ -889,7 +888,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 
 	for _, v := range specialConsensu {
 		if v.num > 2 {
-			return errors.New("a block can only have one special tx ")
+			return errors.New("a block can only have one special type tx ")
 		}
 	}
 	return nil
