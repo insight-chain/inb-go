@@ -93,7 +93,7 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'txType' for txdata")
 	}
 	t.Types = TxType(*dec.Types)
-	if dec.Repayment != nil {
+	if dec.Repayment != nil && dec.Repayment.ResourcePayer != nil {
 		t.Repayment = dec.Repayment
 	}
 	return nil

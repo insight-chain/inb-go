@@ -1593,9 +1593,9 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if !tx.IsRepayment() {
-		tx.SetPayment()
-	}
+	//if !tx.IsRepayment() {
+	//	tx.SetPayment()
+	//}
 
 	return submitTransaction(ctx, s.b, tx)
 }

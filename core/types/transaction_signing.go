@@ -90,7 +90,7 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 		return common.Address{}, err
 	}
 	flag := new(big.Int)
-	if !tx.IsRepayment() || ( tx.data.Repayment.Vp.Cmp(flag) == 0 || tx.data.Repayment.Rp.Cmp(flag) == 0 || tx.data.Repayment.Sp.Cmp(flag) == 0)  {
+	if !tx.IsRepayment() || (tx.data.Repayment.Vp.Cmp(flag) == 0 || tx.data.Repayment.Rp.Cmp(flag) == 0 || tx.data.Repayment.Sp.Cmp(flag) == 0) {
 		tx.from.Store(sigCache{signer: signer, from: addr})
 	}
 	return addr, nil
@@ -185,7 +185,7 @@ func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
-		s.chainId, uint(0), uint(0), tx.data.Types,
+		s.chainId, uint(0), uint(0), tx.data.Types, "",
 	})
 }
 
@@ -238,7 +238,7 @@ func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
-		tx.data.Types,
+		tx.data.Types, "",
 	})
 }
 

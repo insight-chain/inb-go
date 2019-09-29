@@ -112,12 +112,13 @@ type txdataMarshaling struct {
 	AccountNonce hexutil.Uint64
 	//Price        *hexutil.Big
 	//Net          hexutil.Uint64
-	Amount  *hexutil.Big
-	Payload hexutil.Bytes
-	V       *hexutil.Big
-	R       *hexutil.Big
-	S       *hexutil.Big
-	Types   hexutil.Uint64
+	Amount    *hexutil.Big
+	Payload   hexutil.Bytes
+	V         *hexutil.Big
+	R         *hexutil.Big
+	S         *hexutil.Big
+	Types     hexutil.Uint64
+	Repayment *Payment
 }
 
 func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
