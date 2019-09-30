@@ -599,7 +599,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
-	if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.InsteadMortgage) || tx.WhichTypes(types.Redeem){
+	if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.InsteadMortgage) || tx.WhichTypes(types.Redeem) {
 		if params.TxConfig.MinStaking.Cmp(tx.Value()) > 0 {
 			return errors.New(" minimum value more than 100,000 ")
 		}
@@ -737,7 +737,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return errors.New(" before receive time ")
 		}
 		if big.NewInt(0).Cmp(pool.currentState.GetUnStaking(from)) == 0 {
-			return errors.New(" insufficient available value of redeeming ")
+			return errors.New(" insufficient available value for unstaking ")
 		}
 	}
 
@@ -751,7 +751,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return err
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 		if count := pool.currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
 			return ErrCountLimit
@@ -768,7 +768,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return err
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 		if count := pool.currentState.StoreLength(*tx.To()); count >= params.TxConfig.RegularLimit {
 			return ErrCountLimit
@@ -790,17 +790,17 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		usableNet := pool.currentState.GetNet(netPayment)
 
 		if tx.Value().Cmp(params.TxConfig.WeiOfUseNet) < 0 {
-			return errors.New(" value for redeem is too low ")
+			return errors.New(" value for unstaking is too low ")
 		}
 
 		if usableNet.Cmp(unit) < 0 {
-			return errors.New(" insufficient available mortgage ")
+			return errors.New(" insufficient available staking ")
 		}
 		mortgageInb := pool.currentState.GetStakingValue(netPayment)
 		mortgageInb.Sub(mortgageInb, pool.currentState.GetTotalStaking(netPayment))
 		mortgageInb.Sub(mortgageInb, pool.currentState.GetUnStaking(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {
-			return errors.New(" insufficient available mortgage ")
+			return errors.New(" insufficient available staking ")
 		}
 	}
 

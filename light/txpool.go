@@ -506,7 +506,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			return errors.New(" before receive time ")
 		}
 		if big.NewInt(0).Cmp(currentState.GetUnStaking(from)) == 0 {
-			return errors.New(" insufficient available value of redeeming ")
+			return errors.New(" insufficient available value for unstaking ")
 		}
 	}
 
@@ -520,7 +520,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			return err
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
-			return errors.New(" invalid duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 		if count := currentState.StoreLength(netPayment); count >= params.TxConfig.RegularLimit {
 			return core.ErrCountLimit
@@ -537,7 +537,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			return err
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 		if count := currentState.StoreLength(*to); count >= params.TxConfig.RegularLimit {
 			return core.ErrCountLimit

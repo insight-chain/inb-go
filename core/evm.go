@@ -182,16 +182,16 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *
 	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
-			return errors.New(" exceeds mortgagtion count limit ")
+			return errors.New(" exceeds staking count limit ")
 		}
 		if !params.Contains(duration) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 	}
 
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New(" the value for mortgaging is too low ")
+		return errors.New(" the value for staking is too low ")
 	}
 	if db.GetBalance(addr).Cmp(amount) < 0 {
 		return errors.New(" insufficient balance ")
@@ -205,16 +205,16 @@ func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int,
 	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(to); count >= params.TxConfig.RegularLimit {
-			return errors.New(" exceeds mortgagtion count limit ")
+			return errors.New(" exceeds staking count limit ")
 		}
 		if !params.Contains(duration) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 	}
 
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New(" the value for mortgaging is too low ")
+		return errors.New(" the value for staking is too low ")
 	}
 	if db.GetBalance(from).Cmp(amount) < 0 {
 		return errors.New(" insufficient balance ")
@@ -234,7 +234,7 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	//usable = new(big.Int).Add(usable, value)
 	usable.Sub(usable, value)
 	if usable.Cmp(amount) < 0 {
-		return errors.New(" insufficient available value of mortgage ")
+		return errors.New(" insufficient available value for staking ")
 	}
 	return nil
 }
@@ -246,7 +246,7 @@ func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
 		return errors.New(" before receive time ")
 	}
 	if big.NewInt(0).Cmp(db.GetUnStaking(addr)) == 0 {
-		return errors.New(" insufficient available value of redeeming ")
+		return errors.New(" insufficient available value for unstaking ")
 	}
 	return nil
 }
