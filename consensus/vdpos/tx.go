@@ -59,7 +59,7 @@ type HeaderExtra struct {
 	SignersPool          []common.Address
 	SignerMissing        []common.Address
 	ConfirmedBlockNumber uint64
-	Enodes               []common.EnodeInfo
+	Enodes               []common.SuperNode
 }
 
 func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
@@ -173,25 +173,32 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.EnodeInfo, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.EnodeInfo {
+func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.SuperNode {
 
 	//inb by ghy begin
 
 	midEnodeInfo := strings.Split(txDataInfo, "~")
 	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
-		enodeInfo := common.EnodeInfo{
+		enodeInfo := common.SuperNode{
 			Id:      midEnodeInfo[PosEventDeclareInfoId],
 			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
 			Port:    midEnodeInfo[PosEventDeclareInfoPort],
 			Address: declarer,
 		}
 
-		enodeInfoTrie := &common.EnodesInfo{
-			Id:      midEnodeInfo[PosEventDeclareInfoId],
-			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
-			Port:    midEnodeInfo[PosEventDeclareInfoPort],
-			Address: declarer,
-		}
+		//enodeInfoTrie := &common.SuperNodeExtra{
+		//	Id:      midEnodeInfo[PosEventDeclareInfoId],
+		//	Ip:      midEnodeInfo[PosEventDeclareInfoIp],
+		//	Port:    midEnodeInfo[PosEventDeclareInfoPort],
+		//	Address: declarer,
+		//}
+
+		enodeInfoTrie := &common.SuperNodeExtra{}
+		enodeInfo.Id = midEnodeInfo[PosEventDeclareInfoId]
+		enodeInfo.Ip = midEnodeInfo[PosEventDeclareInfoIp]
+		enodeInfo.Port = midEnodeInfo[PosEventDeclareInfoPort]
+		enodeInfo.Address = declarer
+
 		if len(midEnodeInfo) >= 4 {
 			enodeInfo.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
 			enodeInfoTrie.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]

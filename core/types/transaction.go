@@ -753,7 +753,7 @@ type HeaderExtra struct {
 	SignersPool          []common.Address
 	SignerMissing        []common.Address
 	ConfirmedBlockNumber uint64
-	Enodes               []common.EnodeInfo
+	Enodes               []common.SuperNode
 }
 
 //2019.8.29 inb by ghy begin

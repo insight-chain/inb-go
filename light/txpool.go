@@ -820,13 +820,13 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 
 			heightNow := pool.chain.CurrentHeader().Number
 
-			startHeight := &v.StartHeight
+			startHeight := v.StartHeight
 			lastReceivedTime := v.LastReceivedHeight
 			lockHeights := v.LockHeights
 			endTimeHeight := new(big.Int).Add(startHeight, lockHeights)
 
-			totalValue := &v.Value
-			receivedValue := &v.Received
+			totalValue := v.Value
+			receivedValue := v.Received
 
 			if startHeight.Cmp(lastReceivedTime) == 1 {
 				return errors.New("last receipt time and start time error")
@@ -894,7 +894,7 @@ func (pool *TxPool) validateReceiveVoteAward(ctx context.Context, from common.Ad
 	}
 
 	HeightNow := pool.chain.CurrentHeader().Number
-	lastReceiveVoteAwardTime := account.LastReceiveVoteAwardHeight
+	lastReceiveVoteAwardTime := account.LastReceivedVoteRewardHeight
 	if HeightNow.Cmp(lastReceiveVoteAwardTime) != 1 {
 		return errors.New("last receive vote award time error")
 	}

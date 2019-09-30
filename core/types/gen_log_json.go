@@ -43,7 +43,7 @@ func (l Log) MarshalJSON() ([]byte, error) {
 	enc.From = l.From
 	enc.To = l.To
 	enc.Amount = l.Amount
-	enc.Types = l.Types
+	enc.Types = l.TxType
 	return json.Marshal(&enc)
 }
 
@@ -116,6 +116,6 @@ func (l *Log) UnmarshalJSON(input []byte) error {
 	if dec.Types == nil {
 		return errors.New("missing required field 'txType' for Log")
 	}
-	l.Types = *dec.Types
+	l.TxType = *dec.Types
 	return nil
 }

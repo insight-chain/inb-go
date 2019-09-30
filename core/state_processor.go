@@ -129,7 +129,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt.Logs = statedb.GetLogs(tx.Hash())
 
 	log := &types.Log{}
-	//switch msg.Types() {}
+	//switch msg.TxType() {}
 	//2019.8.29 inb by ghy begin
 	if receive != nil && receive.Cmp(big.NewInt(0)) == 1 {
 		votingAddress := common.Address{}
@@ -144,21 +144,21 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		}
 		switch msg.Types() {
 		case types.ReceiveVoteAward:
-			log = &types.Log{From: votingAddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: votingAddress, To: msg.From(), Amount: receive, TxType: msg.Types()}
 		case types.ReceiveLockedAward:
-			log = &types.Log{From: onlineAddress, To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: onlineAddress, To: msg.From(), Amount: receive, TxType: msg.Types()}
 		case types.Mortgage:
-			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), TxType: msg.Types()}
 		case types.InsteadMortgage:
-			log1 := &types.Log{From: msg.From(), To: *msg.To(), Amount: msg.Value(), Types: types.Ordinary}
+			log1 := &types.Log{From: msg.From(), To: *msg.To(), Amount: msg.Value(), TxType: types.Ordinary}
 			receipt.Logs = append(receipt.Logs, log1)
-			log = &types.Log{From: *msg.To(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: *msg.To(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), TxType: msg.Types()}
 		case types.Regular:
-			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: common.HexToAddress(common.MortgageAccount), Amount: msg.Value(), TxType: msg.Types()}
 		case types.Receive:
-			log = &types.Log{From: common.HexToAddress(common.MortgageAccount), To: msg.From(), Amount: receive, Types: msg.Types()}
+			log = &types.Log{From: common.HexToAddress(common.MortgageAccount), To: msg.From(), Amount: receive, TxType: msg.Types()}
 		case types.IssueLightToken:
-			log = &types.Log{From: msg.From(), To: onlineAddress, Amount: msg.Value(), Types: msg.Types()}
+			log = &types.Log{From: msg.From(), To: onlineAddress, Amount: msg.Value(), TxType: msg.Types()}
 		default:
 			break
 		}

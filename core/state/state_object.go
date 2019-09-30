@@ -106,10 +106,10 @@ type Account struct {
 	Res      Resource // resource for account
 	Stores   []Store  // slice of regular mortgaging
 	//Recommender common.Address
-	Redeems                    []Redeem // redeeming nets
-	Regular                    *big.Int //  total of regular mortgaging
-	Voted                      *big.Int //current vote to someone else number
-	LastReceiveVoteAwardHeight *big.Int
+	Redeems                      []Redeem // redeeming nets
+	Regular                      *big.Int //  total of regular mortgaging
+	Voted                        *big.Int //current vote to someone else number
+	LastReceivedVoteRewardHeight *big.Int
 }
 
 type Resource struct {
@@ -133,10 +133,10 @@ type Resource struct {
 
 type Store struct {
 	Hash               common.Hash // transaction of regular mortgaging
-	StartHeight        big.Int     // start time
+	StartHeight        *big.Int    // start time
 	LockHeights        *big.Int    // duration of mortgaging
-	Value              big.Int     // amount of mortgaging
-	Received           big.Int     // amount of already received value
+	Value              *big.Int    // amount of mortgaging
+	Received           *big.Int    // amount of already received value
 	LastReceivedHeight *big.Int    // Last receive time
 }
 
@@ -176,8 +176,8 @@ func newObject(db *StateDB, address common.Address, data Account) *stateObject {
 	if data.Regular == nil {
 		data.Regular = new(big.Int)
 	}
-	if data.LastReceiveVoteAwardHeight == nil {
-		data.LastReceiveVoteAwardHeight = new(big.Int)
+	if data.LastReceivedVoteRewardHeight == nil {
+		data.LastReceivedVoteRewardHeight = new(big.Int)
 	}
 	if data.Voted == nil {
 		data.Voted = new(big.Int)
@@ -404,9 +404,9 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		store := Store{
 			Hash:               hash,
-			StartHeight:        sTime,
+			StartHeight:        &sTime,
 			LockHeights:        duration,
-			Value:              *amount,
+			Value:              amount,
 			LastReceivedHeight: &sTime,
 		}
 		stores := append(self.data.Stores, store)
@@ -421,10 +421,10 @@ func (self *stateObject) MortgageNet(amount *big.Int, duration *big.Int, sTime b
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
 
-	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
+	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceivedVoteRewardHeight.Cmp(big.NewInt(0)) == 1 {
 		self.Vote(&sTime)
 		HeightNow := sTime
-		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
+		lastReceiveVoteAwardHeight := self.data.LastReceivedVoteRewardHeight
 		if HeightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
 			return netUse
 		}
@@ -499,7 +499,7 @@ func (self *stateObject) CanReceiveLockedAward(nonce common.Hash, height *big.In
 
 			HeightNow := height
 
-			startHeight := &v.StartHeight
+			startHeight := v.StartHeight
 
 			lastReceivedHeight := v.LastReceivedHeight
 
@@ -507,8 +507,8 @@ func (self *stateObject) CanReceiveLockedAward(nonce common.Hash, height *big.In
 
 			endTimeHeight := new(big.Int).Add(startHeight, lockHeights)
 
-			totalValue := &v.Value
-			receivedValue := &v.Received
+			totalValue := v.Value
+			receivedValue := v.Received
 
 			if startHeight.Cmp(lastReceivedHeight) == 1 {
 				return errors.New("last receipt time and start time error"), big.NewInt(0), false
@@ -561,11 +561,11 @@ func (self *stateObject) ReceiveLockedAward(nonce common.Hash, value *big.Int, i
 				self.AddBalance(value)
 				self.data.Stores[k].LastReceivedHeight = height
 				if isAll {
-					self.AddBalance(&v.Value)
+					self.AddBalance(v.Value)
 
-					afterRegular := new(big.Int).Sub(self.data.Regular, &v.Value)
+					afterRegular := new(big.Int).Sub(self.data.Regular, v.Value)
 					self.data.Regular = afterRegular
-					afterMortgagteINB := new(big.Int).Sub(self.data.Res.Mortgage, &v.Value)
+					afterMortgagteINB := new(big.Int).Sub(self.data.Res.Mortgage, v.Value)
 					self.data.Res.Mortgage = afterMortgagteINB
 
 					self.data.Stores = append(self.data.Stores[:k], self.data.Stores[k+1:]...)
@@ -580,8 +580,8 @@ func (self *stateObject) ReceiveLockedAward(nonce common.Hash, value *big.Int, i
 				} else {
 
 					//receiveAdd := v.Received.Int64() + int64(value)
-					receiveAdd := new(big.Int).Add(&v.Received, value)
-					self.data.Stores[k].Received = *receiveAdd
+					receiveAdd := new(big.Int).Add(v.Received, value)
+					self.data.Stores[k].Received = receiveAdd
 				}
 			}
 		}
@@ -596,7 +596,7 @@ func (self *stateObject) CanReceiveVoteAward(height *big.Int) (err error, value 
 
 	}
 	heightNow := height
-	lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
+	lastReceiveVoteAwardHeight := self.data.LastReceivedVoteRewardHeight
 	if heightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
 		return errors.New("please receive vote award after voting"), big.NewInt(0)
 	}
@@ -613,14 +613,14 @@ func (self *stateObject) CanReceiveVoteAward(height *big.Int) (err error, value 
 }
 
 func (self *stateObject) ReceiveVoteAward(value *big.Int, height *big.Int) {
-	self.data.LastReceiveVoteAwardHeight = height
+	self.data.LastReceivedVoteRewardHeight = height
 	self.AddBalance(value)
 
 }
 
 func (self *stateObject) Vote(height *big.Int) {
 	self.data.Voted = self.data.Res.Mortgage
-	self.data.LastReceiveVoteAwardHeight = height
+	self.data.LastReceivedVoteRewardHeight = height
 }
 
 //2019.7.22 inb by ghy end
@@ -668,10 +668,10 @@ func (self *stateObject) Receive(sTime *big.Int) *big.Int {
 	//2019.8.29 inb by ghy begin
 	votes := self.data.Voted
 
-	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceiveVoteAwardHeight.Cmp(big.NewInt(0)) == 1 {
+	if votes.Cmp(big.NewInt(0)) == 1 && self.data.LastReceivedVoteRewardHeight.Cmp(big.NewInt(0)) == 1 {
 		self.Vote(sTime)
 		HeightNow := sTime
-		lastReceiveVoteAwardHeight := self.data.LastReceiveVoteAwardHeight
+		lastReceiveVoteAwardHeight := self.data.LastReceivedVoteRewardHeight
 		if HeightNow.Cmp(lastReceiveVoteAwardHeight) != 1 {
 			return value
 		}

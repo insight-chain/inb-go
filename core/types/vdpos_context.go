@@ -47,7 +47,7 @@ type Tally struct {
 	Stake    *big.Int
 	Mortgage *big.Int
 	Regular  *big.Int
-	NodeInfo common.EnodesInfo //2019.9.4 inb by ghy
+	NodeInfo common.SuperNodeExtra //2019.9.4 inb by ghy
 }
 
 type Votes struct {
@@ -414,7 +414,7 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 }
 
 //2019.9.4 inb by ghy begin
-func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error {
+func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.SuperNodeExtra) error {
 	Addr := nodeInfo.Address
 	tallyRLP := vc.tallyTrie.Get(Addr[:])
 	tally := new(Tally)

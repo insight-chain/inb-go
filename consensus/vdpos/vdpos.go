@@ -403,7 +403,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			}
 		}
 		for _, v := range v.config.Enodes {
-			enode := new(common.EnodeInfo)
+			enode := new(common.SuperNode)
 			enode.Address = v.Address
 			enode.Port = v.Port
 			enode.Ip = v.Ip

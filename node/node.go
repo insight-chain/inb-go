@@ -279,7 +279,7 @@ func ConnectAllSuperNodes(n *Node) {
 
 }
 
-func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
+func ParsePeerUrl(nodeinfo common.SuperNode) string {
 	var urlBuffer bytes.Buffer
 	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip) {
 		urlBuffer.WriteString("enode://")

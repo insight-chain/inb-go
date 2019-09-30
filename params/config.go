@@ -273,7 +273,7 @@ type VdposConfig struct {
 	GenesisTimestamp   uint64                     `json:"genesisTimestamp"`   // the LoopStartTime of first Block
 	SelfVoteSigners    []common.UnprefixedAddress `json:"signers"`            // signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
 	PBFTEnable         bool                       `json:"pbft"`
-	Enodes             []common.EnodesInfo        `json:"enodes"` //inb by ghy
+	Enodes             []common.SuperNodeExtra    `json:"enodes"` //inb by ghy
 
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
 }

@@ -487,7 +487,7 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 		}
 		//2019.9.4 inb by ghy begin
 		for _, v := range g.Config.Vdpos.Enodes {
-			enode := new(common.EnodeInfo)
+			enode := new(common.SuperNode)
 			enode.Address = v.Address
 			enode.Id = v.Id
 			enode.Ip = v.Ip

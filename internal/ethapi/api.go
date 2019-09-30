@@ -546,7 +546,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // inb by ghy begin
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.EnodeInfo {
+func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.SuperNode {
 	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.BlockNumber(num))
 	b := header.Extra[32 : len(header.Extra)-65]
@@ -1527,7 +1527,7 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.ResourcePayer != nil {
 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types, args.ResourcePayer)
 	}
-	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.TxType)
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types)
 }
 

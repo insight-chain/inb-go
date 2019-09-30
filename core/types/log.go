@@ -59,7 +59,7 @@ type Log struct {
 	From   common.Address `json:"from"       gencodec:"required"`
 	To     common.Address `json:"to"       gencodec:"required"`
 	Amount *big.Int       `json:"value"    gencodec:"required"`
-	Types  TxType         `json:"txType" gencodec:"required"`
+	TxType TxType         `json:"txType" gencodec:"required"`
 	//2019.8.29 inb by ghy end
 }
 
@@ -72,7 +72,7 @@ type logMarshaling struct {
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
-	Types  TxType
+	TxType TxType
 	//2019.8.29 inb by ghy end
 }
 
@@ -84,7 +84,7 @@ type rlpLog struct {
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
-	Types  TxType
+	TxType TxType
 	//2019.8.29 inb by ghy end
 }
 
@@ -101,13 +101,13 @@ type rlpStorageLog struct {
 	From   common.Address
 	To     common.Address
 	Amount *big.Int
-	Types  TxType
+	TxType TxType
 	//2019.8.29 inb by ghy end
 }
 
 // EncodeRLP implements rlp.Encoder.
 func (l *Log) EncodeRLP(w io.Writer) error {
-	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data, From: l.From, To: l.To, Amount: l.Amount, Types: l.Types}) //2019.8.28 inb by ghy
+	return rlp.Encode(w, rlpLog{Address: l.Address, Topics: l.Topics, Data: l.Data, From: l.From, To: l.To, Amount: l.Amount, TxType: l.TxType}) //2019.8.28 inb by ghy
 }
 
 // DecodeRLP implements rlp.Decoder.
@@ -115,7 +115,7 @@ func (l *Log) DecodeRLP(s *rlp.Stream) error {
 	var dec rlpLog
 	err := s.Decode(&dec)
 	if err == nil {
-		l.Address, l.Topics, l.Data, l.From, l.To, l.Amount, l.Types = dec.Address, dec.Topics, dec.Data, dec.From, dec.To, dec.Amount, dec.Types //2019.8.28 inb by ghy
+		l.Address, l.Topics, l.Data, l.From, l.To, l.Amount, l.TxType = dec.Address, dec.Topics, dec.Data, dec.From, dec.To, dec.Amount, dec.TxType //2019.8.28 inb by ghy
 
 	}
 	return err
@@ -139,7 +139,7 @@ func (l *LogForStorage) EncodeRLP(w io.Writer) error {
 		From:        l.From,
 		To:          l.To,
 		Amount:      l.Amount,
-		Types:       l.Types,
+		TxType:      l.TxType,
 	})
 }
 
@@ -160,7 +160,7 @@ func (l *LogForStorage) DecodeRLP(s *rlp.Stream) error {
 			From:        dec.From,
 			To:          dec.To,
 			Amount:      dec.Amount,
-			Types:       dec.Types,
+			TxType:      dec.TxType,
 		}
 	}
 	return err

@@ -67,9 +67,9 @@ func (api *API) GetCandidateNodesInfo() []*types.Tally {
 		return nil
 	}
 	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
-	TallyTrie := vdposContext.TallyTrie()
+	tallyTrie := vdposContext.TallyTrie()
 
-	tallyIterator := trie.NewIterator(TallyTrie.PrefixIterator(nil))
+	tallyIterator := trie.NewIterator(tallyTrie.PrefixIterator(nil))
 
 	existTally := tallyIterator.Next()
 	if !existTally {

@@ -132,7 +132,7 @@ func (h *Header) GetSpecialConsensus() SpecialConsensus {
 	return SpecialConsensus
 }
 
-//func (h *Header) GetEnodesInfoByAddress(address common.Address) *common.EnodeInfo {
+//func (h *Header) GetEnodesInfoByAddress(address common.Address) *common.SuperNode {
 //
 //	b := h.Extra[32 : len(h.Extra)-65]
 //	headerExtra := vdpos.HeaderExtra{}

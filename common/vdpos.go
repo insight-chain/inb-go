@@ -56,15 +56,15 @@ var (
 
 	// 2019.7.22 inb by ghy end
 	//
-
-	MortgageAccount string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
+	SpecialAddressPrefix        = 5
+	MortgageAccount      string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
 )
 
 // Declare :
 // declare come from custom tx which data like "inb:1:event:declare:id~ip~port"
 // Sender of tx is Signer or Candidate
 
-type EnodeInfo struct {
+type SuperNode struct {
 	Address        Address `json:"address"`
 	ReceiveAccount string  `json:"receiveAccount"`
 	Id             string  `json:"id"`
@@ -82,16 +82,12 @@ type EnodeInfo struct {
 	//inb by ghy end
 }
 
-func (node *EnodeInfo) GetReceiveAccount() Address {
+func (node *SuperNode) GetReceiveAccount() Address {
 	return HexToAddress(node.ReceiveAccount)
 }
 
-type EnodesInfo struct {
-	Address        Address `json:"address"`
-	ReceiveAccount string  `json:"receiveAccount"`
-	Id             string  `json:"id"`
-	Ip             string  `json:"ip"`
-	Port           string  `json:"port"`
+type SuperNodeExtra struct {
+	SuperNode
 	//inb by ghy begin
 	Name    string `json:"name"`
 	Nation  string `json:"nation"`
