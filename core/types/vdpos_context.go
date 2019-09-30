@@ -29,7 +29,7 @@ import (
 
 type GetState interface {
 	GetStakingValue(addr common.Address) *big.Int
-	GetTotalStaking(addr common.Address) *big.Int
+	GetTotalStakingYear(addr common.Address) *big.Int
 }
 
 type VdposContext struct {
@@ -330,7 +330,7 @@ func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetSta
 			return fmt.Errorf("failed to decode tally: %s", err)
 		}
 		tally.StakingValue = state.GetStakingValue(addr)
-		tally.TimeLimitedStakingValue = state.GetTotalStaking(addr)
+		tally.TimeLimitedStakingValue = state.GetTotalStakingYear(addr)
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
 		if err != nil {
 			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -394,7 +394,7 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 				timeLimitedStakingValue.SetUint64(0)
 			} else {
 				stakingValue.Set(state.GetStakingValue(candidate))
-				timeLimitedStakingValue.Set(state.GetTotalStaking(candidate))
+				timeLimitedStakingValue.Set(state.GetTotalStakingYear(candidate))
 			}
 
 			tally = &Tally{
