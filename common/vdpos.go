@@ -15,42 +15,42 @@ var (
 	//vote
 	VoteRewardCycleSeconds  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	VoteRewardCycleTimes    = big.NewInt(7)
-	VoteDenominator         = big.NewInt(5)
+	VoteDenominator         = big.NewInt(2)
 	VoteHundred             = big.NewInt(100)
 	VoteNumberOfDaysOneYear = big.NewInt(365)
 
 	//Mortgage,unMortgage,change vote
 	VoteRewardCycleSecondsForChange  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	VoteRewardCycleTimesForChange    = big.NewInt(1)
-	VoteDenominatorForChange         = big.NewInt(5)
+	VoteDenominatorForChange         = big.NewInt(2)
 	VoteHundredForChange             = big.NewInt(100)
 	VoteNumberOfDaysOneYearForChange = big.NewInt(365)
 
 	//locked 30days
 	LockedRewardCycleSecondsFor30days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	LockedRewardCycleTimesFor30days    = big.NewInt(7)
-	LockedDenominatorFor30days         = big.NewInt(1)
-	LockedHundredFor30days             = big.NewInt(100)
+	LockedDenominatorFor30days         = big.NewInt(5)
+	LockedHundredFor30days             = big.NewInt(1000)
 	LockedNumberOfDaysOneYearFor30days = big.NewInt(365)
 
 	//locked 90days
 	LockedRewardCycleSecondsFor90days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	LockedRewardCycleTimesFor90days    = big.NewInt(7)
-	LockedDenominatorFor90days         = big.NewInt(3)
-	LockedHundredFor90days             = big.NewInt(100)
+	LockedDenominatorFor90days         = big.NewInt(15)
+	LockedHundredFor90days             = big.NewInt(1000)
 	LockedNumberOfDaysOneYearFor90days = big.NewInt(365)
 
 	//locked 180days
 	LockedRewardCycleSecondsFor180days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	LockedRewardCycleTimesFor180days    = big.NewInt(7)
-	LockedDenominatorFor180days         = big.NewInt(5)
+	LockedDenominatorFor180days         = big.NewInt(3)
 	LockedHundredFor180days             = big.NewInt(100)
 	LockedNumberOfDaysOneYearFor180days = big.NewInt(365)
 
 	//locked 360days
 	LockedRewardCycleSecondsForMoreThan360days  = new(big.Int).Mul(big.NewInt(1), OneDayHeight)
 	LockedRewardCycleTimesForMoreThan360days    = big.NewInt(7)
-	LockedDenominatorForMoreThan360days         = big.NewInt(9)
+	LockedDenominatorForMoreThan360days         = big.NewInt(5)
 	LockedHundredForMoreThan360days             = big.NewInt(100)
 	LockedNumberOfDaysOneYearForMoreThan360days = big.NewInt(365)
 
@@ -91,7 +91,6 @@ type SuperNodeExtra struct {
 	//inb by ghy begin
 	Name      string `json:"name"`
 	Nation    string `json:"nation"`
-	City      string `json:"city"`
 	Image     string `json:"image"`
 	Website   string `json:"website"`
 	Email     string `json:"email"`

@@ -768,15 +768,15 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//minerReward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
-	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	foundationReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	verifyReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(5e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(3e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	foundationReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	verifyReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(6e+5), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 
-	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
-	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(7e+6), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
+	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(14e+5), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
