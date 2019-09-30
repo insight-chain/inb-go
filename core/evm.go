@@ -217,11 +217,11 @@ func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int,
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	mortgaging := db.GetMortgage(addr)
-	regular := db.GetRegular(addr)
-	value := db.GetRedeem(addr)
+	mortgaging := db.GetStakingValue(addr)
+	totalStaking := db.GetTotalStaking(addr)
+	value := db.GetUnStaking(addr)
 
-	usable := new(big.Int).Sub(mortgaging, regular)
+	usable := new(big.Int).Sub(mortgaging, totalStaking)
 	//usable = new(big.Int).Add(usable, value)
 	usable.Sub(usable, value)
 	if usable.Cmp(amount) < 0 {
@@ -231,12 +231,12 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 }
 
 func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
-	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
+	timeLimit := new(big.Int).Add(db.GetUnStakingHeight(addr), params.TxConfig.RedeemDuration)
 	//now := big.NewInt(time.Now().Unix())
 	if timeLimit.Cmp(now) > 0 {
 		return errors.New(" before receive time ")
 	}
-	if big.NewInt(0).Cmp(db.GetRedeem(addr)) == 0 {
+	if big.NewInt(0).Cmp(db.GetUnStaking(addr)) == 0 {
 		return errors.New(" insufficient available value of redeeming ")
 	}
 	return nil

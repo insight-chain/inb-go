@@ -95,11 +95,11 @@ type txdata struct {
 	Hash  *common.Hash `json:"hash" rlp:"-"`
 	TxType TxType       `json:"txType" gencodec:"required"`
 
-	Repayment *Payment `json:"repayment" rlp:"nil"`
+	ExtraSignature *ExtraSignature `json:"extraSignature" rlp:"nil"`
 }
 
 //payment the real account that pay resources for transactions
-type Payment struct {
+type ExtraSignature struct {
 	//payment address
 	ResourcePayer *common.Address `json:"resourcePayer" gencodec:"required"`
 	// payment signature values
@@ -118,7 +118,7 @@ type txdataMarshaling struct {
 	R         *hexutil.Big
 	S         *hexutil.Big
 	TxType     hexutil.Uint64
-	Repayment *Payment
+	Repayment *ExtraSignature
 }
 
 func NewTransaction(nonce uint64, to common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType) *Transaction {
@@ -141,9 +141,9 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, res uint6
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
-	var rePayment *Payment
+	var rePayment *ExtraSignature
 	if nil != resourcePayer {
-		rePayment = &Payment{
+		rePayment = &ExtraSignature{
 			ResourcePayer: resourcePayer,
 			Vp:            nil,
 			Rp:            nil,
@@ -161,7 +161,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, res uint6
 		R:         new(big.Int),
 		S:         new(big.Int),
 		TxType:     txType,
-		Repayment: rePayment,
+		ExtraSignature: rePayment,
 	}
 	if amount != nil {
 		d.Amount.Set(amount)
@@ -181,7 +181,7 @@ func (tx *Transaction) ChainId() *big.Int {
 //achilles repayment
 // ChainId returns which chain id this transaction was signed for (if at all)
 func (tx *Transaction) ChainId4Payment() *big.Int {
-	return deriveChainId(tx.data.Repayment.Vp)
+	return deriveChainId(tx.data.ExtraSignature.Vp)
 }
 
 // Protected returns whether the transaction is protected from replay protection.
@@ -258,7 +258,7 @@ func (tx *Transaction) CheckNonce() bool { return true }
 func (tx *Transaction) ResourcePayer() common.Address {
 	var addr common.Address
 	if tx.IsRepayment() {
-		return *tx.data.Repayment.ResourcePayer
+		return *tx.data.ExtraSignature.ResourcePayer
 	}
 	return addr
 }
@@ -367,7 +367,7 @@ func (tx *Transaction) WithSignature(signer Signer, sig []byte) (*Transaction, e
 	//achilles repayment
 	flag := new(big.Int)
 	if tx.IsRepayment() && tx.data.V.Cmp(flag) != 0 && tx.data.R.Cmp(flag) != 0 && tx.data.S.Cmp(flag) != 0 {
-		cpy.data.Repayment.Rp, cpy.data.Repayment.Sp, cpy.data.Repayment.Vp = r, s, v
+		cpy.data.ExtraSignature.Rp, cpy.data.ExtraSignature.Sp, cpy.data.ExtraSignature.Vp = r, s, v
 		return cpy, nil
 	}
 	cpy.data.R, cpy.data.S, cpy.data.V = r, s, v
@@ -392,12 +392,12 @@ func (tx *Transaction) RawSignatureValues() (*big.Int, *big.Int, *big.Int) {
 }
 
 func (tx *Transaction) RawPaymentSignatureValues() (*big.Int, *big.Int, *big.Int) {
-	return tx.data.Repayment.Vp, tx.data.Repayment.Rp, tx.data.Repayment.Sp
+	return tx.data.ExtraSignature.Vp, tx.data.ExtraSignature.Rp, tx.data.ExtraSignature.Sp
 }
 
 //
 func (tx *Transaction) SetPayment() {
-	tx.data.Repayment = &Payment{
+	tx.data.ExtraSignature = &ExtraSignature{
 		ResourcePayer: nil,
 		Vp:            nil,
 		Rp:            nil,
@@ -407,19 +407,19 @@ func (tx *Transaction) SetPayment() {
 
 //
 func (tx *Transaction) RemovePaymentSignatureValues() {
-	tx.data.Repayment.Vp = new(big.Int)
-	tx.data.Repayment.Rp = new(big.Int)
-	tx.data.Repayment.Sp = new(big.Int)
+	tx.data.ExtraSignature.Vp = new(big.Int)
+	tx.data.ExtraSignature.Rp = new(big.Int)
+	tx.data.ExtraSignature.Sp = new(big.Int)
 }
 
 //achilles
 //  type of transaction is repayment
 func (tx *Transaction) IsRepayment() bool {
-	if tx.data.Repayment == nil {
+	if tx.data.ExtraSignature == nil {
 		return false
 	}
 	var resourcePayer common.Address
-	if nil == tx.data.Repayment.ResourcePayer || resourcePayer == *tx.data.Repayment.ResourcePayer {
+	if nil == tx.data.ExtraSignature.ResourcePayer || resourcePayer == *tx.data.ExtraSignature.ResourcePayer {
 		return false
 	}
 	return true

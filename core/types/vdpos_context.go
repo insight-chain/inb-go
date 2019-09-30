@@ -28,8 +28,8 @@ import (
 )
 
 type GetState interface {
-	GetMortgage(addr common.Address) *big.Int
-	GetRegular(addr common.Address) *big.Int
+	GetStakingValue(addr common.Address) *big.Int
+	GetTotalStaking(addr common.Address) *big.Int
 }
 
 type VdposContext struct {
@@ -329,8 +329,8 @@ func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetSta
 		if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 			return fmt.Errorf("failed to decode tally: %s", err)
 		}
-		tally.StakingValue = state.GetMortgage(addr)
-		tally.TimeLimitedStakingValue = state.GetRegular(addr)
+		tally.StakingValue = state.GetStakingValue(addr)
+		tally.TimeLimitedStakingValue = state.GetTotalStaking(addr)
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
 		if err != nil {
 			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -393,8 +393,8 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 				stakingValue.SetUint64(0)
 				timeLimitedStakingValue.SetUint64(0)
 			} else {
-				stakingValue.Set(state.GetMortgage(candidate))
-				timeLimitedStakingValue.Set(state.GetRegular(candidate))
+				stakingValue.Set(state.GetStakingValue(candidate))
+				timeLimitedStakingValue.Set(state.GetTotalStaking(candidate))
 			}
 
 			tally = &Tally{

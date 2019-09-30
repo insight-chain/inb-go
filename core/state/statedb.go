@@ -280,26 +280,26 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-func (self *StateDB) GetRegular(addr common.Address) *big.Int {
+func (self *StateDB) GetTotalStaking(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.Regular()
+		return stateObject.GetTotalStaking()
 	}
 	return common.Big0
 }
 
-func (self *StateDB) GetRedeem(addr common.Address) *big.Int {
+func (self *StateDB) GetUnStaking(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetRedeem()
+		return stateObject.GetUnStaking()
 	}
 	return common.Big0
 }
 
-func (self *StateDB) GetRedeemTime(addr common.Address) *big.Int {
+func (self *StateDB) GetUnStakingHeight(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetRedeemTime()
+		return stateObject.GetUnStakingHeight()
 	}
 	return common.Big0
 }
@@ -353,10 +353,10 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 //}
 
 //2019.6.28 inb by ghy end
-func (self *StateDB) GetMortgage(addr common.Address) *big.Int {
+func (self *StateDB) GetStakingValue(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.MortgageOfRes()
+		return stateObject.StakingValue()
 	}
 	return common.Big0
 }
@@ -618,10 +618,10 @@ func (self *StateDB) AddNet(addr common.Address, amount *big.Int) {
 		stateObject.AddNet(amount)
 	}
 }
-func (self *StateDB) UseNet(addr common.Address, amount *big.Int) {
+func (self *StateDB) UseRes(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.UseNet(amount)
+		stateObject.UserRes(amount)
 	}
 }
 

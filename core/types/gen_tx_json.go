@@ -25,7 +25,7 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
 		TxType        hexutil.Uint64  `json:"txType" gencodec:"required"`
-		Repayment    *Payment        `json:"repayment" gencodec:"nil"`
+		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
 	}
 	var enc txdata
 	enc.AccountNonce = hexutil.Uint64(t.AccountNonce)
@@ -37,7 +37,7 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 	enc.S = (*hexutil.Big)(t.S)
 	enc.Hash = t.Hash
 	enc.TxType = hexutil.Uint64(t.TxType)
-	enc.Repayment = t.Repayment
+	enc.ExtraSignature = t.ExtraSignature
 	return json.Marshal(&enc)
 }
 
@@ -53,7 +53,7 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
 		TxType        *hexutil.Uint64 `json:"txType" gencodec:"required"`
-		Repayment    *Payment        `json:"repayment" gencodec:"nil"`
+		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
 	}
 	var dec txdata
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -93,8 +93,8 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'txType' for txdata")
 	}
 	t.TxType = TxType(*dec.TxType)
-	if dec.Repayment != nil && dec.Repayment.ResourcePayer != nil {
-		t.Repayment = dec.Repayment
+	if dec.ExtraSignature != nil && dec.ExtraSignature.ResourcePayer != nil {
+		t.ExtraSignature = dec.ExtraSignature
 	}
 	return nil
 }

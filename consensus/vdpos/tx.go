@@ -107,7 +107,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 		}
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
-			if state.GetMortgage(txSender).Cmp(BeVotedNeedINB) == 1 {
+			if state.GetStakingValue(txSender).Cmp(BeVotedNeedINB) == 1 {
 				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
 			} else {
 				log.Error("Update node info account mortgage less than %v inb", BeVotedNeedINB)
@@ -152,7 +152,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
-	stakingValue := state.GetMortgage(voter)
+	stakingValue := state.GetStakingValue(voter)
 	v.lock.RUnlock()
 
 	vote := &types.Votes{
@@ -269,7 +269,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	if tx.Value().Cmp(big.NewInt(0)) > 0 {
 		if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.Redeem) {
 			v.lock.RLock()
-			stake := state.GetMortgage(txSender)
+			stake := state.GetStakingValue(txSender)
 			v.lock.RUnlock()
 			err := vdposContext.UpdateTallysByNewState(txSender, state)
 			if err != nil {
@@ -283,7 +283,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	}
 	if tx.WhichTypes(types.ReceiveLockedAward) {
 		v.lock.RLock()
-		stake := state.GetMortgage(txSender)
+		stake := state.GetStakingValue(txSender)
 		v.lock.RUnlock()
 		err := vdposContext.UpdateTallysByNewState(txSender, state)
 		if err != nil {
@@ -297,7 +297,7 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 	if tx.WhichTypes(types.InsteadMortgage) {
 		txReceiver := *tx.To()
 		v.lock.RLock()
-		stake := state.GetMortgage(txReceiver)
+		stake := state.GetStakingValue(txReceiver)
 		v.lock.RUnlock()
 		err := vdposContext.UpdateTallysByNewState(txReceiver, state)
 		if err != nil {

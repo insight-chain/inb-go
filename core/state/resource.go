@@ -46,7 +46,7 @@ type Unmortgagtion struct {
 //1 inb can be exchanged for Net
 func (c *StateDB) PerInbIsNet() *big.Int {
 
-	as := c.GetMortgageStateObject().data.Res.Mortgage
+	as := c.GetMortgageStateObject().data.Res.StakingValue
 	asString := as.Set(as).String()
 	asValue, err := strconv.ParseInt(asString, 10, 64)
 	if err != nil {

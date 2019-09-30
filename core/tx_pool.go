@@ -628,7 +628,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if len(inputStr) > 600 {
 			return errors.New("date over size")
 		}
-		if pool.currentState.GetMortgage(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		if pool.currentState.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
 			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
 		}
 
@@ -642,7 +642,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		for _, value := range candidatesStr {
 			address := common.HexToAddress(value)
 			//2019.7.15 inb mod by ghy begin
-			if pool.currentState.GetMortgage(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
+			if pool.currentState.GetStakingValue(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -725,12 +725,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.Receive) {
-		timeLimit := new(big.Int).Add(pool.currentState.GetRedeemTime(from), params.TxConfig.RedeemDuration)
+		timeLimit := new(big.Int).Add(pool.currentState.GetUnStakingHeight(from), params.TxConfig.RedeemDuration)
 		if timeLimit.Cmp(pool.chain.CurrentBlock().Number()) > 0 {
 
 			return errors.New(" before receive time ")
 		}
-		if big.NewInt(0).Cmp(pool.currentState.GetRedeem(from)) == 0 {
+		if big.NewInt(0).Cmp(pool.currentState.GetUnStaking(from)) == 0 {
 			return errors.New(" insufficient available value of redeeming ")
 		}
 	}
@@ -790,9 +790,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		mortgageInb := pool.currentState.GetMortgage(netPayment)
-		mortgageInb.Sub(mortgageInb, pool.currentState.GetRegular(netPayment))
-		mortgageInb.Sub(mortgageInb, pool.currentState.GetRedeem(netPayment))
+		mortgageInb := pool.currentState.GetStakingValue(netPayment)
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetTotalStaking(netPayment))
+		mortgageInb.Sub(mortgageInb, pool.currentState.GetUnStaking(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
@@ -1520,7 +1520,7 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 			for _, value := range candidatesStr {
 				address := common.HexToAddress(value)
 				//2019.7.15 inb mod by ghy begin
-				if pool.currentState.GetAccountInfo(address).Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) == 1 {
+				if pool.currentState.GetAccountInfo(address).Res.StakingValue.Cmp(vdpos.BeVotedNeedINB) == 1 {
 					candidatesSlice = append(candidatesSlice, address)
 				} else {
 					UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -1547,7 +1547,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	if account.Voted.Cmp(big.NewInt(0)) != 1 {
 		return errors.New("can only receive locked rewards after voting")
 	}
-	if len(account.Stores) <= 0 {
+	if len(account.Stakings) <= 0 {
 		return errors.New("no locked record")
 	}
 
@@ -1556,7 +1556,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	LockedDenominator := new(big.Int)
 	LockedHundred := new(big.Int)
 	LockedNumberOfDaysOneYear := new(big.Int)
-	for _, v := range account.Stores {
+	for _, v := range account.Stakings {
 		if v.Hash == common.HexToHash(receivebonus[1]) {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():

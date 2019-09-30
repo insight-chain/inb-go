@@ -119,7 +119,7 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 	receipt := types.NewReceipt(root, failed, *usedNet)
 	receipt.TxHash = tx.Hash()
 
-	receipt.IncomeClaimed = receive
+	receipt.Value = receive
 	receipt.ResUsed = net
 	// if the transaction created a contract, store the creation address in the receipt.
 	if msg.To() == nil && msg.Types() == types.Contract {

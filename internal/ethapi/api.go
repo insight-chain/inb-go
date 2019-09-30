@@ -636,7 +636,7 @@ func (s *PublicBlockChainAPI) GetMortgage(ctx context.Context, address common.Ad
 	if state == nil || err != nil {
 		return nil, err
 	}
-	return (*hexutil.Big)(state.GetMortgage(address)), state.Error()
+	return (*hexutil.Big)(state.GetStakingValue(address)), state.Error()
 }
 
 //mortageNet
@@ -1407,7 +1407,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"resUsed":           hexutil.Uint64(receipt.ResUsed),           //inb by ssh 190628
 		"cumulativeResUsed": hexutil.Uint64(receipt.CumulativeResUsed), //inb by ssh 190628
-		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
+		"value":     receipt.Value,                     //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,

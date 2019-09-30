@@ -33,13 +33,13 @@ type StateDB interface {
 
 	//achilles
 	AddNet(addr common.Address, amount *big.Int)
-	UseNet(addr common.Address, amount *big.Int)
+	UseRes(addr common.Address, amount *big.Int)
 	GetNet(addr common.Address) *big.Int
-	GetMortgage(addr common.Address) *big.Int
+	GetStakingValue(addr common.Address) *big.Int
 	GetDate(addr common.Address) *big.Int
-	GetRedeemTime(addr common.Address) *big.Int
-	GetRegular(addr common.Address) *big.Int
-	GetRedeem(addr common.Address) *big.Int
+	GetUnStakingHeight(addr common.Address) *big.Int
+	GetTotalStaking(addr common.Address) *big.Int
+	GetUnStaking(addr common.Address) *big.Int
 	MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int
 	ResetNet(addr common.Address, update *big.Int) *big.Int
 	Receive(addr common.Address, sTime *big.Int) *big.Int

@@ -56,15 +56,15 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 
-	IncomeClaimed *big.Int `json:"incomeClaimed" gencodec:"required"`
+	Value *big.Int `json:"incomeClaimed" gencodec:"required"`
 	ResUsed       uint64   `json:"resUsed" gencodec:"required"`
 }
 
 type receiptMarshaling struct {
 	PostState         hexutil.Bytes
 	Status            hexutil.Uint64
-	IncomeClaimed     *big.Int
-	CumulativeresUsed hexutil.Uint64
+	Value     *big.Int
+	CumulativeResUsed hexutil.Uint64
 	ResUsed           hexutil.Uint64
 }
 
@@ -74,7 +74,7 @@ type receiptRLP struct {
 	CumulativeResUsed uint64
 	Bloom             Bloom
 	Logs              []*Log
-	IncomeClaimed     *big.Int
+	Value     *big.Int
 }
 
 type receiptStorageRLP struct {
@@ -84,7 +84,7 @@ type receiptStorageRLP struct {
 	TxHash            common.Hash
 	ContractAddress   common.Address
 	Logs              []*LogForStorage
-	IncomeClaimed     *big.Int
+	Value     *big.Int
 	ResUsed           uint64
 }
 
@@ -103,7 +103,7 @@ func NewReceipt(root []byte, failed bool, cumulativeResUsed uint64) *Receipt {
 // into an RLP stream. If no post state is present, byzantium fork is assumed.
 func (r *Receipt) EncodeRLP(w io.Writer) error {
 	return rlp.Encode(w, &receiptRLP{r.statusEncoding(),
-		r.CumulativeResUsed, r.Bloom, r.Logs, r.IncomeClaimed}) //2019.8.1 inb bu ghy
+		r.CumulativeResUsed, r.Bloom, r.Logs, r.Value}) //2019.8.1 inb bu ghy
 }
 
 // DecodeRLP implements rlp.Decoder, and loads the consensus fields of a receipt
@@ -116,8 +116,8 @@ func (r *Receipt) DecodeRLP(s *rlp.Stream) error {
 	if err := r.setStatus(dec.PostStateOrStatus); err != nil {
 		return err
 	}
-	r.CumulativeResUsed, r.Bloom, r.Logs, r.IncomeClaimed =
-		dec.CumulativeResUsed, dec.Bloom, dec.Logs, dec.IncomeClaimed //2019.8.1 inb by ghy
+	r.CumulativeResUsed, r.Bloom, r.Logs, r.Value =
+		dec.CumulativeResUsed, dec.Bloom, dec.Logs, dec.Value //2019.8.1 inb by ghy
 	return nil
 }
 
@@ -172,7 +172,7 @@ func (r *ReceiptForStorage) EncodeRLP(w io.Writer) error {
 		ContractAddress:   r.ContractAddress,
 		Logs:              make([]*LogForStorage, len(r.Logs)),
 		ResUsed:           r.ResUsed,
-		IncomeClaimed:     r.IncomeClaimed,
+		Value:     r.Value,
 	}
 	for i, log := range r.Logs {
 		enc.Logs[i] = (*LogForStorage)(log)
@@ -197,7 +197,7 @@ func (r *ReceiptForStorage) DecodeRLP(s *rlp.Stream) error {
 		r.Logs[i] = (*Log)(log)
 	}
 	// Assign the implementation fields
-	r.TxHash, r.ContractAddress, r.ResUsed, r.IncomeClaimed = dec.TxHash, dec.ContractAddress, dec.ResUsed, dec.IncomeClaimed //2019.8.1 inb by ghy
+	r.TxHash, r.ContractAddress, r.ResUsed, r.Value = dec.TxHash, dec.ContractAddress, dec.ResUsed, dec.Value //2019.8.1 inb by ghy
 
 	return nil
 }

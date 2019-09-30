@@ -419,7 +419,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 			if accountInfo == nil {
 				return errors.New("error of candidates address")
 			}
-			if accountInfo.Res.Mortgage.Cmp(vdpos.BeVotedNeedINB) == 1 {
+			if accountInfo.Res.StakingValue.Cmp(vdpos.BeVotedNeedINB) == 1 {
 				candidatesSlice = append(candidatesSlice, address)
 			} else {
 				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
@@ -499,13 +499,13 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	if tx.WhichTypes(types.Receive) {
-		timeLimit := new(big.Int).Add(currentState.GetRedeemTime(from), params.TxConfig.RedeemDuration)
+		timeLimit := new(big.Int).Add(currentState.GetUnStakingHeight(from), params.TxConfig.RedeemDuration)
 
 		if timeLimit.Cmp(pool.chain.CurrentHeader().Time) > 0 {
 
 			return errors.New(" before receive time ")
 		}
-		if big.NewInt(0).Cmp(currentState.GetRedeem(from)) == 0 {
+		if big.NewInt(0).Cmp(currentState.GetUnStaking(from)) == 0 {
 			return errors.New(" insufficient available value of redeeming ")
 		}
 	}
@@ -565,9 +565,9 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		if usableNet.Cmp(unit) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
-		mortgageInb := currentState.GetMortgage(netPayment)
-		mortgageInb.Sub(mortgageInb, currentState.GetRegular(netPayment))
-		mortgageInb.Sub(mortgageInb, currentState.GetRedeem(netPayment))
+		mortgageInb := currentState.GetStakingValue(netPayment)
+		mortgageInb.Sub(mortgageInb, currentState.GetTotalStaking(netPayment))
+		mortgageInb.Sub(mortgageInb, currentState.GetUnStaking(netPayment))
 		if mortgageInb.Cmp(tx.Value()) < 0 {
 			return errors.New(" insufficient available mortgage ")
 		}
@@ -779,7 +779,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	if account.Voted.Cmp(big.NewInt(0)) != 1 {
 		return errors.New("can only receive locked rewards after voting")
 	}
-	if len(account.Stores) <= 0 {
+	if len(account.Stakings) <= 0 {
 		return errors.New("no locked record")
 	}
 	LockedRewardCycleSeconds := new(big.Int)
@@ -787,7 +787,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 	LockedDenominator := new(big.Int)
 	LockedHundred := new(big.Int)
 	LockedNumberOfDaysOneYear := new(big.Int)
-	for _, v := range account.Stores {
+	for _, v := range account.Stakings {
 		if v.Hash == common.HexToHash(receivebonus[1]) {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():

@@ -215,21 +215,21 @@ func (evm *EVM) Interpreter() Interpreter {
 	return evm.interpreter
 }
 
-func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
-	return evm.NewCall(caller, addr, input, net, value, types.Ordinary, [32]byte{})
+func (evm *EVM) Call(caller ContractRef, addr common.Address, input []byte, res uint64, value *big.Int) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
+	return evm.NewCall(caller, addr, input, res, value, types.Ordinary, [32]byte{})
 }
 
 // Call executes the contract associated with the addr with the given input as
 // parameters. It also handles any necessary value transfer required and takes
 // the necessary steps to create accounts and reverses the state in case of an
 // execution error or failed value transfer.
-func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, net uint64, value *big.Int, txType types.TxType, hash common.Hash) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
+func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, res uint64, value *big.Int, txType types.TxType, hash common.Hash) (ret []byte, leftOverGas uint64, err error, receive *big.Int) {
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
-		return nil, net, nil, nil
+		return nil, res, nil, nil
 	}
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
-		return nil, net, ErrDepth, nil
+		return nil, res, ErrDepth, nil
 	}
 	var (
 		to       = AccountRef(addr)
@@ -242,7 +242,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	//2019.7.22 inb by ghy begin
 	LockedAward := big.NewInt(0)
 	VoteAward := big.NewInt(0)
-	nets := big.NewInt(0)
+	reses := big.NewInt(0)
 	isAll := false
 	IntNonce := [32]byte{}
 	toAddress := common.Address{}
@@ -252,72 +252,72 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
 			IntNonce = common.HexToHash(inputSlice[1])
 			//if err != nil {
-			//	return nil, net, err, nil
+			//	return nil, res, err, nil
 			//}
 			err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.BlockNumber, evm.SpecialConsensus)
 			if err != nil {
-				return nil, net, err, nil
+				return nil, res, err, nil
 			}
 		} else {
-			return nil, net, ErrParameter, nil
+			return nil, res, ErrParameter, nil
 		}
 		//2019.7.22 inb by ghy end
 	} else if txType == types.Regular {
 		regulars := strings.Split(inputStr, ":")
 		if len(regulars) <= 1 {
-			return nil, net, ErrNotResolveInput, big.NewInt(0)
+			return nil, res, ErrNotResolveInput, big.NewInt(0)
 		}
 		convert, err := strconv.Atoi(regulars[1])
 
 		if err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 		days = convert
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, big.NewInt(int64(days))); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 
 		}
 	} else if txType == types.Mortgage {
 		if err := evm.Context.CanMortgage(evm.StateDB, caller.Address(), value, big.NewInt(int64(days))); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.InsteadMortgage {
 		regulars := strings.Split(inputStr, ":")
 		if len(regulars) <= 1 {
-			return nil, net, ErrNotResolveInput, big.NewInt(0)
+			return nil, res, ErrNotResolveInput, big.NewInt(0)
 		}
 		convert, err := strconv.Atoi(regulars[1])
 
 		if err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 		days = convert
 		if err := evm.Context.CanInsteadMortgage(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days))); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.Redeem {
 		if err := evm.Context.CanRedeem(evm.StateDB, caller.Address(), value); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.Reset {
 		if err := evm.Context.CanReset(evm.StateDB, caller.Address(), evm.BlockNumber); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.Receive {
 		if err := evm.Context.CanReceive(evm.StateDB, caller.Address(), evm.BlockNumber); err != nil {
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.ReceiveVoteAward { //2019.7.24 inb by ghy
 		if err, VoteAward, toAddress = evm.Context.CanReceiveVoteAward(evm.StateDB, caller.Address(), evm.BlockNumber, evm.SpecialConsensus); err != nil {
 
-			return nil, net, err, nil
+			return nil, res, err, nil
 		}
 	} else if txType == types.Vote || txType == types.TransferLightToken {
 		// do nothing because we don't need to check up value when vote or transferLightToken
 	} else {
 		// Fail if we're trying to transfer more than the available balance
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
-			return nil, net, ErrInsufficientBalance, nil
+			return nil, res, ErrInsufficientBalance, nil
 		}
 	}
 
@@ -337,10 +337,10 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		if precompiles[addr] == nil && evm.ChainConfig().IsEIP158(evm.BlockNumber) && value.Sign() == 0 {
 			// Calling a non existing account, don't do anything, but ping the tracer
 			if evm.vmConfig.Debug && evm.depth == 0 {
-				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
+				evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, res, value)
 				evm.vmConfig.Tracer.CaptureEnd(ret, 0, 0, nil)
 			}
-			return nil, net, nil, nil
+			return nil, res, nil, nil
 		}
 		evm.StateDB.CreateAccount(addr)
 	}
@@ -352,18 +352,18 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	} else if txType == types.Redeem {
 		evm.RedeemTransfer(evm.StateDB, caller.Address(), to.Address(), value, evm.BlockNumber)
 	} else if txType == types.Regular || txType == types.Mortgage {
-		nets = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber, hash)
+		reses = evm.MortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber, hash)
 	} else if txType == types.InsteadMortgage {
-		nets = evm.InsteadMortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber, hash)
+		reses = evm.InsteadMortgageTransfer(evm.StateDB, caller.Address(), to.Address(), value, big.NewInt(int64(days)), *evm.BlockNumber, hash)
 	} else if txType == types.Reset {
-		nets = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
+		reses = evm.ResetTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.ReceiveVoteAward { //2019.7.22 inb by ghy begin
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.BlockNumber, toAddress)
 	} else if txType == types.ReceiveLockedAward {
 		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.BlockNumber, toAddress)
 		//2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
-		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
+		reses = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.IssueLightToken {
 		for _, v := range evm.SpecialConsensus.SpecialConsensusAddress {
 			if v.SpecialType == state.OnlineMarketing {
@@ -379,7 +379,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 	// Initialise a new contract and set the code that is to be used by the EVM.
 	// The contract is a scoped environment for this execution context only.
-	contract := NewContract(caller, to, value, net)
+	contract := NewContract(caller, to, value, res)
 	contract.SetCallCode(&addr, evm.StateDB.GetCodeHash(addr), evm.StateDB.GetCode(addr))
 
 	// Even if the account has no code, we need to continue because it might be a precompile
@@ -387,10 +387,10 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 
 	// Capture the tracer start/end events in debug mode
 	if evm.vmConfig.Debug && evm.depth == 0 {
-		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, net, value)
+		evm.vmConfig.Tracer.CaptureStart(caller.Address(), addr, false, input, res, value)
 
 		defer func() { // Lazy evaluation of the parameters
-			evm.vmConfig.Tracer.CaptureEnd(ret, net-contract.Gas, time.Since(start), err)
+			evm.vmConfig.Tracer.CaptureEnd(ret, res-contract.Gas, time.Since(start), err)
 		}()
 	}
 	ret, err = run(evm, contract, input, false)
@@ -413,7 +413,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	case types.IssueLightToken:
 		return ret, contract.Gas, err, big.NewInt(1)
 	default:
-		return ret, contract.Gas, err, nets
+		return ret, contract.Gas, err, reses
 	}
 }
 
