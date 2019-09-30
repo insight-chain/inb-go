@@ -93,7 +93,7 @@ type txdata struct {
 
 	// This is only used when marshaling to JSON.
 	Hash  *common.Hash `json:"hash" rlp:"-"`
-	Types TxType       `json:"txType" gencodec:"required"`
+	TxType TxType       `json:"txType" gencodec:"required"`
 
 	Repayment *Payment `json:"repayment" rlp:"nil"`
 }
@@ -117,7 +117,7 @@ type txdataMarshaling struct {
 	V         *hexutil.Big
 	R         *hexutil.Big
 	S         *hexutil.Big
-	Types     hexutil.Uint64
+	TxType     hexutil.Uint64
 	Repayment *Payment
 }
 
@@ -137,7 +137,7 @@ func NewNilToTransaction(nonce uint64, amount *big.Int, gasLimit uint64, data []
 	return newTransaction(nonce, nil, amount, gasLimit, data, txType, nil)
 }
 
-func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit uint64, data []byte, txType TxType, resourcePayer *common.Address) *Transaction {
+func newTransaction(nonce uint64, to *common.Address, amount *big.Int, res uint64, data []byte, txType TxType, resourcePayer *common.Address) *Transaction {
 	if len(data) > 0 {
 		data = common.CopyBytes(data)
 	}
@@ -160,7 +160,7 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, gasLimit 
 		V:         new(big.Int),
 		R:         new(big.Int),
 		S:         new(big.Int),
-		Types:     txType,
+		TxType:     txType,
 		Repayment: rePayment,
 	}
 	if amount != nil {
@@ -262,12 +262,12 @@ func (tx *Transaction) ResourcePayer() common.Address {
 	}
 	return addr
 }
-func (tx *Transaction) Types() TxType                { return tx.data.Types }
-func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.Types == types }
+func (tx *Transaction) Types() TxType                { return tx.data.TxType }
+func (tx *Transaction) WhichTypes(types TxType) bool { return tx.data.TxType == types }
 
 func (tx *Transaction) isContract() bool {
 	flag := false
-	if tx.data.Types == Contract && tx.data.Recipient == nil {
+	if tx.data.TxType == Contract && tx.data.Recipient == nil {
 		flag = true
 	}
 	return flag
@@ -346,7 +346,7 @@ func (tx *Transaction) AsMessage(s Signer) (Message, error) {
 		amount:        tx.data.Amount,
 		data:          tx.data.Payload,
 		checkNonce:    true,
-		types:         tx.data.Types,
+		types:         tx.data.TxType,
 		hash:          tx.Hash(),
 		resourcePayer: tx.ResourcePayer(),
 	}
