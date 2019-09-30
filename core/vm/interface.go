@@ -39,6 +39,7 @@ type StateDB interface {
 	GetDate(addr common.Address) *big.Int
 	GetUnStakingHeight(addr common.Address) *big.Int
 	GetTotalStaking(addr common.Address) *big.Int
+	GetTotalStakingYear(addr common.Address) *big.Int
 	GetUnStaking(addr common.Address) *big.Int
 	MortgageNet(addr common.Address, amount *big.Int, duration *big.Int, sTime big.Int, hash common.Hash) *big.Int
 	ResetNet(addr common.Address, update *big.Int) *big.Int

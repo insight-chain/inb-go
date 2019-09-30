@@ -851,6 +851,18 @@ func (self *stateObject) GetTotalStaking() *big.Int {
 	return total
 }
 
+func (self *stateObject) GetTotalStakingYear() *big.Int {
+	total := big.NewInt(0)
+	if nil != self.data.Stakings && len(self.data.Stakings) > 0 {
+		for _,staking := range self.data.Stakings {
+			if staking.LockHeights.Cmp(params.HeightOf360Days) >= 0{
+				total.Add(total, staking.Value)
+			}
+		}
+	}
+	return total
+}
+
 func (self *stateObject) Date() *big.Int {
 	return self.data.Res.Height
 }

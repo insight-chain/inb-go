@@ -288,6 +288,14 @@ func (self *StateDB) GetTotalStaking(addr common.Address) *big.Int {
 	return common.Big0
 }
 
+func (self *StateDB) GetTotalStakingYear(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.GetTotalStakingYear()
+	}
+	return common.Big0
+}
+
 func (self *StateDB) GetUnStaking(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
