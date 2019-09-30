@@ -806,7 +806,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		}
 	}
 	type SpecialConsensusInfo struct {
-		SpecialType string
+		SpecialType uint
 		Address     common.Address
 		toAddress   common.Address
 		num         int
@@ -821,8 +821,8 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		totalConsensus.num = 1
 		specialConsensu[v.Address] = totalConsensus
 
-		if v.SpecialType == "MiningReward" || v.SpecialType == "OnlineMarketing" {
-			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: "special"}
+		if v.SpecialType == 131 || v.SpecialType == 171 {
+			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: 2}
 		}
 	}
 	specialConsensu[common.HexToAddress(common.MortgageAccount)] = &SpecialConsensusInfo{num: 1}
@@ -830,7 +830,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	for _, v := range txs {
 
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
-			if specialConsensu[*v.To()].SpecialType != "special" && specialConsensu[*v.data.Recipient].SpecialType != "special" {
+			if specialConsensu[*v.To()].SpecialType != 2 && specialConsensu[*v.data.Recipient].SpecialType != 2 {
 				return errors.New("can not transfer recipient special consensus address")
 			}
 
@@ -838,12 +838,12 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		info := specialConsensu[common.BytesToAddress(v.Data())]
 		if info != nil {
 			switch info.SpecialType {
-			case "Foundation":
+			case 110:
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(foundationReward) != 0 {
 					return errors.New("Foundation special tx is not allowed")
 				}
 				info.num++
-			case "MiningReward":
+			case 131:
 
 				address, err := getReceiveAddress(header)
 				if err == nil {
@@ -858,24 +858,24 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				}
 
 				info.num++
-			case "VerifyReward":
+			case 133:
 				return errors.New("VerifyReward special tx is not allowed")
-			case "VotingReward":
+			case 135:
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
 					return errors.New("VotingReward special tx is not allowed")
 				}
 				info.num++
-			case "Team":
+			case 150:
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(teamReward) != 0 {
 					return errors.New("team special tx is not allowed")
 				}
 				info.num++
-			case "OnlineMarketing":
+			case 171:
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
 					return errors.New("OnlineMarketing special tx is not allowed")
 				}
 				info.num++
-			case "OfflineMarketing":
+			case 173:
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(offlineReward) != 0 {
 					return errors.New("OfflineMarketing special tx is not allowed")
 				}

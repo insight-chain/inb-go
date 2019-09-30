@@ -65,7 +65,7 @@ var (
 	defaultDifficulty                = big.NewInt(1)                                                  // default difficulty
 	defaultLoopCntRecalculateSigners = uint64(1024)                                                   // default stake of selfVoteSigners in first LOOP
 	selfVoteSignersStake             = new(big.Int).Mul(big.NewInt(500000), big.NewInt(params.Inber)) // default stake of selfVoteSigners in first LOOP
-	DefaultMinerReward               = big.NewInt(63419)                                              // default min mortgage INB of candidates
+	DefaultMinerReward               = big.NewInt(12683)                                              // default min mortgage INB of candidates
 	BeVotedNeedINB                   = new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))  // default min mortgage INB of candidates
 
 )

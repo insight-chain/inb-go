@@ -101,7 +101,7 @@ type SpecialNumber struct {
 }
 
 type SpecialConsensusAddress struct {
-	SpecialType string         `json:"specialType"`
+	SpecialType uint           `json:"specialType"`
 	Address     common.Address `json:"address"`
 	ToAddress   common.Address `json:"toAddress"`
 }

@@ -52,13 +52,13 @@ var (
 //Resource by zc
 const (
 	MasterAccount    string = "0x9510000000000000000000000000000000000000" // account record value of circulation
-	Foundation       string = "Foundation"                                 // account record value of Foundation
-	MiningReward     string = "MiningReward"                               // account record value of Mining
-	VerifyReward     string = "VerifyReward"                               // account record value of Verify
-	VotingReward     string = "VotingReward"                               // account record value of Voting
-	Team             string = "Team"                                       // account record value of team
-	OnlineMarketing  string = "OnlineMarketing"                            // account record value of OnlineMarketing
-	OfflineMarketing string = "OfflineMarketing"                           // account record value of OfflineMarketing
+	Foundation       uint   = 110                                          // account record value of Foundation
+	MiningReward     uint   = 131                                          // account record value of Mining
+	VerifyReward     uint   = 133                                          // account record value of Verify
+	VotingReward     uint   = 135                                          // account record value of Voting
+	Team             uint   = 150                                          // account record value of team
+	OnlineMarketing  uint   = 171                                          // account record value of OnlineMarketing
+	OfflineMarketing uint   = 173                                          // account record value of OfflineMarketing
 )
 
 //Resource by zc

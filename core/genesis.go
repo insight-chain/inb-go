@@ -294,10 +294,9 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		//inb by ghy end
 		encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
 		if err != nil {
-
+			log.Trace("EncodeToBytes", err)
 		}
 		head.SpecialConsensus = encodeSpecialConsensusToBytes
-
 		//encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
 		//if err != nil {
 		//
