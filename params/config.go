@@ -171,6 +171,7 @@ var (
 		Days:             [8]*big.Int{HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
 		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
+		MinStaking: big.NewInt(100000),
 	}
 )
 
@@ -236,6 +237,7 @@ type CommonConfig struct {
 	RegularLimit   int      // max value for regular mortgaging
 	Days           [8]*big.Int
 	RedeemDuration *big.Int //duration of redeeming
+	MinStaking *big.Int
 }
 
 // String implements the stringer interface, returning the consensus engine details.

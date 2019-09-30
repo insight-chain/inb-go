@@ -599,6 +599,12 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
+	if tx.WhichTypes(types.Mortgage) || tx.WhichTypes(types.Regular) || tx.WhichTypes(types.InsteadMortgage) || tx.WhichTypes(types.Redeem){
+		if params.TxConfig.MinStaking.Cmp(tx.Value()) > 0 {
+			return errors.New(" minimum value more than 100,000 ")
+		}
+	}
+
 	to := tx.To()
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {

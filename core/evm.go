@@ -177,6 +177,9 @@ func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {
 }
 
 func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *big.Int) error {
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
 			return errors.New(" exceeds mortgagtion count limit ")
@@ -197,6 +200,9 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *
 }
 
 func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int, duration *big.Int) error {
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(to); count >= params.TxConfig.RegularLimit {
 			return errors.New(" exceeds mortgagtion count limit ")
@@ -217,6 +223,9 @@ func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int,
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
 	mortgaging := db.GetStakingValue(addr)
 	totalStaking := db.GetTotalStaking(addr)
 	value := db.GetUnStaking(addr)

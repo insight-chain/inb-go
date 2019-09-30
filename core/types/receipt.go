@@ -56,7 +56,7 @@ type Receipt struct {
 	TxHash          common.Hash    `json:"transactionHash" gencodec:"required"`
 	ContractAddress common.Address `json:"contractAddress"`
 
-	Value *big.Int `json:"incomeClaimed" gencodec:"required"`
+	Value *big.Int `json:"value" gencodec:"required"`
 	ResUsed       uint64   `json:"resUsed" gencodec:"required"`
 }
 
