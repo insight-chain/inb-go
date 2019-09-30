@@ -136,9 +136,9 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		onlineAddress := common.Address{}
 		//log := &types.Log{}
 		for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-			if v.Name == state.VotingReward {
+			if v.SpecialType == state.VotingReward {
 				votingAddress = v.ToAddress
-			} else if v.Name == state.OnlineMarketing {
+			} else if v.SpecialType == state.OnlineMarketing {
 				onlineAddress = v.ToAddress
 			}
 		}

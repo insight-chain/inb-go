@@ -51,7 +51,7 @@ const (
 	ReceiveVoteAward             //9
 	UpdateNodeInformation        //10
 
-	SpecilaTx          //11
+	SpecialTx          //11
 	Contract           //12
 	IssueLightToken    //13
 	TransferLightToken //14
@@ -62,7 +62,7 @@ const (
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecilaTx && txType != Contract &&
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecialTx && txType != Contract &&
 		txType != IssueLightToken && txType != TransferLightToken && txType != InsteadMortgage {
 		flag = false
 	}
@@ -275,7 +275,7 @@ func (tx *Transaction) isContract() bool {
 
 func (tx *Transaction) NoNeedUseNet() bool {
 	flag := false
-	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecilaTx) || tx.WhichTypes(Redeem) || tx.WhichTypes(InsteadMortgage)) {
+	if !(tx.WhichTypes(Mortgage) || tx.WhichTypes(Reset) || tx.WhichTypes(Regular) || tx.WhichTypes(Receive) || tx.WhichTypes(SpecialTx) || tx.WhichTypes(Redeem) || tx.WhichTypes(InsteadMortgage)) {
 		flag = true
 	}
 	return flag
@@ -806,23 +806,23 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		}
 	}
 	type SpecialConsensusInfo struct {
-		Name         string
-		totalAddress common.Address
-		toAddress    common.Address
-		num          int
+		SpecialType string
+		Address     common.Address
+		toAddress   common.Address
+		num         int
 	}
 	specialConsensu := make(map[common.Address]*SpecialConsensusInfo)
 
 	for _, v := range SpecialConsensusAddress {
 		totalConsensus := new(SpecialConsensusInfo)
-		totalConsensus.Name = v.Name
+		totalConsensus.SpecialType = v.SpecialType
 		totalConsensus.toAddress = v.ToAddress
-		totalConsensus.totalAddress = v.TotalAddress
+		totalConsensus.Address = v.Address
 		totalConsensus.num = 1
-		specialConsensu[v.TotalAddress] = totalConsensus
+		specialConsensu[v.Address] = totalConsensus
 
-		if v.Name == "MiningReward" || v.Name == "OnlineMarketing" {
-			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{Name: "special"}
+		if v.SpecialType == "MiningReward" || v.SpecialType == "OnlineMarketing" {
+			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: "special"}
 		}
 	}
 	specialConsensu[common.HexToAddress(common.MortgageAccount)] = &SpecialConsensusInfo{num: 1}
@@ -830,14 +830,14 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	for _, v := range txs {
 
 		if (v.To() != nil || v.data.Recipient != nil) && (specialConsensu[*v.To()] != nil || specialConsensu[*v.data.Recipient] != nil) {
-			if specialConsensu[*v.To()].Name != "special" && specialConsensu[*v.data.Recipient].Name != "special" {
+			if specialConsensu[*v.To()].SpecialType != "special" && specialConsensu[*v.data.Recipient].SpecialType != "special" {
 				return errors.New("can not transfer recipient special consensus address")
 			}
 
 		}
 		info := specialConsensu[common.BytesToAddress(v.Data())]
 		if info != nil {
-			switch info.Name {
+			switch info.SpecialType {
 			case "Foundation":
 				if *v.data.Recipient != info.toAddress || v.Value().Cmp(foundationReward) != 0 {
 					return errors.New("Foundation special tx is not allowed")
@@ -904,8 +904,8 @@ func getReceiveAddress(header *Header) (common.Address, error) {
 	err := rlp.DecodeBytes(b, val)
 	if err == nil {
 		for _, v := range val.Enodes {
-			if v.Address == header.Coinbase && v.ReceiveAccount != "" {
-				address := common.HexToAddress(v.ReceiveAccount)
+			if v.Address == header.Coinbase && v.RewardAccount != "" {
+				address := common.HexToAddress(v.RewardAccount)
 				return address, nil
 			}
 		}

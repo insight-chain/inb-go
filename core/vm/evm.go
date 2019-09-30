@@ -324,7 +324,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 	// add by ssh 190925 begin
 	// check up if the tx need 'to' address
 	flag := true
-	if txType != types.Ordinary && txType != types.SpecilaTx && txType != types.TransferLightToken && txType != types.InsteadMortgage {
+	if txType != types.Ordinary && txType != types.SpecialTx && txType != types.TransferLightToken && txType != types.InsteadMortgage {
 		flag = false
 	}
 	//if !evm.StateDB.Exist(addr) {
@@ -366,7 +366,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, n
 		nets = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.IssueLightToken {
 		for _, v := range evm.SpecialConsensus.SpecialConsensusAddress {
-			if v.Name == state.OnlineMarketing {
+			if v.SpecialType == state.OnlineMarketing {
 				evm.Transfer(evm.StateDB, caller.Address(), v.ToAddress, value)
 				break
 			}

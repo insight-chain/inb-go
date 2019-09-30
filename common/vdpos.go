@@ -65,11 +65,11 @@ var (
 // Sender of tx is Signer or Candidate
 
 type SuperNode struct {
-	Address        Address `json:"address"`
-	ReceiveAccount string  `json:"receiveAccount"`
-	Id             string  `json:"id"`
-	Ip             string  `json:"ip"`
-	Port           string  `json:"port"`
+	Address       Address `json:"address"`
+	RewardAccount string  `json:"rewardAccount"`
+	Id            string  `json:"id"`
+	Ip            string  `json:"ip"`
+	Port          string  `json:"port"`
 	//inb by ghy begin
 	//Name    string `json:"name"`
 	//Nation  string `json:"nation"`
@@ -83,19 +83,19 @@ type SuperNode struct {
 }
 
 func (node *SuperNode) GetReceiveAccount() Address {
-	return HexToAddress(node.ReceiveAccount)
+	return HexToAddress(node.RewardAccount)
 }
 
 type SuperNodeExtra struct {
 	SuperNode
 	//inb by ghy begin
-	Name    string `json:"name"`
-	Nation  string `json:"nation"`
-	City    string `json:"city"`
-	Image   string `json:"image"`
-	Website string `json:"website"`
-	Email   string `json:"email"`
-	Data    string `json:"data"`
+	Name      string `json:"name"`
+	Nation    string `json:"nation"`
+	City      string `json:"city"`
+	Image     string `json:"image"`
+	Website   string `json:"website"`
+	Email     string `json:"email"`
+	ExtraData string `json:"extraData"`
 
 	//inb by ghy end
 }

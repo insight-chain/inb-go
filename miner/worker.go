@@ -1050,15 +1050,15 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	vdpos.DefaultMinerReward = minerReward
 	header.Reward = minerReward.String()
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-		switch v.Name {
+		switch v.SpecialType {
 		case state.Foundation:
-			from := v.TotalAddress
+			from := v.Address
 			to := v.ToAddress
 			value := foundationReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		case state.MiningReward:
-			from := v.TotalAddress
+			from := v.Address
 			to := header.Coinbase
 
 			b := header.Extra[32 : len(header.Extra)-65]
@@ -1067,8 +1067,8 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			err := rlp.DecodeBytes(b, val)
 			if err == nil {
 				for _, v := range val.Enodes {
-					if v.Address == header.Coinbase && v.ReceiveAccount != "" {
-						address := common.HexToAddress(v.ReceiveAccount)
+					if v.Address == header.Coinbase && v.RewardAccount != "" {
+						address := common.HexToAddress(v.RewardAccount)
 						to = address
 					}
 				}
@@ -1080,7 +1080,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 		case state.VotingReward:
 			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
-				from := v.TotalAddress
+				from := v.Address
 				to := v.ToAddress
 				value := votingReward
 				//value := big.NewInt(int64(minerReward))
@@ -1089,21 +1089,21 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			}
 
 		case state.Team:
-			from := v.TotalAddress
+			from := v.Address
 			to := v.ToAddress
 			value := teamReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		case state.OnlineMarketing:
 			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
-				from := v.TotalAddress
+				from := v.Address
 				to := v.ToAddress
 				value := onlineReward
 				newTx := w.CreateTx(from, to, value)
 				localTxs[from] = append(localTxs[from], newTx)
 			}
 		case state.OfflineMarketing:
-			from := v.TotalAddress
+			from := v.Address
 			to := v.ToAddress
 			//value := new(big.Int).Div(offlineReward, big.NewInt(2))
 			value := offlineReward
@@ -1132,7 +1132,7 @@ func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transa
 		From:  from,
 		To:    to,
 		Value: new(big.Int),
-		Types: types.SpecilaTx,
+		Types: types.SpecialTx,
 		Nonce: 0,
 	}
 	if args.Gas == nil {

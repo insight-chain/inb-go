@@ -492,7 +492,7 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 			enode.Id = v.Id
 			enode.Ip = v.Ip
 			enode.Port = v.Port
-			enode.ReceiveAccount = v.ReceiveAccount
+			enode.RewardAccount = v.RewardAccount
 
 			headerExtra.Enodes = append(headerExtra.Enodes, *enode)
 

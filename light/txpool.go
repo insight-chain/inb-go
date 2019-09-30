@@ -403,7 +403,7 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	//}
 
 	for _, v := range pool.chain.CurrentHeader().GetSpecialConsensus().SpecialConsensusAddress {
-		if v.TotalAddress == *to || v.TotalAddress == from {
+		if v.Address == *to || v.Address == from {
 			return errors.New("can not transfer to special consensus address")
 		}
 	}
@@ -867,7 +867,7 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 			} else {
 				consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
 				for _, v := range consensus.SpecialConsensusAddress {
-					if v.Name == state.OnlineMarketing {
+					if v.SpecialType == state.OnlineMarketing {
 						ToAddressInfo := currentState.GetAccountInfo(v.ToAddress)
 						if ToAddressInfo.Balance.Cmp(subValue) != 1 {
 							return errors.New("there are not enough inb in the voting account")
@@ -904,7 +904,7 @@ func (pool *TxPool) validateReceiveVoteAward(ctx context.Context, from common.Ad
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
 		consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.Name == state.VotingReward {
+			if v.SpecialType == state.VotingReward {
 				votes := account.Voted
 				votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
 				votes2 := new(big.Int).Div(votes1, common.VoteHundred)

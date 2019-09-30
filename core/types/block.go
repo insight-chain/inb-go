@@ -101,9 +101,9 @@ type SpecialNumber struct {
 }
 
 type SpecialConsensusAddress struct {
-	Name         string         `json:"name"`
-	TotalAddress common.Address `json:"totalAddress"`
-	ToAddress    common.Address `json:"toAddress"`
+	SpecialType string         `json:"specialType"`
+	Address     common.Address `json:"address"`
+	ToAddress   common.Address `json:"toAddress"`
 }
 
 // field type overrides for gencodec

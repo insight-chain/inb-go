@@ -200,8 +200,8 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txData
 		enodeInfo.Address = declarer
 
 		if len(midEnodeInfo) >= 4 {
-			enodeInfo.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
-			enodeInfoTrie.ReceiveAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
+			enodeInfo.RewardAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
+			enodeInfoTrie.RewardAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
 		}
 		//inb by ghy begin
 		if len(midEnodeInfo) >= 5 {
@@ -235,7 +235,7 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txData
 			data = strings.TrimRight(data, ",")
 		}
 		data += `}`
-		enodeInfoTrie.Data = data
+		enodeInfoTrie.ExtraData = data
 		//vdposContext, err := types.NewVdposContext(v.db)
 
 		//2019.9.4 mod by ghy

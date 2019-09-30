@@ -408,7 +408,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			enode.Port = v.Port
 			enode.Ip = v.Ip
 			enode.Id = v.Id
-			enode.ReceiveAccount = v.ReceiveAccount
+			enode.RewardAccount = v.RewardAccount
 			currentHeaderExtra.Enodes = append(currentHeaderExtra.Enodes, *enode)
 		}
 		//currentHeaderExtra.Enodes = v.config.Enodes
@@ -764,25 +764,25 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //	//for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
 //	//	switch SpecialConsensusAddress.Name {
 //	//	case state.Foundation:
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.MiningReward:
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(header.Coinbase, reward)
 //	//	case state.VerifyReward:
 //	//
 //	//	case state.VotingReward:
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.Team:
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.OnlineMarketing:
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, reward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.OfflineMarketing:
 //	//		halfReward := new(big.Int).Div(reward, big.NewInt(2))
-//	//		states.SubBalance(SpecialConsensusAddress.TotalAddress, halfReward)
+//	//		states.SubBalance(SpecialConsensusAddress.Address, halfReward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, halfReward)
 //	//	default:
 //	//

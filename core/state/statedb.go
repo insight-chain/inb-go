@@ -527,7 +527,7 @@ func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce common.Has
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.Name == OnlineMarketing {
+			if v.SpecialType == OnlineMarketing {
 				err, value, is = stateObject.CanReceiveLockedAward(nonce, height, consensus)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
@@ -553,7 +553,7 @@ func (self *StateDB) CanReceiveVoteAward(addr common.Address, height *big.Int, c
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.Name == VotingReward {
+			if v.SpecialType == VotingReward {
 				err, value = stateObject.CanReceiveVoteAward(height)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
