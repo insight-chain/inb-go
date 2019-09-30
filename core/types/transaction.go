@@ -92,7 +92,7 @@ type txdata struct {
 	S *big.Int `json:"s" gencodec:"required"`
 
 	// This is only used when marshaling to JSON.
-	Hash  *common.Hash `json:"hash" rlp:"-"`
+	Hash   *common.Hash `json:"hash" rlp:"-"`
 	TxType TxType       `json:"txType" gencodec:"required"`
 
 	ExtraSignature *ExtraSignature `json:"extraSignature" rlp:"nil"`
@@ -117,7 +117,7 @@ type txdataMarshaling struct {
 	V         *hexutil.Big
 	R         *hexutil.Big
 	S         *hexutil.Big
-	TxType     hexutil.Uint64
+	TxType    hexutil.Uint64
 	Repayment *ExtraSignature
 }
 
@@ -157,10 +157,10 @@ func newTransaction(nonce uint64, to *common.Address, amount *big.Int, res uint6
 		Amount:       new(big.Int),
 		//Net:     gasLimit,
 		//Price:        new(big.Int),
-		V:         new(big.Int),
-		R:         new(big.Int),
-		S:         new(big.Int),
-		TxType:     txType,
+		V:              new(big.Int),
+		R:              new(big.Int),
+		S:              new(big.Int),
+		TxType:         txType,
 		ExtraSignature: rePayment,
 	}
 	if amount != nil {
@@ -821,7 +821,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 		totalConsensus.num = 1
 		specialConsensu[v.Address] = totalConsensus
 
-		if v.SpecialType == 131 || v.SpecialType == 171 {
+		if v.SpecialType == 135 || v.SpecialType == 171 {
 			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: 2}
 		}
 	}
