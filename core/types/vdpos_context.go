@@ -43,17 +43,17 @@ type VdposContext struct {
 }
 
 type Tally struct {
-	Address  common.Address
-	Stake    *big.Int
-	Mortgage *big.Int
-	Regular  *big.Int
-	NodeInfo common.SuperNodeExtra //2019.9.4 inb by ghy
+	Address                 common.Address
+	VotesValue              *big.Int
+	StakingValue            *big.Int
+	TimeLimitedStakingValue *big.Int
+	NodeInfo                common.SuperNodeExtra //2019.9.4 inb by ghy
 }
 
 type Votes struct {
-	Voter     common.Address
-	Candidate []common.Address
-	Stake     *big.Int
+	Voter        common.Address
+	Candidate    []common.Address
+	StakingValue *big.Int
 }
 
 type LightTokenChangeType uint8
@@ -64,16 +64,16 @@ const (
 )
 
 type LightToken struct {
-	Address             common.Address
-	Name                string
-	Symbol              string
-	Decimals            uint8
-	TotalSupply         *big.Int
-	IssueAccountAddress common.Address
-	IssueTxHash         common.Hash
-	Owner               common.Address
-	PayForInb           *big.Int
-	Type                uint8
+	Address              common.Address
+	Name                 string
+	Symbol               string
+	Decimals             uint8
+	TotalSupply          *big.Int
+	IssuedAccountAddress common.Address
+	IssuedTxHash         common.Hash
+	Owner                common.Address
+	PayForInb            *big.Int
+	Type                 uint8
 }
 
 type ApproveInfo struct {
@@ -108,8 +108,8 @@ type LightTokenChanges struct {
 }
 
 var (
-	votePrefix              = []byte("vote-")
-	tallyPrefix             = []byte("tally-")
+	votePrefix              = []byte("vt-")
+	tallyPrefix             = []byte("ty-")
 	lightTokenPrefix        = []byte("lt-")
 	lightTokenAccountPrefix = []byte("lta-")
 )
@@ -329,8 +329,8 @@ func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetSta
 		if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 			return fmt.Errorf("failed to decode tally: %s", err)
 		}
-		tally.Mortgage = state.GetMortgage(addr)
-		tally.Regular = state.GetRegular(addr)
+		tally.StakingValue = state.GetMortgage(addr)
+		tally.TimeLimitedStakingValue = state.GetRegular(addr)
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
 		if err != nil {
 			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -365,10 +365,10 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 					return fmt.Errorf("failed to decode tally: %s", err)
 				}
-				if tally.Stake.Cmp(vote.Stake) == -1 {
-					tally.Stake = big.NewInt(0)
+				if tally.VotesValue.Cmp(vote.StakingValue) == -1 {
+					tally.VotesValue = big.NewInt(0)
 				} else {
-					tally.Stake = tally.Stake.Sub(tally.Stake, vote.Stake)
+					tally.VotesValue = tally.VotesValue.Sub(tally.VotesValue, vote.StakingValue)
 				}
 				newTallyRLP, err := rlp.EncodeToBytes(tally)
 				if err != nil {
@@ -385,23 +385,23 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 			if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 				return fmt.Errorf("failed to decode tally: %s", err)
 			}
-			tally.Stake = tally.Stake.Add(tally.Stake, vote.Stake)
+			tally.VotesValue = tally.VotesValue.Add(tally.VotesValue, vote.StakingValue)
 		} else {
-			mortgage := new(big.Int)
-			regular := new(big.Int)
+			stakingValue := new(big.Int)
+			timeLimitedStakingValue := new(big.Int)
 			if state == nil {
-				mortgage.SetUint64(0)
-				regular.SetUint64(0)
+				stakingValue.SetUint64(0)
+				timeLimitedStakingValue.SetUint64(0)
 			} else {
-				mortgage.Set(state.GetMortgage(candidate))
-				regular.Set(state.GetRegular(candidate))
+				stakingValue.Set(state.GetMortgage(candidate))
+				timeLimitedStakingValue.Set(state.GetRegular(candidate))
 			}
 
 			tally = &Tally{
-				Address:  candidate,
-				Stake:    vote.Stake,
-				Mortgage: mortgage,
-				Regular:  regular,
+				Address:                 candidate,
+				VotesValue:              vote.StakingValue,
+				StakingValue:            stakingValue,
+				TimeLimitedStakingValue: timeLimitedStakingValue,
 			}
 		}
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
@@ -442,14 +442,14 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.SuperNodeExtra) e
 
 //2019.9.4 inb by ghy end
 
-func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
+func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stakingValue *big.Int) error {
 	voteRLP := vc.voteTrie.Get(voter[:])
 	if voteRLP != nil {
 		oldVote := new(Votes)
 		if err := rlp.DecodeBytes(voteRLP, oldVote); err != nil {
 			return fmt.Errorf("failed to decode votes: %s", err)
 		}
-		if oldVote.Stake.Cmp(stake) == 0 {
+		if oldVote.StakingValue.Cmp(stakingValue) == 0 {
 			log.Debug("Just do nothing because the stake remains unchanged")
 			return nil
 		}
@@ -460,12 +460,12 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 					return fmt.Errorf("failed to decode tally: %s", err)
 				}
-				if tally.Stake.Cmp(oldVote.Stake) == -1 {
-					tally.Stake = big.NewInt(0)
+				if tally.VotesValue.Cmp(oldVote.StakingValue) == -1 {
+					tally.VotesValue = big.NewInt(0)
 				} else {
-					tally.Stake = tally.Stake.Sub(tally.Stake, oldVote.Stake)
+					tally.VotesValue = tally.VotesValue.Sub(tally.VotesValue, oldVote.StakingValue)
 				}
-				tally.Stake = tally.Stake.Add(tally.Stake, stake)
+				tally.VotesValue = tally.VotesValue.Add(tally.VotesValue, stakingValue)
 				newTallyRLP, err := rlp.EncodeToBytes(tally)
 				if err != nil {
 					return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -474,9 +474,9 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 			}
 		}
 		newVote := &Votes{
-			Voter:     voter,
-			Candidate: oldVote.Candidate,
-			Stake:     stake,
+			Voter:        voter,
+			Candidate:    oldVote.Candidate,
+			StakingValue: stakingValue,
 		}
 		err := vc.UpdateVotes(newVote)
 		if err != nil {
