@@ -631,7 +631,7 @@ func (s *PublicBlockChainAPI) GetUsedRes(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetUsedNet(address)), state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetMortgage(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetStaking(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err

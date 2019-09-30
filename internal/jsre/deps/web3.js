@@ -5256,9 +5256,9 @@ var methods = function () {
     outputFormatter: formatters.outputBigNumberFormatter
   });
 //inb by ghy end
-    var getMortgage = new Method({
-      name: 'getMortgage',
-      call: 'inb_getMortgage',
+    var getStaking = new Method({
+      name: 'getStaking',
+      call: 'inb_getStaking',
       params: 2,
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
@@ -5434,7 +5434,7 @@ var methods = function () {
         //inb by ghy begin
         getUsedRes,
       //inb by ghy end
-        getMortgage,
+      getStaking,
         //Resource by zc
         getBalance,
         getStorageAt,
