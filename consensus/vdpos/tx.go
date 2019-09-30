@@ -152,13 +152,13 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
 	v.lock.RLock()
-	stake := state.GetMortgage(voter)
+	stakingValue := state.GetMortgage(voter)
 	v.lock.RUnlock()
 
 	vote := &types.Votes{
-		Voter:     voter,
-		Candidate: candidates,
-		Stake:     stake,
+		Voter:        voter,
+		Candidate:    candidates,
+		StakingValue: stakingValue,
 	}
 
 	err := vdposContext.UpdateTallysByVotes(vote, state)
@@ -341,16 +341,16 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 
 		// first update lightTokenTrie
 		lightToken := &types.LightToken{
-			Address:             lightTokenAddress,
-			Name:                name,
-			Symbol:              symbol,
-			Decimals:            decimals,
-			TotalSupply:         totalSupply,
-			IssueAccountAddress: txSender,
-			IssueTxHash:         txHash,
-			Owner:               txSender,
-			PayForInb:           tx.Value(),
-			Type:                1,
+			Address:              lightTokenAddress,
+			Name:                 name,
+			Symbol:               symbol,
+			Decimals:             decimals,
+			TotalSupply:          totalSupply,
+			IssuedAccountAddress: txSender,
+			IssuedTxHash:         txHash,
+			Owner:                txSender,
+			PayForInb:            tx.Value(),
+			Type:                 1,
 		}
 		//lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
 		//if lightTokenExist != nil {

@@ -392,10 +392,9 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
 				vote := &types.Votes{
-					Voter:     voter,
-					Candidate: candidates,
-					Stake:     selfVoteSignersStake,
-					//Stake: big.NewInt(1),
+					Voter:        voter,
+					Candidate:    candidates,
+					StakingValue: selfVoteSignersStake,
 				}
 				vdposContext.UpdateTallysByVotes(vote, state)
 				vdposContext.UpdateVotes(vote)

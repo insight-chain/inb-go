@@ -469,10 +469,9 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
 				vote := &types.Votes{
-					Voter:     voter,
-					Candidate: candidates,
-					//Stake:     state.GetMortgage(voter),
-					Stake: big.NewInt(1),
+					Voter:        voter,
+					Candidate:    candidates,
+					StakingValue: big.NewInt(1),
 				}
 				err = dc.UpdateTallysByVotes(vote, nil)
 				if err != nil {
