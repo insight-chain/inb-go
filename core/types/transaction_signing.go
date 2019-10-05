@@ -70,7 +70,7 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 // signing method. The cache is invalidated if the cached signer does
 // not match the signer used in the current call.
 func Sender(signer Signer, tx *Transaction) (common.Address, error) {
-	if tx.Types() == SpecialTx && tx.Data() != nil {
+	if tx.Types() == SpecialTx && tx.Data() != nil && common.BytesToAddress(tx.Data()[common.SpecialAddressPrefix:]) == common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000")) {
 		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
 	}
 
@@ -133,7 +133,7 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	if tx.Types() == SpecialTx && tx.Data() != nil && string(tx.Data()[common.SpecialAddressPrefix:]) == "000000000000000000000000000000" {
+	if tx.Types() == SpecialTx && tx.Data() != nil && common.BytesToAddress(tx.Data()[common.SpecialAddressPrefix:]) == common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000")) {
 		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
 	}
 
