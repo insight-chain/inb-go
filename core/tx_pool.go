@@ -630,7 +630,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	if tx.WhichTypes(types.UpdateNodeInformation) {
-		fmt.Println(len(inputStr))
 		if len(inputStr) > 600 {
 			return errors.New("date over size")
 		}
