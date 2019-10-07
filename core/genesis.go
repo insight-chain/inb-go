@@ -251,24 +251,26 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	root := statedb.IntermediateRoot(false)
 
 	// add by ssh 190815 begin
-	vdposContext, headerExtra := initGenesisVdposContext(g, db)
+	vdposContext := initGenesisVdposContext(g, db)
 	vdposContextProto := vdposContext.ToProto()
 	head := &types.Header{
-		Number:           new(big.Int).SetUint64(g.Number),
-		Nonce:            types.EncodeNonce(g.Nonce),
-		Time:             new(big.Int).SetUint64(g.Timestamp),
-		ParentHash:       g.ParentHash,
-		Extra:            g.ExtraData,
-		ResLimit:         g.ResLimit,
-		ResUsed:          g.ResUsed,
-		Difficulty:       g.Difficulty,
-		MixDigest:        g.Mixhash,
-		Coinbase:         g.Coinbase,
-		Root:             root,
-		DataRoot:         [32]byte{},                        //inb by ssh 190627
-		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
-		SpecialConsensus: []byte{},                          //2019.7.23 inb by ghy
-		VdposContext:     vdposContextProto,                 //add by ssh 190805
+		Number:               new(big.Int).SetUint64(g.Number),
+		Nonce:                types.EncodeNonce(g.Nonce),
+		Time:                 new(big.Int).SetUint64(g.Timestamp),
+		ParentHash:           g.ParentHash,
+		Extra:                g.ExtraData,
+		ResLimit:             g.ResLimit,
+		ResUsed:              g.ResUsed,
+		Difficulty:           g.Difficulty,
+		MixDigest:            g.Mixhash,
+		Coinbase:             g.Coinbase,
+		Root:                 root,
+		DataRoot:             [32]byte{},                        //inb by ssh 190627
+		Reward:               vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
+		SpecialConsensus:     []byte{},                          //2019.7.23 inb by ghy
+		VdposContext:         vdposContextProto,                 //add by ssh 190805
+		LoopStartTime:        0,
+		ConfirmedBlockNumber: 0,
 	}
 
 	// inb by ssh 190724
@@ -282,13 +284,12 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
 
 		//headerExtra.Enodes = g.Config.Vdpos.Enodes
+		head.LoopStartTime = g.Config.Vdpos.GenesisTimestamp
 
 		if len(head.Extra) < 32 {
 			head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
 		}
 		head.Extra = head.Extra[:32]
-		extraByte, _ := rlp.EncodeToBytes(headerExtra)
-		head.Extra = append(head.Extra, extraByte...)
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
 
 		//inb by ghy end
@@ -455,16 +456,18 @@ func decodePrealloc(data string) GenesisAlloc {
 	return ga
 }
 
-func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext, *vdpos.HeaderExtra) {
+func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext {
 	dc, err := types.NewVdposContext(db)
 	if err != nil {
-		return nil, nil
+		return nil
 	}
-	headerExtra := new(vdpos.HeaderExtra)
+
 	if g.Config != nil && g.Config.Vdpos != nil && g.Config.Vdpos.SelfVoteSigners != nil {
 		alreadyVote := make(map[common.Address]struct{})
+		currentSigners := make([]common.Address, 0)
 		for _, unPrefixVoter := range g.Config.Vdpos.SelfVoteSigners {
 			voter := common.Address(unPrefixVoter)
+			currentSigners = append(currentSigners, voter)
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
 				vote := &types.Votes{
@@ -474,16 +477,22 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 				}
 				err = dc.UpdateTallysByVotes(vote, nil)
 				if err != nil {
-					return nil, nil
+					return nil
 				}
 				err = dc.UpdateVotes(vote)
 				if err != nil {
-					return nil, nil
+					return nil
 				}
 				alreadyVote[voter] = struct{}{}
 			}
 		}
+		err := dc.SetSignersToTrie(currentSigners)
+		if err != nil {
+			log.Error("Fail in vdposContext.SetSignersToTrie()", "err", err)
+			return nil
+		}
 		//2019.9.4 inb by ghy begin
+		currentEnodeInfos := make([]common.SuperNode, 0)
 		for _, v := range g.Config.Vdpos.Enodes {
 			enode := new(common.SuperNode)
 			enode.Address = v.Address
@@ -492,14 +501,17 @@ func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext
 			enode.Port = v.Port
 			enode.RewardAccount = v.RewardAccount
 
-			headerExtra.Enodes = append(headerExtra.Enodes, *enode)
-
-			//vdposContext, _ := types.NewVdposContext(db)
+			currentEnodeInfos = append(currentEnodeInfos, *enode)
 			dc.UpdateTallysByNodeInfo(v)
+		}
+		err = dc.SetSuperNodesToTrie(currentEnodeInfos)
+		if err != nil {
+			log.Error("Fail in vdposContext.SetSuperNodesToTrie()", "err", err)
+			return nil
 		}
 		//2019.9.4 inb by ghy end
 
 	}
 
-	return dc, headerExtra
+	return dc
 }

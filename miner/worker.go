@@ -36,7 +36,6 @@ import (
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
-	"github.com/insight-chain/inb-go/rlp"
 )
 
 const (
@@ -623,7 +622,7 @@ func (w *worker) resultLoop() {
 			// 2019.8.29 inb by ghy begin
 			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
 				parentBlock := w.chain.GetBlock(block.ParentHash(), block.NumberU64()-1)
-				if err := types.ValidateTx(block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
+				if err := types.ValidateTx(w.chain.GetDb(), block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
 					fmt.Println(err)
 					return
 				}
@@ -1061,12 +1060,22 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			from := v.Address
 			to := header.Coinbase
 
-			b := header.Extra[32 : len(header.Extra)-65]
-			headerExtra := vdpos.HeaderExtra{}
-			val := &headerExtra
-			err := rlp.DecodeBytes(b, val)
+			//b := header.Extra[32 : len(header.Extra)-65]
+			//headerExtra := vdpos.HeaderExtra{}
+			//val := &headerExtra
+			//err := rlp.DecodeBytes(b, val)
+			//if err == nil {
+			//	for _, v := range val.Enodes {
+			//		if v.Address == header.Coinbase && v.RewardAccount != "" {
+			//			address := common.HexToAddress(v.RewardAccount)
+			//			to = address
+			//		}
+			//	}
+			//}
+
+			superNodes, err := w.current.vdposContext.GetSuperNodesFromTrie()
 			if err == nil {
-				for _, v := range val.Enodes {
+				for _, v := range superNodes {
 					if v.Address == header.Coinbase && v.RewardAccount != "" {
 						address := common.HexToAddress(v.RewardAccount)
 						to = address
@@ -1207,14 +1216,18 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 // inturn returns if a signer is in-turn or not.
 func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.Header) bool {
 
-	parentExtra := vdpos.HeaderExtra{}
-	err := rlp.DecodeBytes(parent.Extra[32:len(parent.Extra)-65], &parentExtra)
+	//parentExtra := vdpos.HeaderExtra{}
+	//err := rlp.DecodeBytes(parent.Extra[32:len(parent.Extra)-65], &parentExtra)
+	//if err != nil {
+	//	log.Error("Fail to decode header", "err", err)
+	//	return false
+	//}
+	signers, err := w.current.vdposContext.GetSignersFromTrie()
 	if err != nil {
-		log.Error("Fail to decode header", "err", err)
 		return false
 	}
-	loopStartTime := parentExtra.LoopStartTime
-	signers := parentExtra.SignersPool
+	loopStartTime := parent.LoopStartTime
+	//signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
 		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true

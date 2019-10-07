@@ -193,18 +193,24 @@ func (s *SnapContext) random(arr TallySlice, seed int64) {
 
 // inturn returns if a signer at a given block height is in-turn or not.
 func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent *types.Header) bool {
-	if header.Number.Uint64() == 1 {
-		parent = header
-	}
-	parentExtra := HeaderExtra{}
-	err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentExtra)
+	//if header.Number.Uint64() == 1 {
+	//	parent = header
+	//}
+	//parentExtra := HeaderExtra{}
+	//err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentExtra)
+	//if err != nil {
+	//	log.Error("Fail to decode header", "err", err)
+	//	return false
+	//}
+	signers, err := s.VdposContext.GetSignersFromTrie()
 	if err != nil {
-		log.Error("Fail to decode header", "err", err)
 		return false
 	}
+
 	headerTime := header.Time.Uint64()
-	loopStartTime := parentExtra.LoopStartTime
-	signers := parentExtra.SignersPool
+	//loopStartTime := parentExtra.LoopStartTime
+	loopStartTime := parent.LoopStartTime
+	//signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
 		// handle config.Period != config.SignerPeriod
 		if loopIndex := ((headerTime - loopStartTime) / (s.config.Period*(s.config.SignerBlocks-1) + s.config.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {

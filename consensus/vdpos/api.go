@@ -55,18 +55,17 @@ func (api *API) GetCandidateNodesInfo() []*types.Tally {
 	var err error
 	header := api.chain.CurrentHeader()
 
-	b := header.Extra[32 : len(header.Extra)-65]
-	headerExtra := HeaderExtra{}
-	val := &headerExtra
-	err = rlp.DecodeBytes(b, val)
+	//b := header.Extra[32 : len(header.Extra)-65]
+	//headerExtra := HeaderExtra{}
+	//val := &headerExtra
+	//err = rlp.DecodeBytes(b, val)
 
-	//vdposContext, err := types.NewVdposContext(api.vdpos.db)
 	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
 
 	if err != nil {
 		return nil
 	}
-	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+
 	tallyTrie := vdposContext.TallyTrie()
 
 	tallyIterator := trie.NewIterator(tallyTrie.PrefixIterator(nil))
@@ -94,22 +93,26 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 	var err error
 	header := api.chain.CurrentHeader()
 
-	b := header.Extra[32 : len(header.Extra)-65]
-	headerExtra := HeaderExtra{}
-	val := &headerExtra
-	err = rlp.DecodeBytes(b, val)
+	//b := header.Extra[32 : len(header.Extra)-65]
+	//headerExtra := HeaderExtra{}
+	//val := &headerExtra
+	//err = rlp.DecodeBytes(b, val)
 
-	//vdposContext, err := types.NewVdposContext(api.vdpos.db)
 	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
-
 	if err != nil {
 		return nil
 	}
-	//err = vdposContext.UpdateTallysByNodeInfo(enodeInfoTrie)
+
 	tallyTrie := vdposContext.TallyTrie()
 
+	signersPool, err := vdposContext.GetSignersFromTrie()
+	if err != nil {
+		return nil
+	}
+
 	nodesInfo := []*types.Tally{}
-	for _, addr := range val.SignersPool {
+	//for _, addr := range val.SignersPool {
+	for _, addr := range signersPool {
 		tallyRLP := tallyTrie.Get(addr[:])
 		tally := new(types.Tally)
 		if tallyRLP != nil {
@@ -117,7 +120,6 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 				fmt.Println(err)
 				continue
 			}
-		} else {
 		}
 		nodesInfo = append(nodesInfo, tally)
 	}

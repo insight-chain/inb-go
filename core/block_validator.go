@@ -63,7 +63,7 @@ func (v *BlockValidator) ValidateBody(block *types.Block) error {
 		return fmt.Errorf("uncle root hash mismatch: have %x, want %x", hash, header.UncleHash)
 	}
 	// 2019.8.29 inb by ghy begin
-	if err := types.ValidateTx(block.Transactions(), header, parentBlock.Header(), v.config.Vdpos.Period); err != nil {
+	if err := types.ValidateTx(v.bc.GetDb(), block.Transactions(), header, parentBlock.Header(), v.config.Vdpos.Period); err != nil {
 		fmt.Println(err)
 		return err
 	}
