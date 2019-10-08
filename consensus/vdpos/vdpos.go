@@ -745,7 +745,10 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 	}
 
 	// all basic checks passed, verify the seal and return
-	return v.verifySeal(chain, header, parents)
+	// change by ssh 191008 begin
+	//return v.verifySeal(chain, header, parents)
+	return nil
+	// change by ssh 191008 end
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.

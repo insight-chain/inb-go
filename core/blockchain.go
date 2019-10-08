@@ -32,6 +32,7 @@ import (
 	"github.com/insight-chain/inb-go/common/mclock"
 	"github.com/insight-chain/inb-go/common/prque"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core/rawdb"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
@@ -1236,6 +1237,17 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 			return it.index, events, coalescedLogs, err
 		}
 		// add by ssh 190815 end
+
+		// add by ssh 191008 begin
+		vdposEngine, isVdpos := bc.engine.(*vdpos.Vdpos)
+		if isVdpos {
+			err = vdposEngine.VerifySeal(bc, block.Header())
+			if err != nil {
+				bc.reportBlock(block, receipts, err)
+				return it.index, events, coalescedLogs, err
+			}
+		}
+		// add by ssh 191009 end
 
 		t2 := time.Now()
 		proctime := time.Since(start)

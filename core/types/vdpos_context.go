@@ -464,7 +464,7 @@ func (vc *VdposContext) UpdateVotes(vote *Votes) error {
 	addr := vote.Voter
 	voteRLP, err := rlp.EncodeToBytes(vote)
 	if err != nil {
-		return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+		return fmt.Errorf("failed to encode votes to rlp bytes: %s", err)
 	}
 	vc.voteTrie.Update(addr[:], voteRLP)
 	return nil
