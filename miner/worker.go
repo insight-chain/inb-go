@@ -36,6 +36,7 @@ import (
 	"github.com/insight-chain/inb-go/event"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
+	"github.com/insight-chain/inb-go/rlp"
 )
 
 const (
@@ -1216,18 +1217,19 @@ func (w *worker) commit(uncles []*types.Header, interval func(), update bool, st
 // inturn returns if a signer is in-turn or not.
 func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.Header) bool {
 
-	//parentExtra := vdpos.HeaderExtra{}
-	//err := rlp.DecodeBytes(parent.Extra[32:len(parent.Extra)-65], &parentExtra)
-	//if err != nil {
-	//	log.Error("Fail to decode header", "err", err)
-	//	return false
-	//}
-	signers, err := w.current.vdposContext.GetSignersFromTrie()
+	parentExtra := vdpos.HeaderExtra{}
+	err := rlp.DecodeBytes(parent.Extra[32:len(parent.Extra)-65], &parentExtra)
 	if err != nil {
+		log.Error("Fail to decode header", "err", err)
 		return false
 	}
-	loopStartTime := parent.LoopStartTime
-	//signers := parentExtra.SignersPool
+	loopStartTime := parentExtra.LoopStartTime
+	signers := parentExtra.SignersPool
+	//signers, err := w.current.vdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+	//loopStartTime := parent.LoopStartTime
 	if signersCount := len(signers); signersCount > 0 {
 		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true

@@ -68,27 +68,25 @@ func (n *BlockNonce) UnmarshalText(input []byte) error {
 
 // Header represents a block header in the Ethereum blockchain.
 type Header struct {
-	ParentHash           common.Hash        `json:"parentHash"       gencodec:"required"`
-	UncleHash            common.Hash        `json:"sha3Uncles"       gencodec:"required"`
-	Coinbase             common.Address     `json:"miner"            gencodec:"required"`
-	Root                 common.Hash        `json:"stateRoot"        gencodec:"required"`
-	TxHash               common.Hash        `json:"transactionsRoot" gencodec:"required"`
-	ReceiptHash          common.Hash        `json:"receiptsRoot"     gencodec:"required"`
-	Bloom                Bloom              `json:"logsBloom"        gencodec:"required"`
-	Difficulty           *big.Int           `json:"difficulty"       gencodec:"required"`
-	Number               *big.Int           `json:"number"           gencodec:"required"`
-	ResLimit             uint64             `json:"resLimit"         gencodec:"required"`
-	ResUsed              uint64             `json:"resUsed"          gencodec:"required"`
-	Time                 *big.Int           `json:"timestamp"        gencodec:"required"`
-	Extra                []byte             `json:"extraData"        gencodec:"required"`
-	MixDigest            common.Hash        `json:"mixHash"`
-	Nonce                BlockNonce         `json:"nonce"`
-	DataRoot             common.Hash        `json:"dataRoot"`                              //inb by ssh 190627
-	Reward               string             `json:"reward"           gencodec:"required"`  //2019.6.28 inb by ghy
-	SpecialConsensus     []byte             `json:"specialConsensus"  gencodec:"required"` //2019.7.23 inb by ghy
-	VdposContext         *VdposContextProto `json:"vdposContext"     gencodec:"required"`  //inb by ssh 190814
-	LoopStartTime        uint64             `json:"loopStartTime"`
-	ConfirmedBlockNumber uint64             `json:"confirmedBlockNumber"`
+	ParentHash       common.Hash        `json:"parentHash"       gencodec:"required"`
+	UncleHash        common.Hash        `json:"sha3Uncles"       gencodec:"required"`
+	Coinbase         common.Address     `json:"miner"            gencodec:"required"`
+	Root             common.Hash        `json:"stateRoot"        gencodec:"required"`
+	TxHash           common.Hash        `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash      common.Hash        `json:"receiptsRoot"     gencodec:"required"`
+	Bloom            Bloom              `json:"logsBloom"        gencodec:"required"`
+	Difficulty       *big.Int           `json:"difficulty"       gencodec:"required"`
+	Number           *big.Int           `json:"number"           gencodec:"required"`
+	ResLimit         uint64             `json:"resLimit"         gencodec:"required"`
+	ResUsed          uint64             `json:"resUsed"          gencodec:"required"`
+	Time             *big.Int           `json:"timestamp"        gencodec:"required"`
+	Extra            []byte             `json:"extraData"        gencodec:"required"`
+	MixDigest        common.Hash        `json:"mixHash"`
+	Nonce            BlockNonce         `json:"nonce"`
+	DataRoot         common.Hash        `json:"dataRoot"`                              //inb by ssh 190627
+	Reward           string             `json:"reward"           gencodec:"required"`  //2019.6.28 inb by ghy
+	SpecialConsensus []byte             `json:"specialConsensus"  gencodec:"required"` //2019.7.23 inb by ghy
+	VdposContext     *VdposContextProto `json:"vdposContext"     gencodec:"required"`  //inb by ssh 190814
 }
 
 type SpecialConsensus struct {

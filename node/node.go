@@ -257,10 +257,10 @@ func ConnectAllSuperNodes(n *Node) {
 		}
 
 		for {
-			LastSuperNodeEncodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLastBlockEnode()
-
-			signersPool, _ := LastSuperNodeEncodes.GetSignersFromTrie()
-			superNodes, _ := LastSuperNodeEncodes.GetSuperNodesFromTrie()
+			//LastSuperNodeEncodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLastBlockEnode()
+			signersPool, superNodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLastBlockEnode()
+			//signersPool, _ := LastSuperNodeEncodes.GetSignersFromTrie()
+			//superNodes, _ := LastSuperNodeEncodes.GetSuperNodesFromTrie()
 			if len(signersPool) > 0 {
 				for _, signer := range signersPool {
 					if len(superNodes) > 0 {

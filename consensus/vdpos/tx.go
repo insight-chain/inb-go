@@ -29,6 +29,7 @@ import (
 	"github.com/insight-chain/inb-go/consensus"
 	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
+	"github.com/insight-chain/inb-go/rlp"
 )
 
 const (
@@ -53,13 +54,26 @@ const (
 
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
-//type HeaderExtra struct {
-//	LoopStartTime        uint64
-//	SignersPool          []common.Address
-//	SignerMissing        []common.Address
-//	ConfirmedBlockNumber uint64
-//	Enodes               []common.SuperNode
-//}
+type HeaderExtra struct {
+	LoopStartTime        uint64
+	SignersPool          []common.Address
+	SignerMissing        []common.Address
+	ConfirmedBlockNumber uint64
+	//Enodes               []common.SuperNode
+}
+
+func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
+	var headerExtra interface{}
+	headerExtra = val
+	return rlp.EncodeToBytes(headerExtra)
+
+}
+
+func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
+	var err error
+	err = rlp.DecodeBytes(b, val)
+	return err
+}
 
 // Calculate Votes from transaction in this block, write into header.Extra
 func (v *Vdpos) processCustomTx(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) error {

@@ -93,10 +93,13 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 	var err error
 	header := api.chain.CurrentHeader()
 
-	//b := header.Extra[32 : len(header.Extra)-65]
-	//headerExtra := HeaderExtra{}
-	//val := &headerExtra
-	//err = rlp.DecodeBytes(b, val)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err != nil {
+		return nil
+	}
 
 	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
 	if err != nil {
@@ -105,14 +108,14 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 
 	tallyTrie := vdposContext.TallyTrie()
 
-	signersPool, err := vdposContext.GetSignersFromTrie()
-	if err != nil {
-		return nil
-	}
+	//signersPool, err := vdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return nil
+	//}
 
 	nodesInfo := []*types.Tally{}
-	//for _, addr := range val.SignersPool {
-	for _, addr := range signersPool {
+	for _, addr := range val.SignersPool {
+		//for _, addr := range signersPool {
 		tallyRLP := tallyTrie.Get(addr[:])
 		tally := new(types.Tally)
 		if tallyRLP != nil {

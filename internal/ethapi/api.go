@@ -528,18 +528,18 @@ func (s *PublicBlockChainAPI) BlockNumber() hexutil.Uint64 {
 // vdpos by ssh begin
 // Get last confirmed block number
 func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
-	//var err error
+	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
-	//b := header.Extra[32 : len(header.Extra)-65]
-	//headerExtra := vdpos.HeaderExtra{}
-	//val := &headerExtra
-	//err = rlp.DecodeBytes(b, val)
-	//if err == nil {
-	//	return hexutil.Uint64(val.ConfirmedBlockNumber)
-	//} else {
-	//	return hexutil.Uint64(0)
-	//}
-	return hexutil.Uint64(header.ConfirmedBlockNumber)
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		return hexutil.Uint64(val.ConfirmedBlockNumber)
+	} else {
+		return hexutil.Uint64(0)
+	}
+	//return hexutil.Uint64(header.ConfirmedBlockNumber)
 
 }
 
@@ -573,26 +573,29 @@ func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.Supe
 }
 
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetLastBlockEnode() *types.VdposContext {
+//func (s *PublicBlockChainAPI) GetLastBlockEnode() *types.VdposContext {
+func (s *PublicBlockChainAPI) GetLastBlockEnode() ([]common.Address, []common.SuperNode) {
 	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
 	db := s.b.ChainDb()
 	proto := header.VdposContext
-	vdposContext, err := types.NewVdposContextFromProto(db, proto)
-	if err != nil {
-		return nil
-	}
-	return vdposContext
-	//b := header.Extra[32 : len(header.Extra)-65]
-	//headerExtra := vdpos.HeaderExtra{}
-	//val := &headerExtra
-	//err = rlp.DecodeBytes(b, val)
-	//if err == nil {
-	//	return val
-	//} else {
-	//	return nil
-	//}
 
+	signersPool := make([]common.Address, 0)
+	superNodes := make([]common.SuperNode, 0)
+
+	b := header.Extra[32 : len(header.Extra)-65]
+	headerExtra := vdpos.HeaderExtra{}
+	val := &headerExtra
+	err = rlp.DecodeBytes(b, val)
+	if err == nil {
+		signersPool = val.SignersPool
+	}
+
+	vdposContext, err := types.NewVdposContextFromProto(db, proto)
+	if err == nil {
+		superNodes, err = vdposContext.GetSuperNodesFromTrie()
+	}
+	return signersPool, superNodes
 }
 
 // inb by ghy end
