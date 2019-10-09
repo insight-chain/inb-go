@@ -327,7 +327,9 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedRes uint64, failed bo
 
 	st.state.UseRes(netPayment, usedres)
 	usedRes = big.NewInt(0).Add(usedres, big.NewInt(0).SetUint64(res)).Uint64()
-
+	if st.msg.Types() == types.Mortgage || st.msg.Types() == types.Regular || st.msg.Types() == types.Reset || st.msg.Types() == types.Receive || st.msg.Types() == types.SpecialTx || st.msg.Types() == types.Redeem {
+		return nil, 0, vmerr != nil, err, receive
+	}
 	return ret, usedRes, vmerr != nil, err, receive
 }
 
