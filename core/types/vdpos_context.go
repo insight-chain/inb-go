@@ -220,6 +220,45 @@ func NewVdposContextFromProto(db ethdb.Database, ctxProto *VdposContextProto) (*
 	}, nil
 }
 
+func NewVdposContextFromProtoJustSuperNodes(db ethdb.Database, ctxProto *VdposContextProto) (*VdposContext, error) {
+	triedb := trie.NewDatabase(db)
+	//voteTrie, err := NewVoteTrie(ctxProto.VoteHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//tallyTrie, err := NewTallyTrie(ctxProto.TallyHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//lightTokenTrie, err := NewLightTokenTrie(ctxProto.LightTokenHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//lightTokenAccountTrie, err := NewLightTokenAccountTrie(ctxProto.LightTokenAccountHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//signersTrie, err := NewSignersTrie(ctxProto.SignersHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(ctxProto.SuperNodesHash, triedb)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VdposContext{
+		voteTrie:              nil,
+		tallyTrie:             nil,
+		lightTokenTrie:        nil,
+		lightTokenAccountTrie: nil,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
+	}, nil
+}
+
 func (vc *VdposContext) Copy() *VdposContext {
 	voteTrie := *vc.voteTrie
 	tallyTrie := *vc.tallyTrie

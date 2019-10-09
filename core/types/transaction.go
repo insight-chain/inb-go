@@ -906,7 +906,8 @@ func getReceiveAddress(db ethdb.Database, header *Header) (common.Address, error
 	//headerExtra := HeaderExtra{}
 	//val := &headerExtra
 	//err := rlp.DecodeBytes(b, val)
-	vdposContext, err := NewVdposContextFromProto(db, header.VdposContext)
+	//vdposContext, err := NewVdposContextFromProto(db, header.VdposContext)
+	vdposContext, err := NewVdposContextFromProtoJustSuperNodes(db, header.VdposContext)
 	if err != nil {
 		return common.Address{}, err
 	}
