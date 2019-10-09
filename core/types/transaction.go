@@ -764,6 +764,9 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 	}
 
 	recipient := header.Coinbase
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		parentHeader = header
+	}
 	parentRecipient := parentHeader.Coinbase
 	specialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
 	//rewardInt, _ := strconv.Atoi(header.Reward)
@@ -781,7 +784,7 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
-		for _, v := range SpecialConsensus.SpecialNumer {
+		for _, v := range SpecialConsensus.SpecialNumber {
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)

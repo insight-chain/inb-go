@@ -785,14 +785,14 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //inb by ssh 190627
 //blockNumberOneYear := OneYearBySec / int64(v.config.Period)
 //reward := new(big.Int).Div(DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
-////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
+////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumber {
 ////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
 ////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
 ////		reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
 ////		break
 ////	}
 ////}
-//SpecialNumerSlice := header.SpecialConsensus.SpecialNumer
+//SpecialNumerSlice := header.SpecialConsensus.SpecialNumber
 //if len(SpecialNumerSlice) > 1 {
 //	for i := 1; i < len(SpecialNumerSlice); i++ {
 //		if header.Number.Cmp(SpecialNumerSlice[i-1].Number) == 1 && header.Number.Cmp(SpecialNumerSlice[i].Number) == -1 {

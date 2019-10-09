@@ -1019,7 +1019,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
-		for _, v := range SpecialConsensus.SpecialNumer {
+		for _, v := range SpecialConsensus.SpecialNumber {
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)

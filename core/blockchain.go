@@ -1228,7 +1228,10 @@ func (bc *BlockChain) insertChain(chain types.Blocks, verifySeals bool) (int, []
 			bc.reportBlock(block, receipts, err)
 			return it.index, events, coalescedLogs, err
 		}
-
+		if err := types.ValidateTx(bc.GetDb(), block.Transactions(), block.Header(), parent.Header(), bc.Config().Vdpos.Period); err != nil {
+			bc.reportBlock(block, receipts, err)
+			return it.index, events, coalescedLogs, err
+		}
 		// add by ssh 190815 begin
 		// Validate the dpos state using the default validator
 		err = bc.Validator().ValidateVdposState(block)
