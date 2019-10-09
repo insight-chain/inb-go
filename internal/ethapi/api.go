@@ -539,6 +539,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 	} else {
 		return hexutil.Uint64(0)
 	}
+	//return hexutil.Uint64(header.ConfirmedBlockNumber)
 
 }
 
@@ -547,34 +548,54 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 // inb by ghy begin
 // Get first head block enode msg
 func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.SuperNode {
-	var err error
+	//var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.BlockNumber(num))
-	b := header.Extra[32 : len(header.Extra)-65]
-	headerExtra := vdpos.HeaderExtra{}
-	val := &headerExtra
-	err = rlp.DecodeBytes(b, val)
-	if err == nil {
-		return val.Enodes
-	} else {
+	//b := header.Extra[32 : len(header.Extra)-65]
+	//headerExtra := vdpos.HeaderExtra{}
+	//val := &headerExtra
+	//err = rlp.DecodeBytes(b, val)
+	//if err == nil {
+	//	return val.Enodes
+	//} else {
+	//	return nil
+	//}
+	db := s.b.ChainDb()
+	proto := header.VdposContext
+	vdposContext, err := types.NewVdposContextFromProto(db, proto)
+	if err != nil {
 		return nil
 	}
-
+	superNodes, err := vdposContext.GetSuperNodesFromTrie()
+	if err != nil {
+		return nil
+	}
+	return superNodes
 }
 
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
+//func (s *PublicBlockChainAPI) GetLastBlockEnode() *types.VdposContext {
+func (s *PublicBlockChainAPI) GetLastBlockEnode() ([]common.Address, []common.SuperNode) {
 	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
+	db := s.b.ChainDb()
+	proto := header.VdposContext
+
+	signersPool := make([]common.Address, 0)
+	superNodes := make([]common.SuperNode, 0)
+
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
 	err = rlp.DecodeBytes(b, val)
 	if err == nil {
-		return val
-	} else {
-		return nil
+		signersPool = val.SignersPool
 	}
 
+	vdposContext, err := types.NewVdposContextFromProto(db, proto)
+	if err == nil {
+		superNodes, err = vdposContext.GetSuperNodesFromTrie()
+	}
+	return signersPool, superNodes
 }
 
 // inb by ghy end
@@ -1407,7 +1428,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"resUsed":           hexutil.Uint64(receipt.ResUsed),           //inb by ssh 190628
 		"cumulativeResUsed": hexutil.Uint64(receipt.CumulativeResUsed), //inb by ssh 190628
-		"value":     receipt.Value,                     //2019.8.1 inb by ghy
+		"value":             receipt.Value,                             //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,

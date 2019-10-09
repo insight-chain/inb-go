@@ -623,7 +623,7 @@ func (w *worker) resultLoop() {
 			// 2019.8.29 inb by ghy begin
 			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
 				parentBlock := w.chain.GetBlock(block.ParentHash(), block.NumberU64()-1)
-				if err := types.ValidateTx(block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
+				if err := types.ValidateTx(w.chain.GetDb(), block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
 					fmt.Println(err)
 					return
 				}
@@ -1019,7 +1019,7 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
-		for _, v := range SpecialConsensus.SpecialNumer {
+		for _, v := range SpecialConsensus.SpecialNumber {
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
@@ -1061,12 +1061,22 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			from := v.Address
 			to := header.Coinbase
 
-			b := header.Extra[32 : len(header.Extra)-65]
-			headerExtra := vdpos.HeaderExtra{}
-			val := &headerExtra
-			err := rlp.DecodeBytes(b, val)
+			//b := header.Extra[32 : len(header.Extra)-65]
+			//headerExtra := vdpos.HeaderExtra{}
+			//val := &headerExtra
+			//err := rlp.DecodeBytes(b, val)
+			//if err == nil {
+			//	for _, v := range val.Enodes {
+			//		if v.Address == header.Coinbase && v.RewardAccount != "" {
+			//			address := common.HexToAddress(v.RewardAccount)
+			//			to = address
+			//		}
+			//	}
+			//}
+
+			superNodes, err := w.current.vdposContext.GetSuperNodesFromTrie()
 			if err == nil {
-				for _, v := range val.Enodes {
+				for _, v := range superNodes {
 					if v.Address == header.Coinbase && v.RewardAccount != "" {
 						address := common.HexToAddress(v.RewardAccount)
 						to = address
@@ -1215,6 +1225,11 @@ func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.
 	}
 	loopStartTime := parentExtra.LoopStartTime
 	signers := parentExtra.SignersPool
+	//signers, err := w.current.vdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+	//loopStartTime := parent.LoopStartTime
 	if signersCount := len(signers); signersCount > 0 {
 		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true

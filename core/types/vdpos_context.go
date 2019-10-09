@@ -37,6 +37,8 @@ type VdposContext struct {
 	tallyTrie             *trie.Trie
 	lightTokenTrie        *trie.Trie
 	lightTokenAccountTrie *trie.Trie
+	//signersTrie           *trie.Trie
+	superNodesTrie *trie.Trie
 
 	db     ethdb.Database
 	triedb *trie.Database
@@ -112,6 +114,8 @@ var (
 	tallyPrefix             = []byte("ty-")
 	lightTokenPrefix        = []byte("lt-")
 	lightTokenAccountPrefix = []byte("lta-")
+	//signersPrefix           = []byte("si-")
+	superNodesPrefix = []byte("sn-")
 )
 
 func NewVoteTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
@@ -128,6 +132,14 @@ func NewLightTokenTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, err
 
 func NewLightTokenAccountTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
 	return trie.NewTrieWithPrefix(root, lightTokenAccountPrefix, triedb)
+}
+
+//func NewSignersTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+//	return trie.NewTrieWithPrefix(root, signersPrefix, triedb)
+//}
+
+func NewSuperNodesTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+	return trie.NewTrieWithPrefix(root, superNodesPrefix, triedb)
 }
 
 func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
@@ -148,13 +160,24 @@ func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	//signersTrie, err := NewSignersTrie(common.Hash{}, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(common.Hash{}, triedb)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContext{
 		voteTrie:              voteTrie,
 		tallyTrie:             tallyTrie,
 		lightTokenTrie:        lightTokenTrie,
 		lightTokenAccountTrie: lightTokenAccountTrie,
-		db:     db,
-		triedb: triedb,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
 	}, nil
 }
 
@@ -176,13 +199,24 @@ func NewVdposContextFromProto(db ethdb.Database, ctxProto *VdposContextProto) (*
 	if err != nil {
 		return nil, err
 	}
+	//signersTrie, err := NewSignersTrie(ctxProto.SignersHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(ctxProto.SuperNodesHash, triedb)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContext{
 		voteTrie:              voteTrie,
 		tallyTrie:             tallyTrie,
 		lightTokenTrie:        lightTokenTrie,
 		lightTokenAccountTrie: lightTokenAccountTrie,
-		db:     db,
-		triedb: triedb,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
 	}, nil
 }
 
@@ -191,11 +225,15 @@ func (vc *VdposContext) Copy() *VdposContext {
 	tallyTrie := *vc.tallyTrie
 	lightTokenTrie := *vc.lightTokenTrie
 	lightTokenAccountTrie := *vc.lightTokenAccountTrie
+	//signersTrie := *vc.signersTrie
+	superNodesTrie := *vc.superNodesTrie
 	return &VdposContext{
 		voteTrie:              &voteTrie,
 		tallyTrie:             &tallyTrie,
 		lightTokenTrie:        &lightTokenTrie,
 		lightTokenAccountTrie: &lightTokenAccountTrie,
+		//signersTrie:           &signersTrie,
+		superNodesTrie: &superNodesTrie,
 	}
 }
 
@@ -205,6 +243,8 @@ func (vc *VdposContext) Root() (h common.Hash) {
 	rlp.Encode(hw, vc.tallyTrie.Hash())
 	rlp.Encode(hw, vc.lightTokenTrie.Hash())
 	rlp.Encode(hw, vc.lightTokenAccountTrie.Hash())
+	//rlp.Encode(hw, vc.signersTrie.Hash())
+	rlp.Encode(hw, vc.superNodesTrie.Hash())
 	hw.Sum(h[:0])
 	return h
 }
@@ -218,6 +258,8 @@ func (vc *VdposContext) RevertToSnapShot(snapshot *VdposContext) {
 	vc.tallyTrie = snapshot.tallyTrie
 	vc.lightTokenTrie = snapshot.lightTokenTrie
 	vc.lightTokenAccountTrie = snapshot.lightTokenAccountTrie
+	//vc.signersTrie = snapshot.signersTrie
+	vc.superNodesTrie = snapshot.superNodesTrie
 }
 
 func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
@@ -235,6 +277,14 @@ func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
 		return err
 	}
 	vc.lightTokenAccountTrie, err = NewLightTokenAccountTrie(dcp.LightTokenAccountHash, vc.triedb)
+	if err != nil {
+		return err
+	}
+	//vc.signersTrie, err = NewSignersTrie(dcp.SignersHash, vc.triedb)
+	//if err != nil {
+	//	return err
+	//}
+	vc.superNodesTrie, err = NewSuperNodesTrie(dcp.SuperNodesHash, vc.triedb)
 	return err
 }
 
@@ -243,6 +293,8 @@ type VdposContextProto struct {
 	TallyHash             common.Hash `json:"tallyRoot"                 gencodec:"required"`
 	LightTokenHash        common.Hash `json:"lightTokenRoot"            gencodec:"required"`
 	LightTokenAccountHash common.Hash `json:"lightTokenAccountRoot"     gencodec:"required"`
+	//SignersHash           common.Hash `json:"signersRoot"               gencodec:"required"`
+	SuperNodesHash common.Hash `json:"superNodesRoot"            gencodec:"required"`
 }
 
 func (vc *VdposContext) ToProto() *VdposContextProto {
@@ -251,6 +303,8 @@ func (vc *VdposContext) ToProto() *VdposContextProto {
 		TallyHash:             vc.tallyTrie.Hash(),
 		LightTokenHash:        vc.lightTokenTrie.Hash(),
 		LightTokenAccountHash: vc.lightTokenAccountTrie.Hash(),
+		//SignersHash:           vc.signersTrie.Hash(),
+		SuperNodesHash: vc.superNodesTrie.Hash(),
 	}
 }
 
@@ -260,6 +314,8 @@ func (p *VdposContextProto) Root() (h common.Hash) {
 	rlp.Encode(hw, p.TallyHash)
 	rlp.Encode(hw, p.LightTokenHash)
 	rlp.Encode(hw, p.LightTokenAccountHash)
+	//rlp.Encode(hw, p.SignersHash)
+	rlp.Encode(hw, p.SuperNodesHash)
 	hw.Sum(h[:0])
 	return h
 }
@@ -301,11 +357,31 @@ func (vc *VdposContext) Commit() (*VdposContextProto, error) {
 		return nil, err
 	}
 
+	//signersRoot, err := vc.signersTrie.Commit(nil)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//err = vc.triedb.Commit(signersRoot, false)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	superNodesRoot, err := vc.superNodesTrie.Commit(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = vc.triedb.Commit(superNodesRoot, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContextProto{
 		VoteHash:              voteRoot,
 		TallyHash:             tallyRoot,
 		LightTokenHash:        lightTokenRoot,
 		LightTokenAccountHash: lightTokenAccountRoot,
+		//SignersHash:           signersRoot,
+		SuperNodesHash: superNodesRoot,
 	}, nil
 }
 
@@ -320,6 +396,52 @@ func (vc *VdposContext) LightTokenAccountTrie() *trie.Trie   { return vc.lightTo
 func (vc *VdposContext) SetLightToken(lightToken *trie.Trie) { vc.lightTokenTrie = lightToken }
 func (vc *VdposContext) SetLightTokenAccount(lightTokenAccount *trie.Trie) {
 	vc.lightTokenAccountTrie = lightTokenAccount
+}
+
+//func (vc *VdposContext) SignersTrie() *trie.Trie             { return vc.signersTrie }
+func (vc *VdposContext) SuperNodesTrie() *trie.Trie { return vc.superNodesTrie }
+
+//func (vc *VdposContext) SetSigners(signers *trie.Trie)       { vc.signersTrie = signers }
+func (vc *VdposContext) SetSuperNodes(superNodes *trie.Trie) { vc.superNodesTrie = superNodes }
+
+//func (vc *VdposContext) GetSignersFromTrie() ([]common.Address, error) {
+//	var signers []common.Address
+//	key := []byte("signers")
+//	signersRLP := vc.signersTrie.Get(key)
+//	if err := rlp.DecodeBytes(signersRLP, &signers); err != nil {
+//		return nil, fmt.Errorf("failed to decode signers: %s", err)
+//	}
+//	return signers, nil
+//}
+//
+//func (vc *VdposContext) SetSignersToTrie(signers []common.Address) error {
+//	key := []byte("signers")
+//	signersRLP, err := rlp.EncodeToBytes(signers)
+//	if err != nil {
+//		return fmt.Errorf("failed to encode signers to rlp bytes: %s", err)
+//	}
+//	vc.signersTrie.Update(key, signersRLP)
+//	return nil
+//}
+
+func (vc *VdposContext) GetSuperNodesFromTrie() ([]common.SuperNode, error) {
+	var superNodes []common.SuperNode
+	key := []byte("superNodes")
+	superNodesRLP := vc.superNodesTrie.Get(key)
+	if err := rlp.DecodeBytes(superNodesRLP, &superNodes); err != nil {
+		return nil, fmt.Errorf("failed to decode superNodes: %s", err)
+	}
+	return superNodes, nil
+}
+
+func (vc *VdposContext) SetSuperNodesToTrie(superNodes []common.SuperNode) error {
+	key := []byte("superNodes")
+	superNodesRLP, err := rlp.EncodeToBytes(superNodes)
+	if err != nil {
+		return fmt.Errorf("failed to encode superNodes to rlp bytes: %s", err)
+	}
+	vc.superNodesTrie.Update(key, superNodesRLP)
+	return nil
 }
 
 func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetState) error {
@@ -344,7 +466,7 @@ func (vc *VdposContext) UpdateVotes(vote *Votes) error {
 	addr := vote.Voter
 	voteRLP, err := rlp.EncodeToBytes(vote)
 	if err != nil {
-		return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+		return fmt.Errorf("failed to encode votes to rlp bytes: %s", err)
 	}
 	vc.voteTrie.Update(addr[:], voteRLP)
 	return nil

@@ -296,6 +296,18 @@ func (v *Vdpos) verifySeal(chain consensus.ChainReader, header *types.Header, pa
 			log.Info("Fail to decode header", "err", err)
 			return err
 		}
+		//currentVdposContext, err := types.NewVdposContextFromProto(v.db, header.VdposContext)
+		//if err != nil {
+		//	return err
+		//}
+		//parentSigners, err := vdposContext.GetSignersFromTrie()
+		//if err != nil {
+		//	return err
+		//}
+		//currentSigners, err := currentVdposContext.GetSignersFromTrie()
+		//if err != nil {
+		//	return err
+		//}
 		// verify SignersPool
 		if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
 			snapContext.SignersPool = parentHeaderExtra.SignersPool
@@ -401,6 +413,7 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 				alreadyVote[voter] = struct{}{}
 			}
 		}
+		currentEnodeInfos := make([]common.SuperNode, 0)
 		for _, v := range v.config.Enodes {
 			enode := new(common.SuperNode)
 			enode.Address = v.Address
@@ -408,11 +421,15 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 			enode.Ip = v.Ip
 			enode.Id = v.Id
 			enode.RewardAccount = v.RewardAccount
-			currentHeaderExtra.Enodes = append(currentHeaderExtra.Enodes, *enode)
+			currentEnodeInfos = append(currentEnodeInfos, *enode)
 		}
-		//currentHeaderExtra.Enodes = v.config.Enodes
+		err := vdposContext.SetSuperNodesToTrie(currentEnodeInfos)
+		if err != nil {
+			log.Error("Fail in vdposContext.SetSuperNodesToTrie()", "err", err)
+			return nil, err
+		}
 	} else {
-		// decode extra from last header.extra
+		//header.LoopStartTime = parent.LoopStartTime
 		err := decodeHeaderExtra(parent.Extra[extraVanity:len(parent.Extra)-extraSeal], &parentHeaderExtra)
 		if err != nil {
 			log.Error("Fail to decode parent header", "err", err)
@@ -421,41 +438,67 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 		currentHeaderExtra.ConfirmedBlockNumber = parentHeaderExtra.ConfirmedBlockNumber
 		currentHeaderExtra.SignersPool = parentHeaderExtra.SignersPool
 		currentHeaderExtra.LoopStartTime = parentHeaderExtra.LoopStartTime
-		currentHeaderExtra.Enodes = parentHeaderExtra.Enodes
+		//currentHeaderExtra.Enodes = parentHeaderExtra.Enodes
 	}
+
+	//parentVdposContext, err := types.NewVdposContextFromProto(v.db, parent.VdposContext)
+	//if err != nil {
+	//	log.Error("Fail in types.NewVdposContextFromProto()", "err", err)
+	//	return nil, err
+	//}
+	//parentSigners, err := parentVdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	log.Error("Fail in vdposContext.GetSignersFromTrie()", "err", err)
+	//	return nil, err
+	//}
+	//snapContext := v.snapContext(v.config, state, parent, vdposContext, parentSigners)
 
 	snapContext := v.snapContext(v.config, state, parent, vdposContext, parentHeaderExtra.SignersPool)
+	//header.ConfirmedBlockNumber = snapContext.getLastConfirmedBlockNumber().Uint64()
 
 	// calculate votes write into header.extra
-	midCurrentHeaderExtra, err := v.processCustomTx(currentHeaderExtra, chain, header, state, txs, vdposContext)
+	err := v.processCustomTx(chain, header, state, txs, vdposContext)
 	if err != nil {
+		log.Error("Fail in processCustomTx()", "err", err)
 		return nil, err
 	}
-	currentHeaderExtra = midCurrentHeaderExtra
 	currentHeaderExtra.ConfirmedBlockNumber = snapContext.getLastConfirmedBlockNumber().Uint64()
 	// write signersPool in first header, from self vote signers in genesis block
 	// we must decide the signers order here first
+	//currentSignersPool := make([]common.Address, 0)
 	if number == 1 {
+		//header.LoopStartTime = v.config.GenesisTimestamp
 		currentHeaderExtra.LoopStartTime = v.config.GenesisTimestamp
 		if len(v.config.SelfVoteSigners) > 0 {
 			for i := 0; i < int(v.config.MaxSignerCount); i++ {
+				//currentSignersPool = append(currentSignersPool, common.Address(v.config.SelfVoteSigners[i%len(v.config.SelfVoteSigners)]))
 				currentHeaderExtra.SignersPool = append(currentHeaderExtra.SignersPool, common.Address(v.config.SelfVoteSigners[i%len(v.config.SelfVoteSigners)]))
 			}
 		}
+		//err = vdposContext.SetSignersToTrie(currentSignersPool)
+		//if err != nil {
+		//	log.Error("Fail in vdposContext.SetSignersToTrie()", "err", err)
+		//	return nil, err
+		//}
 	} else if number%(v.config.MaxSignerCount*v.config.SignerBlocks) == 0 {
 		//currentHeaderExtra.LoopStartTime += v.config.Period * v.config.MaxSignerCount * v.config.SignerBlocks
 		// handle config.Period != config.SignerPeriod
+		//header.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
 		currentHeaderExtra.LoopStartTime += (v.config.Period*(v.config.SignerBlocks-1) + v.config.SignerPeriod) * v.config.MaxSignerCount
 		// create random signersPool in currentHeaderExtra
-		currentHeaderExtra.SignersPool = []common.Address{}
 		newSignersPool, err := snapContext.createSignersPool()
 		if err != nil {
-			log.Error("err", err)
+			log.Error("Fail in snapContext.createSignersPool()", "err", err)
 			return nil, err
 		}
 		currentHeaderExtra.SignersPool = newSignersPool
+		//currentSignersPool = newSignersPool
+		//err = vdposContext.SetSignersToTrie(currentSignersPool)
+		//if err != nil {
+		//	log.Error("Fail in vdposContext.SetSignersToTrie()", "err", err)
+		//	return nil, err
+		//}
 	}
-
 	// accumulate any block rewards and commit the final state root
 	//v.accumulateRewards(chain.Config(), state, header)
 
@@ -727,7 +770,10 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 	}
 
 	// all basic checks passed, verify the seal and return
-	return v.verifySeal(chain, header, parents)
+	// change by ssh 191008 begin
+	//return v.verifySeal(chain, header, parents)
+	return nil
+	// change by ssh 191008 end
 }
 
 // accumulateRewards credits the coinbase of the given block with the mining reward.
@@ -739,14 +785,14 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //inb by ssh 190627
 //blockNumberOneYear := OneYearBySec / int64(v.config.Period)
 //reward := new(big.Int).Div(DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
-////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumer {
+////for _, SpecialNumber := range header.SpecialConsensus.SpecialNumber {
 ////	if header.Number.Int64() < SpecialNumber.Number.Int64() {
 ////		mul := new(big.Int).Mul(reward, SpecialNumber.Molecule)
 ////		reward = new(big.Int).Div(mul, SpecialNumber.Denominator)
 ////		break
 ////	}
 ////}
-//SpecialNumerSlice := header.SpecialConsensus.SpecialNumer
+//SpecialNumerSlice := header.SpecialConsensus.SpecialNumber
 //if len(SpecialNumerSlice) > 1 {
 //	for i := 1; i < len(SpecialNumerSlice); i++ {
 //		if header.Number.Cmp(SpecialNumerSlice[i-1].Number) == 1 && header.Number.Cmp(SpecialNumerSlice[i].Number) == -1 {
@@ -839,5 +885,14 @@ func (v *Vdpos) getSigners(header *types.Header) ([]common.Address, error) {
 		return nil, err
 	}
 	return headerExtra.SignersPool, nil
+	//vdposContext, err := types.NewVdposContextFromProto(v.db, header.VdposContext)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//signers, err := vdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return nil, err
+	//}
+	//return signers, nil
 
 }

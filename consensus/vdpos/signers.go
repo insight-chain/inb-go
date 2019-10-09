@@ -202,8 +202,14 @@ func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent
 		log.Error("Fail to decode header", "err", err)
 		return false
 	}
+	//signers, err := s.VdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+
 	headerTime := header.Time.Uint64()
 	loopStartTime := parentExtra.LoopStartTime
+	//loopStartTime := parent.LoopStartTime
 	signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
 		// handle config.Period != config.SignerPeriod

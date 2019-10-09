@@ -59,7 +59,7 @@ type HeaderExtra struct {
 	SignersPool          []common.Address
 	SignerMissing        []common.Address
 	ConfirmedBlockNumber uint64
-	Enodes               []common.SuperNode
+	//Enodes               []common.SuperNode
 }
 
 func encodeHeaderExtra(val HeaderExtra) ([]byte, error) {
@@ -76,7 +76,7 @@ func decodeHeaderExtra(b []byte, val *HeaderExtra) error {
 }
 
 // Calculate Votes from transaction in this block, write into header.Extra
-func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) (HeaderExtra, error) {
+func (v *Vdpos) processCustomTx(chain consensus.ChainReader, header *types.Header, state *state.StateDB, txs []*types.Transaction, vdposContext *types.VdposContext) error {
 
 	for _, tx := range txs {
 		txSender, err := types.Sender(types.NewEIP155Signer(tx.ChainId()), tx)
@@ -108,7 +108,11 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
 			if state.GetStakingValue(txSender).Cmp(BeVotedNeedINB) == 1 {
-				headerExtra.Enodes = v.processEventDeclare(headerExtra.Enodes, txData, txSender, vdposContext)
+				err = v.processEventDeclare(txData, txSender, vdposContext)
+				if err != nil {
+					log.Error("Fail in Vdpos.processEventDeclare()", "err", err)
+					continue
+				}
 			} else {
 				log.Error("Update node info account mortgage less than %v inb", BeVotedNeedINB)
 				continue
@@ -147,7 +151,7 @@ func (v *Vdpos) processCustomTx(headerExtra HeaderExtra, chain consensus.ChainRe
 
 	//2019.8.5 inb mod by ghy end
 
-	return headerExtra, nil
+	return nil
 }
 
 func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, candidates []common.Address, vdposContext *types.VdposContext) error {
@@ -173,7 +177,7 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
-func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) []common.SuperNode {
+func (v *Vdpos) processEventDeclare(txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) error {
 
 	//inb by ghy begin
 
@@ -186,18 +190,13 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txData
 			Address: declarer,
 		}
 
-		//enodeInfoTrie := &common.SuperNodeExtra{
-		//	Id:      midEnodeInfo[PosEventDeclareInfoId],
-		//	Ip:      midEnodeInfo[PosEventDeclareInfoIp],
-		//	Port:    midEnodeInfo[PosEventDeclareInfoPort],
-		//	Address: declarer,
-		//}
-
 		enodeInfoTrie := &common.SuperNodeExtra{}
-		enodeInfo.Id = midEnodeInfo[PosEventDeclareInfoId]
-		enodeInfo.Ip = midEnodeInfo[PosEventDeclareInfoIp]
-		enodeInfo.Port = midEnodeInfo[PosEventDeclareInfoPort]
-		enodeInfo.Address = declarer
+		enodeInfoTrie.SuperNode = enodeInfo
+
+		//enodeInfo.Id = midEnodeInfo[PosEventDeclareInfoId]
+		//enodeInfo.Ip = midEnodeInfo[PosEventDeclareInfoIp]
+		//enodeInfo.Port = midEnodeInfo[PosEventDeclareInfoPort]
+		//enodeInfo.Address = declarer
 
 		if len(midEnodeInfo) >= 4 {
 			enodeInfo.RewardAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
@@ -236,15 +235,18 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txData
 		}
 		data += `}`
 		enodeInfoTrie.ExtraData = data
-		//vdposContext, err := types.NewVdposContext(v.db)
 
 		//2019.9.4 mod by ghy
 		err := vdposContext.UpdateTallysByNodeInfo(*enodeInfoTrie)
-
 		if err != nil {
-			return nil
+			return err
 		}
 		//inb by ghy end
+
+		currentEnodeInfos, err := vdposContext.GetSuperNodesFromTrie()
+		if err != nil {
+			return err
+		}
 		flag := false
 		for i, enode := range currentEnodeInfos {
 			if enode.Address == declarer {
@@ -256,9 +258,16 @@ func (v *Vdpos) processEventDeclare(currentEnodeInfos []common.SuperNode, txData
 		if !flag {
 			currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
 		}
+		err = vdposContext.SetSuperNodesToTrie(currentEnodeInfos)
+		if err != nil {
+			return err
+		}
+
+		return nil
+	} else {
+		return errors.Errorf("declare parameter error")
 	}
 
-	return currentEnodeInfos
 }
 
 //inb by ghy end

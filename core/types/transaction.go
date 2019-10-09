@@ -27,6 +27,7 @@ import (
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/common/hexutil"
 	"github.com/insight-chain/inb-go/crypto"
+	"github.com/insight-chain/inb-go/ethdb"
 	"github.com/insight-chain/inb-go/rlp"
 )
 
@@ -748,23 +749,26 @@ func (m Message) IsRePayment() bool {
 
 //inb by ssh end
 
-type HeaderExtra struct {
-	LoopStartTime        uint64
-	SignersPool          []common.Address
-	SignerMissing        []common.Address
-	ConfirmedBlockNumber uint64
-	Enodes               []common.SuperNode
-}
+//type HeaderExtra struct {
+//	LoopStartTime        uint64
+//	SignersPool          []common.Address
+//	SignerMissing        []common.Address
+//	ConfirmedBlockNumber uint64
+//	Enodes               []common.SuperNode
+//}
 
 //2019.8.29 inb by ghy begin
-func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) error {
+func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Header, Period uint64) error {
 	if len(txs) == 0 {
 		return nil
 	}
 
 	recipient := header.Coinbase
-	ParentRecipient := parentHeader.Coinbase
-	SpecialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
+	if header.Number.Cmp(big.NewInt(1)) == 0 {
+		parentHeader = header
+	}
+	parentRecipient := parentHeader.Coinbase
+	specialConsensusAddress := header.GetSpecialConsensus().SpecialConsensusAddress
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//minerReward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
@@ -780,7 +784,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
-		for _, v := range SpecialConsensus.SpecialNumer {
+		for _, v := range SpecialConsensus.SpecialNumber {
 			if header.Number.Cmp(v.Number) == 1 {
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
@@ -813,7 +817,7 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 	}
 	specialConsensu := make(map[common.Address]*SpecialConsensusInfo)
 
-	for _, v := range SpecialConsensusAddress {
+	for _, v := range specialConsensusAddress {
 		totalConsensus := new(SpecialConsensusInfo)
 		totalConsensus.SpecialType = v.SpecialType
 		totalConsensus.toAddress = v.ToAddress
@@ -845,15 +849,15 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 				info.num++
 			case 131:
 
-				address, err := getReceiveAddress(header)
+				address, err := getReceiveAddress(db, header)
 				if err == nil {
 					recipient = address
 				}
-				parentAddress, err := getReceiveAddress(parentHeader)
+				parentAddress, err := getReceiveAddress(db, parentHeader)
 				if err == nil {
-					ParentRecipient = parentAddress
+					parentRecipient = parentAddress
 				}
-				if (*v.data.Recipient != recipient && *v.data.Recipient != ParentRecipient) || v.Value().Cmp(minerReward) != 0 {
+				if (*v.data.Recipient != recipient && *v.data.Recipient != parentRecipient) || v.Value().Cmp(minerReward) != 0 {
 					return errors.New("MiningReward special tx is not allowed")
 				}
 
@@ -897,13 +901,18 @@ func ValidateTx(txs Transactions, header, parentHeader *Header, Period uint64) e
 }
 
 //2019.8.29 inb by ghy end
-func getReceiveAddress(header *Header) (common.Address, error) {
-	b := header.Extra[32 : len(header.Extra)-65]
-	headerExtra := HeaderExtra{}
-	val := &headerExtra
-	err := rlp.DecodeBytes(b, val)
+func getReceiveAddress(db ethdb.Database, header *Header) (common.Address, error) {
+	//b := header.Extra[32 : len(header.Extra)-65]
+	//headerExtra := HeaderExtra{}
+	//val := &headerExtra
+	//err := rlp.DecodeBytes(b, val)
+	vdposContext, err := NewVdposContextFromProto(db, header.VdposContext)
+	if err != nil {
+		return common.Address{}, err
+	}
+	superNodes, err := vdposContext.GetSuperNodesFromTrie()
 	if err == nil {
-		for _, v := range val.Enodes {
+		for _, v := range superNodes {
 			if v.Address == header.Coinbase && v.RewardAccount != "" {
 				address := common.HexToAddress(v.RewardAccount)
 				return address, nil
