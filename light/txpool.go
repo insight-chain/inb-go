@@ -511,13 +511,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	if tx.WhichTypes(types.Regular) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")
@@ -528,13 +529,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	if tx.WhichTypes(types.InsteadMortgage) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")
