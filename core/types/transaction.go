@@ -40,7 +40,7 @@ var (
 type TxType uint8
 
 const (
-	_                     TxType = iota
+	_  TxType = iota
 	Ordinary                     //1
 	Mortgage                     //2
 	Regular                      //3

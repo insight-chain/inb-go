@@ -17,6 +17,7 @@
 package jsre
 
 import (
+	"fmt"
 	"sort"
 	"strings"
 
@@ -34,6 +35,7 @@ func (jsre *JSRE) CompleteKeywords(line string) []string {
 }
 
 func getCompletions(vm *otto.Otto, line string) (results []string) {
+	fmt.Println(" getCompletions line string = " + line)
 	//inb by ssh begin
 	/*if strings.Contains(line, "eth") {
 		return nil
@@ -93,7 +95,9 @@ func getCompletions(vm *otto.Otto, line string) (results []string) {
 	//		results[i] = strings.Replace(result, "eth", "inb", -1)
 	//	}
 	//}
-
+	for key,value := range results {
+		fmt.Println(" results key = " + string(key) + ", value := "+value)
+	}
 	sort.Strings(results)
 	return results
 	//inb by ssh end
