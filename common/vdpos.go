@@ -58,6 +58,15 @@ var (
 	//
 	SpecialAddressPrefix = 5
 	MortgageAccount      = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
+
+	LenOfPort      = 5
+	LenOfImage     = 100
+	LenOfEmail     = 35
+	LenOfWebsite   = 35
+	LenOfId        = 128
+	LenOfNation    = 15
+	LenOfExtraData = 150
+	LenOfName      = 15
 )
 
 // Declare :

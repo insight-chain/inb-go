@@ -18,6 +18,7 @@
 package vdpos
 
 import (
+	"encoding/json"
 	"github.com/insight-chain/inb-go/log"
 	"github.com/insight-chain/inb-go/params"
 	"github.com/pkg/errors"
@@ -108,7 +109,7 @@ func (v *Vdpos) processCustomTx(chain consensus.ChainReader, header *types.Heade
 
 		if tx.WhichTypes(types.UpdateNodeInformation) {
 			if state.GetStakingValue(txSender).Cmp(BeVotedNeedINB) == 1 {
-				err = v.processEventDeclare(txData, txSender, vdposContext)
+				err = v.processEventDeclare(tx.Data(), txSender, vdposContext)
 				if err != nil {
 					log.Error("Fail in Vdpos.processEventDeclare()", "err", err)
 					continue
@@ -177,97 +178,70 @@ func (v *Vdpos) processEventVote(state *state.StateDB, voter common.Address, can
 	return nil
 }
 
-func (v *Vdpos) processEventDeclare(txDataInfo string, declarer common.Address, vdposContext *types.VdposContext) error {
+func (v *Vdpos) processEventDeclare(txDataInfo []byte, declarer common.Address, vdposContext *types.VdposContext) error {
 
 	//inb by ghy begin
-
-	midEnodeInfo := strings.Split(txDataInfo, "~")
-	if len(midEnodeInfo) >= PosEventDeclareInfoSplitLen && len(midEnodeInfo[PosEventDeclareInfoId]) == 128 {
-		enodeInfo := common.SuperNode{
-			Id:      midEnodeInfo[PosEventDeclareInfoId],
-			Ip:      midEnodeInfo[PosEventDeclareInfoIp],
-			Port:    midEnodeInfo[PosEventDeclareInfoPort],
-			Address: declarer,
-		}
-
-		enodeInfoTrie := &common.SuperNodeExtra{}
-		enodeInfoTrie.SuperNode = enodeInfo
-
-		//enodeInfo.Id = midEnodeInfo[PosEventDeclareInfoId]
-		//enodeInfo.Ip = midEnodeInfo[PosEventDeclareInfoIp]
-		//enodeInfo.Port = midEnodeInfo[PosEventDeclareInfoPort]
-		//enodeInfo.Address = declarer
-
-		if len(midEnodeInfo) >= 4 {
-			enodeInfo.RewardAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
-			enodeInfoTrie.RewardAccount = midEnodeInfo[PosEventDeclareInfoReceiveAccount]
-		}
-		//inb by ghy begin
-		if len(midEnodeInfo) >= 5 {
-			enodeInfoTrie.Name = midEnodeInfo[PosEventDeclareInfoName]
-		}
-
-		if len(midEnodeInfo) >= 6 {
-			enodeInfoTrie.Nation = midEnodeInfo[PosEventDeclareInfoNation]
-		}
-
-		if len(midEnodeInfo) >= 7 {
-			enodeInfoTrie.Image = midEnodeInfo[PosEventDeclareInfoImage]
-
-		}
-		if len(midEnodeInfo) >= 8 {
-			enodeInfoTrie.Website = midEnodeInfo[PosEventDeclareInfoWebsite]
-		}
-		if len(midEnodeInfo) >= 9 {
-			enodeInfoTrie.Email = midEnodeInfo[PosEventDeclareInfoEmail]
-		}
-
-		data := `{`
-		if len(midEnodeInfo) >= 10 {
-			enodeData := strings.Split(midEnodeInfo[PosEventDeclareInfoData], "-")
-			for _, v := range enodeData {
-				split := strings.Split(v, "/")
-				if len(split) == 2 {
-					data += `"` + split[0] + `":"` + split[1] + `",`
-				}
-			}
-			data = strings.TrimRight(data, ",")
-		}
-		data += `}`
-		enodeInfoTrie.ExtraData = data
-
-		//2019.9.4 mod by ghy
-		err := vdposContext.UpdateTallysByNodeInfo(*enodeInfoTrie)
-		if err != nil {
-			return err
-		}
-		//inb by ghy end
-
-		currentEnodeInfos, err := vdposContext.GetSuperNodesFromTrie()
-		if err != nil {
-			return err
-		}
-		flag := false
-		for i, enode := range currentEnodeInfos {
-			if enode.Address == declarer {
-				flag = true
-				currentEnodeInfos[i] = enodeInfo
-				break
-			}
-		}
-		if !flag {
-			currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
-		}
-		err = vdposContext.SetSuperNodesToTrie(currentEnodeInfos)
-		if err != nil {
-			return err
-		}
-
-		return nil
-	} else {
-		return errors.Errorf("declare parameter error")
+	nodeInfo := new(common.SuperNodeExtra)
+	if err := json.Unmarshal(txDataInfo, nodeInfo); err != nil {
+		return err
+	}
+	enodeInfo := common.SuperNode{
+		Id:            nodeInfo.Id,
+		Ip:            nodeInfo.Ip,
+		Port:          nodeInfo.Port,
+		Address:       declarer,
+		RewardAccount: nodeInfo.RewardAccount,
 	}
 
+	nodeInfo.Address = declarer
+
+	//enodeInfo.Id = midEnodeInfo[PosEventDeclareInfoId]
+	//enodeInfo.Ip = midEnodeInfo[PosEventDeclareInfoIp]
+	//enodeInfo.Port = midEnodeInfo[PosEventDeclareInfoPort]
+	//enodeInfo.Address = declarer
+
+	//data := `{`
+	//if len(midEnodeInfo) >= 10 {
+	//	enodeData := strings.Split(midEnodeInfo[PosEventDeclareInfoData], "-")
+	//	for _, v := range enodeData {
+	//		split := strings.Split(v, "/")
+	//		if len(split) == 2 {
+	//			data += `"` + split[0] + `":"` + split[1] + `",`
+	//		}
+	//	}
+	//	data = strings.TrimRight(data, ",")
+	//}
+	//data += `}`
+	//enodeInfoTrie.ExtraData = data
+
+	//2019.9.4 mod by ghy
+	err := vdposContext.UpdateTallysByNodeInfo(*nodeInfo)
+	if err != nil {
+		return err
+	}
+	//inb by ghy end
+
+	currentEnodeInfos, err := vdposContext.GetSuperNodesFromTrie()
+	if err != nil {
+		return err
+	}
+	flag := false
+	for i, enode := range currentEnodeInfos {
+		if enode.Address == declarer {
+			flag = true
+			currentEnodeInfos[i] = enodeInfo
+			break
+		}
+	}
+	if !flag {
+		currentEnodeInfos = append(currentEnodeInfos, enodeInfo)
+	}
+	err = vdposContext.SetSuperNodesToTrie(currentEnodeInfos)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 //inb by ghy end

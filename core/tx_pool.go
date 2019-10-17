@@ -17,12 +17,15 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/crypto"
 	"math"
 	"math/big"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -630,7 +633,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	if tx.WhichTypes(types.UpdateNodeInformation) {
-		if len(inputStr) > 600 {
+		nodeInfo := new(common.SuperNodeExtra)
+		if err := json.Unmarshal(tx.Data(), nodeInfo); err != nil {
+			return err
+		}
+		if err = ValidateUpdateInformation(nodeInfo); err != nil {
+			return err
+		}
+		if len(inputStr) > 900 {
 			return errors.New("date over size")
 		}
 		if pool.currentState.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
@@ -641,24 +651,8 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
-		var candidatesSlice []common.Address
-		var UnqualifiedCandidatesSlice []string
-		candidatesStr := strings.Split(inputStr, ",")
-		for _, value := range candidatesStr {
-			address := common.HexToAddress(value)
-			//2019.7.15 inb mod by ghy begin
-			if pool.currentState.GetStakingValue(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
-				candidatesSlice = append(candidatesSlice, address)
-			} else {
-				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
-			}
-		}
-		if len(UnqualifiedCandidatesSlice) > 0 {
-			return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
-		}
-		//2019.7.15 inb mod by ghy end
-		if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
-			return errors.New("candidates over size")
+		if err = ValidateVote(pool.currentState, tx.Data()); err != nil {
+			return err
 		}
 	}
 
@@ -711,21 +705,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.ReceiveLockedAward) {
-		receivebonus := strings.Split(inputStr, ":")
-		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveLockedAward" {
-			if err := pool.validateReceiveLockedAward(receivebonus, from); err != nil {
-				return err
-			}
-		} else {
-			return ErrParameterError
+		if err := pool.validateReceiveLockedAward(tx.Data(), from); err != nil {
+			return err
 		}
+
 	}
 
 	if tx.WhichTypes(types.ReceiveVoteAward) {
 		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
-		} else {
-			return nil
 		}
 	}
 
@@ -1546,7 +1534,7 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 }
 
 //2019.7.22 inb by ghy begin
-func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from common.Address) error {
+func (pool *TxPool) validateReceiveLockedAward(receivebonus []byte, from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
 	if account == nil {
 		return errors.New("errors of address")
@@ -1564,7 +1552,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	LockedHundred := new(big.Int)
 	LockedNumberOfDaysOneYear := new(big.Int)
 	for _, v := range account.Stakings {
-		if v.Hash == common.HexToHash(receivebonus[1]) {
+		if v.Hash == common.BytesToHash(receivebonus) {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor30days
@@ -1695,3 +1683,89 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 }
 
 //2019.7.22 inb by ghy end
+func ValidateUpdateInformation(nodeInfo *common.SuperNodeExtra) error {
+	if ip := net.ParseIP(nodeInfo.Ip); ip == nil {
+		return errors.New("err of ip")
+	}
+
+	if err := ValidatePort(nodeInfo.Port); err != nil {
+		return err
+	}
+
+	if len(nodeInfo.Id) != common.LenOfId || len(nodeInfo.Id) == 0 {
+		return errors.New("len of node id err")
+	}
+
+	if nodeInfo.RewardAccount != "" && !common.IsHexAddress(nodeInfo.RewardAccount) {
+		return errors.New("err of reward account")
+	}
+
+	if len(nodeInfo.Image) > common.LenOfImage {
+		return errors.New("out of image length")
+	}
+
+	if len(nodeInfo.Email) > common.LenOfEmail {
+		return errors.New("out of email length")
+	}
+
+	if len(nodeInfo.Website) > common.LenOfWebsite {
+		return errors.New("out of website length")
+	}
+
+	if len(nodeInfo.Nation) > common.LenOfNation {
+		return errors.New("out of nation length")
+	}
+
+	if len(nodeInfo.Name) > common.LenOfName {
+		return errors.New("out of name length")
+	}
+
+	if len(nodeInfo.ExtraData) > common.LenOfExtraData {
+		return errors.New("out of extra data length")
+	}
+	return nil
+}
+
+func ValidatePort(port string) error {
+	if len(port) > common.LenOfPort || len(port) == 0 {
+		return errors.New("len of port err")
+	}
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		return err
+	}
+	if intPort <= 0 || intPort > 65535 {
+		return errors.New("out of port range")
+	}
+	return nil
+}
+
+func ValidateVote(db vm.StateDB, input []byte) error {
+	var candidatesSlice []common.Address
+	var UnqualifiedCandidatesSlice []string
+	var UnAddressSlice []string
+	candidatesStr := strings.Split(string(input), ",")
+	for _, value := range candidatesStr {
+		if !common.IsHexAddress(value) {
+			UnAddressSlice = append(UnAddressSlice, value)
+		}
+		address := common.HexToAddress(value)
+		//2019.7.15 inb mod by ghy begin
+		if db.GetStakingValue(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
+			candidatesSlice = append(candidatesSlice, address)
+		} else {
+			UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
+		}
+	}
+	if len(UnAddressSlice) > 0 {
+		return errors.New(fmt.Sprintf("Voting node : %v is not address", UnAddressSlice))
+	}
+	if len(UnqualifiedCandidatesSlice) > 0 {
+		return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
+	}
+	//2019.7.15 inb mod by ghy end
+	if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+		return errors.New("candidates over size")
+	}
+	return nil
+}

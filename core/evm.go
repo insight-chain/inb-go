@@ -17,9 +17,12 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/params"
@@ -58,20 +61,22 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Difficulty:       new(big.Int).Set(header.Difficulty),
 		GasLimit:         header.ResLimit,
 		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:             CanMortgage,
-		CanRedeem:               CanRedeem,
-		CanReset:                CanReset,
-		CanReceive:              CanReceive,
-		RedeemTransfer:          RedeemTransfer,
-		ResetTransfer:           ResetTransfer,
-		ReceiveTransfer:         ReceiveTransfer,
-		CanReceiveLockedAward:   CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
-		ReceiveLockedAward:      ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
-		CanReceiveVoteAward:     CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
-		ReceiveVoteAward:        ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
-		Vote:                    Vote,                      //2019.7.24 inb by ghy
-		InsteadMortgageTransfer: InsteadMortgageTransfer,   //20190919 added replacement mortgage
-		CanInsteadMortgage:      CanInsteadMortgage,
+		CanMortgage:           CanMortgage,
+		CanRedeem:             CanRedeem,
+		CanReset:              CanReset,
+		CanReceive:            CanReceive,
+		RedeemTransfer:        RedeemTransfer,
+		ResetTransfer:         ResetTransfer,
+		ReceiveTransfer:       ReceiveTransfer,
+		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                  Vote,                      //2019.7.24 inb by ghy
+		InsteadMortgageTransfer:  InsteadMortgageTransfer, //20190919 added replacement mortgage
+		CanInsteadMortgage:       CanInsteadMortgage,
+		CanUpdateNodeInformation: CanUpdateNodeInformation, //2019.10.17 inb by ghy
+		CanVote:                  CanVote,                  //2019.10.17 inb by ghy
 	}
 }
 
@@ -235,6 +240,31 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	usable.Sub(usable, value)
 	if usable.Cmp(amount) < 0 {
 		return errors.New(" insufficient available value for staking ")
+	}
+	return nil
+}
+
+func CanUpdateNodeInformation(db vm.StateDB, from common.Address, byte []byte) error {
+	nodeInfo := new(common.SuperNodeExtra)
+	if err := json.Unmarshal(byte, nodeInfo); err != nil {
+		return err
+	}
+	if err := ValidateUpdateInformation(nodeInfo); err != nil {
+		return err
+	}
+	if len(byte) > 900 {
+		return errors.New("date over size")
+	}
+
+	if db.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
+	}
+	return nil
+}
+
+func CanVote(db vm.StateDB, byte []byte) error {
+	if err := ValidateVote(db, byte); err != nil {
+		return err
 	}
 	return nil
 }

@@ -21,7 +21,6 @@ import (
 	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -54,13 +53,15 @@ type (
 	ReceiveTransferFunc func(StateDB, common.Address, *big.Int) *big.Int
 	ResetTransferFunc   func(StateDB, common.Address, *big.Int) *big.Int
 
-	CanReceiveLockedAwardFunc   func(StateDB, common.Address, common.Hash, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address) //2019.7.22 inb by ghy begin
-	ReceiveLockedAwardFunc      func(StateDB, common.Address, common.Hash, *big.Int, bool, *big.Int, common.Address)                                 //2019.7.22 inb by ghy begin
-	CanReceiveVoteAwardFunc     func(StateDB, common.Address, *big.Int, types.SpecialConsensus) (error, *big.Int, common.Address)                    //2019.7.24 inb by ghy begin
-	ReceiveVoteAwardFunc        func(StateDB, common.Address, *big.Int, *big.Int, common.Address)                                                    //2019.7.24 inb by ghy begin
-	VoteFunc                    func(StateDB, common.Address, *big.Int)
-	InsteadMortgageTransferFunc func(StateDB, common.Address, common.Address, *big.Int, *big.Int, big.Int, common.Hash) *big.Int //20190919 added replacement mortgage
-	CanInsteadMortgageFunc      func(StateDB, common.Address, common.Address, *big.Int, *big.Int) error
+	CanReceiveLockedAwardFunc    func(StateDB, common.Address, common.Hash, *big.Int, types.SpecialConsensus) (error, *big.Int, bool, common.Address) //2019.7.22 inb by ghy begin
+	ReceiveLockedAwardFunc       func(StateDB, common.Address, common.Hash, *big.Int, bool, *big.Int, common.Address)                                 //2019.7.22 inb by ghy begin
+	CanReceiveVoteAwardFunc      func(StateDB, common.Address, *big.Int, types.SpecialConsensus) (error, *big.Int, common.Address)                    //2019.7.24 inb by ghy begin
+	ReceiveVoteAwardFunc         func(StateDB, common.Address, *big.Int, *big.Int, common.Address)                                                    //2019.7.24 inb by ghy begin
+	VoteFunc                     func(StateDB, common.Address, *big.Int)
+	InsteadMortgageTransferFunc  func(StateDB, common.Address, common.Address, *big.Int, *big.Int, big.Int, common.Hash) *big.Int //20190919 added replacement mortgage
+	CanInsteadMortgageFunc       func(StateDB, common.Address, common.Address, *big.Int, *big.Int) error
+	CanUpdateNodeInformationFunc func(StateDB, common.Address, []byte) error //2019.10.17 inb by ghy
+	CanVoteFunc                  func(StateDB, []byte) error
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -109,26 +110,28 @@ type Context struct {
 	GasPrice *big.Int       // Provides information for GASPRICE
 
 	// Block information
-	Coinbase                common.Address         // Provides information for COINBASE
-	GasLimit                uint64                 // Provides information for GASLIMIT
-	BlockNumber             *big.Int               // Provides information for NUMBER
-	Time                    *big.Int               // Provides information for TIME
-	Difficulty              *big.Int               // Provides information for DIFFICULTY
-	SpecialConsensus        types.SpecialConsensus //2019.7.31 inb by ghy
-	CanReset                CanResetFunc
-	CanMortgage             CanMortgageFunc
-	CanRedeem               CanRedeemFunc
-	CanReceive              CanReceiveFunc
-	RedeemTransfer          RedeemTransferFunc
-	ResetTransfer           ResetTransferFunc
-	ReceiveTransfer         ReceiveTransferFunc
-	ReceiveLockedAward      ReceiveLockedAwardFunc //2019.7.22 inb by ghy
-	Vote                    VoteFunc               //2019.7.24 inb by ghy
-	CanReceiveLockedAward   CanReceiveLockedAwardFunc
-	CanReceiveVoteAward     CanReceiveVoteAwardFunc     //2019.7.24 inb by ghy
-	ReceiveVoteAward        ReceiveVoteAwardFunc        //2019.7.24 inb by ghy
-	InsteadMortgageTransfer InsteadMortgageTransferFunc //20190919 added replacement mortgage
-	CanInsteadMortgage      CanInsteadMortgageFunc
+	Coinbase                 common.Address         // Provides information for COINBASE
+	GasLimit                 uint64                 // Provides information for GASLIMIT
+	BlockNumber              *big.Int               // Provides information for NUMBER
+	Time                     *big.Int               // Provides information for TIME
+	Difficulty               *big.Int               // Provides information for DIFFICULTY
+	SpecialConsensus         types.SpecialConsensus //2019.7.31 inb by ghy
+	CanReset                 CanResetFunc
+	CanMortgage              CanMortgageFunc
+	CanRedeem                CanRedeemFunc
+	CanReceive               CanReceiveFunc
+	RedeemTransfer           RedeemTransferFunc
+	ResetTransfer            ResetTransferFunc
+	ReceiveTransfer          ReceiveTransferFunc
+	ReceiveLockedAward       ReceiveLockedAwardFunc //2019.7.22 inb by ghy
+	Vote                     VoteFunc               //2019.7.24 inb by ghy
+	CanReceiveLockedAward    CanReceiveLockedAwardFunc
+	CanReceiveVoteAward      CanReceiveVoteAwardFunc     //2019.7.24 inb by ghy
+	ReceiveVoteAward         ReceiveVoteAwardFunc        //2019.7.24 inb by ghy
+	InsteadMortgageTransfer  InsteadMortgageTransferFunc //20190919 added replacement mortgage
+	CanInsteadMortgage       CanInsteadMortgageFunc
+	CanUpdateNodeInformation CanUpdateNodeInformationFunc //2019.10.17 inb by ghy
+	CanVote                  CanVoteFunc
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -244,22 +247,17 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 	VoteAward := big.NewInt(0)
 	reses := big.NewInt(0)
 	isAll := false
-	IntNonce := [32]byte{}
+	lockHash := [32]byte{}
 	toAddress := common.Address{}
 	if txType == types.ReceiveLockedAward {
 
-		inputSlice := strings.Split(inputStr, ":")
-		if len(inputSlice) == 2 && inputSlice[0] == "ReceiveLockedAward" {
-			IntNonce = common.HexToHash(inputSlice[1])
-			//if err != nil {
-			//	return nil, res, err, nil
-			//}
-			err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, evm.BlockNumber, evm.SpecialConsensus)
-			if err != nil {
-				return nil, res, err, nil
-			}
-		} else {
-			return nil, res, ErrParameter, nil
+		lockHash = common.BytesToHash(input)
+		//if err != nil {
+		//	return nil, res, err, nil
+		//}
+		err, LockedAward, isAll, toAddress = evm.CanReceiveLockedAward(evm.StateDB, caller.Address(), lockHash, evm.BlockNumber, evm.SpecialConsensus)
+		if err != nil {
+			return nil, res, err, nil
 		}
 		//2019.7.22 inb by ghy end
 	} else if txType == types.Regular {
@@ -312,8 +310,16 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 
 			return nil, res, err, nil
 		}
-	} else if txType == types.Vote || txType == types.TransferLightToken {
-		// do nothing because we don't need to check up value when vote or transferLightToken
+	} else if txType == types.UpdateNodeInformation { //2019.10.17 inb by ghy
+		if err = evm.Context.CanUpdateNodeInformation(evm.StateDB, caller.Address(), input); err != nil {
+			return nil, res, err, nil
+		}
+	} else if txType == types.Vote {
+		if err = evm.Context.CanVote(evm.StateDB, input); err != nil {
+			return nil, res, err, nil
+		}
+	} else if txType == types.TransferLightToken {
+		// do nothing because we don't need to check up value when transferLightToken
 	} else {
 		// Fail if we're trying to transfer more than the available balance
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
@@ -360,7 +366,7 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 	} else if txType == types.ReceiveVoteAward { //2019.7.22 inb by ghy begin
 		evm.ReceiveVoteAward(evm.StateDB, caller.Address(), VoteAward, evm.BlockNumber, toAddress)
 	} else if txType == types.ReceiveLockedAward {
-		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), IntNonce, LockedAward, isAll, evm.BlockNumber, toAddress)
+		evm.ReceiveLockedAward(evm.StateDB, caller.Address(), lockHash, LockedAward, isAll, evm.BlockNumber, toAddress)
 		//2019.7.22 inb by ghy end
 	} else if txType == types.Receive {
 		reses = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
