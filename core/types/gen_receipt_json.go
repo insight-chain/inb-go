@@ -22,7 +22,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 		Logs              []*Log         `json:"logs"              gencodec:"required"`
 		TxHash            common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   common.Address `json:"contractAddress"`
-		IncomeClaimed     *big.Int       `json:"incomeClaimed" gencodec:"required"` //2019.8.1 inb by ghy
+		Value     *big.Int       `json:"value" gencodec:"required"` //2019.8.1 inb by ghy
 		ResUsed           hexutil.Uint64 `json:"resUsed" gencodec:"required"`
 	}
 	var enc Receipt
@@ -33,7 +33,7 @@ func (r Receipt) MarshalJSON() ([]byte, error) {
 	enc.Logs = r.Logs
 	enc.TxHash = r.TxHash
 	enc.ContractAddress = r.ContractAddress
-	enc.IncomeClaimed = r.IncomeClaimed //2019.8.1 inb by ghy
+	enc.Value = r.Value //2019.8.1 inb by ghy
 	enc.ResUsed = hexutil.Uint64(r.ResUsed)
 
 	return json.Marshal(&enc)
@@ -49,7 +49,7 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		Logs              []*Log          `json:"logs"              gencodec:"required"`
 		TxHash            *common.Hash    `json:"transactionHash" gencodec:"required"`
 		ContractAddress   *common.Address `json:"contractAddress"`
-		IncomeClaimed     *big.Int        `json:"incomeClaimed" gencodec:"required"` //2019.8.1 inb by ghy
+		Value     *big.Int        `json:"value" gencodec:"required"` //2019.8.1 inb by ghy
 		ResUsed           *hexutil.Uint64 `json:"resUsed" gencodec:"required"`
 	}
 	var dec Receipt
@@ -85,10 +85,10 @@ func (r *Receipt) UnmarshalJSON(input []byte) error {
 		return errors.New("missing required field 'resUsed' for Receipt")
 	}
 	r.ResUsed = uint64(*dec.ResUsed)
-	if dec.IncomeClaimed == nil {
-		return errors.New("missing required field 'incomeClaimed' for Receipt")
+	if dec.Value == nil {
+		return errors.New("missing required field 'value' for Receipt")
 	}
-	r.IncomeClaimed = dec.IncomeClaimed //2019.8.1 inb by ghy
+	r.Value = dec.Value //2019.8.1 inb by ghy
 
 	return nil
 }

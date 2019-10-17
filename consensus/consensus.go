@@ -47,10 +47,6 @@ type ChainReader interface {
 
 	// GetBlock retrieves a block from the database by hash and number.
 	GetBlock(hash common.Hash, number uint64) *types.Block
-
-	// add by ssh 190918 begin
-	StateAt(root common.Hash) (*state.StateDB, error)
-	// add by ssh 190918 end
 }
 
 // Engine is an algorithm agnostic consensus engine.

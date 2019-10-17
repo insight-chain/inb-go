@@ -157,10 +157,10 @@ func (s *PublicTxPoolAPI) Inspect() map[string]map[string]map[string]string {
 	var format = func(tx *types.Transaction) string {
 		if to := tx.To(); to != nil {
 			//return fmt.Sprintf("%s: %v wei + %v gas × %v wei", tx.To().Hex(), tx.Value(), tx.Gas(), tx.GasPrice())
-			return fmt.Sprintf("%s: %v wei + %v net ", tx.To().Hex(), tx.Value(), tx.Gas())
+			return fmt.Sprintf("%s: %v wei + %v res ", tx.To().Hex(), tx.Value(), tx.Gas())
 		}
 		//return fmt.Sprintf("contract creation: %v wei + %v gas ", tx.Value(), tx.Gas(), tx.GasPrice())
-		return fmt.Sprintf("contract creation: %v wei + %v gas", tx.Value(), tx.Gas())
+		return fmt.Sprintf("contract creation: %v wei + %v res", tx.Value(), tx.Gas())
 	}
 	// Flatten the pending transactions
 	for account, txs := range pending {
@@ -539,6 +539,7 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 	} else {
 		return hexutil.Uint64(0)
 	}
+	//return hexutil.Uint64(header.ConfirmedBlockNumber)
 
 }
 
@@ -546,35 +547,55 @@ func (s *PublicBlockChainAPI) ConfirmedBlockNumber() hexutil.Uint64 {
 
 // inb by ghy begin
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.EnodeInfo {
-	var err error
+func (s *PublicBlockChainAPI) GetBlockEnodeByBlockNumber(num uint) []common.SuperNode {
+	//var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.BlockNumber(num))
-	b := header.Extra[32 : len(header.Extra)-65]
-	headerExtra := vdpos.HeaderExtra{}
-	val := &headerExtra
-	err = rlp.DecodeBytes(b, val)
-	if err == nil {
-		return val.Enodes
-	} else {
+	//b := header.Extra[32 : len(header.Extra)-65]
+	//headerExtra := vdpos.HeaderExtra{}
+	//val := &headerExtra
+	//err = rlp.DecodeBytes(b, val)
+	//if err == nil {
+	//	return val.Enodes
+	//} else {
+	//	return nil
+	//}
+	db := s.b.ChainDb()
+	proto := header.VdposContext
+	vdposContext, err := types.NewVdposContextFromProto(db, proto)
+	if err != nil {
 		return nil
 	}
-
+	superNodes, err := vdposContext.GetSuperNodesFromTrie()
+	if err != nil {
+		return nil
+	}
+	return superNodes
 }
 
 // Get first head block enode msg
-func (s *PublicBlockChainAPI) GetLatesBlockEnode() *vdpos.HeaderExtra {
+//func (s *PublicBlockChainAPI) GetLastBlockEnode() *types.VdposContext {
+func (s *PublicBlockChainAPI) GetLastBlockEnode() ([]common.Address, []common.SuperNode) {
 	var err error
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
+	db := s.b.ChainDb()
+	proto := header.VdposContext
+
+	signersPool := make([]common.Address, 0)
+	superNodes := make([]common.SuperNode, 0)
+
 	b := header.Extra[32 : len(header.Extra)-65]
 	headerExtra := vdpos.HeaderExtra{}
 	val := &headerExtra
 	err = rlp.DecodeBytes(b, val)
 	if err == nil {
-		return val
-	} else {
-		return nil
+		signersPool = val.SignersPool
 	}
 
+	vdposContext, err := types.NewVdposContextFromProto(db, proto)
+	if err == nil {
+		superNodes, err = vdposContext.GetSuperNodesFromTrie()
+	}
+	return signersPool, superNodes
 }
 
 // inb by ghy end
@@ -602,25 +623,13 @@ func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) string {
 
 	header, _ := s.b.HeaderByNumber(context.Background(), rpc.LatestBlockNumber)
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-		total = new(big.Int).Sub(total, state.GetBalance(v.TotalAddress))
+		total = new(big.Int).Sub(total, state.GetBalance(v.Address))
+
+		if v.SpecialType == st.VotingReward || v.SpecialType == st.OnlineMarketing {
+			total = new(big.Int).Sub(total, state.GetBalance(v.ToAddress))
+		}
 	}
 	return total.String()
-
-	//Foundation := (state.GetBalance(common.HexToAddress(st.FoundationAccount)))
-	//MiningReward := (state.GetBalance(common.HexToAddress(st.MiningRewardAccount)))
-	//VerifyReward := (state.GetBalance(common.HexToAddress(st.VerifyRewardAccount)))
-	//VotingReward := (state.GetBalance(common.HexToAddress(st.VotingRewardAccount)))
-	//Team := (state.GetBalance(common.HexToAddress(st.TeamAccount)))
-	//OnlineMarketing := (state.GetBalance(common.HexToAddress(st.OnlineMarketingAccount)))
-	//OfflineMarketing := (state.GetBalance(common.HexToAddress(st.OfflineMarketingAccount)))
-	//total1 := new(big.Int).Sub(total, Foundation)
-	//total2 := new(big.Int).Sub(total1, MiningReward)
-	//total3 := new(big.Int).Sub(total2, VerifyReward)
-	//total4 := new(big.Int).Sub(total3, VotingReward)
-	//total5 := new(big.Int).Sub(total4, Team)
-	//total6 := new(big.Int).Sub(total5, OnlineMarketing)
-	//total7 := new(big.Int).Sub(total6, OfflineMarketing)
-	//return total7.String()
 
 }
 
@@ -643,12 +652,12 @@ func (s *PublicBlockChainAPI) GetUsedRes(ctx context.Context, address common.Add
 	return (*hexutil.Big)(state.GetUsedNet(address)), state.Error()
 }
 
-func (s *PublicBlockChainAPI) GetMortgage(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
+func (s *PublicBlockChainAPI) GetStaking(ctx context.Context, address common.Address, blockNr rpc.BlockNumber) (*hexutil.Big, error) {
 	state, _, err := s.b.StateAndHeaderByNumber(ctx, blockNr)
 	if state == nil || err != nil {
 		return nil, err
 	}
-	return (*hexutil.Big)(state.GetMortgageInbOfNet(address)), state.Error()
+	return (*hexutil.Big)(state.GetStakingValue(address)), state.Error()
 }
 
 //mortageNet
@@ -1145,6 +1154,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"receiptsRoot":     head.ReceiptHash,
 		"reward":           head.Reward,           //2019.6.28 inb by ghy
 		"SpecialConsensus": head.SpecialConsensus, //2019.7.23 inb by ghy
+		"VdposContext":     *head.VdposContext,    //2019.10.17 inb by ssh
 	}
 
 	if inclTx {
@@ -1156,12 +1166,28 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 				return newRPCTransactionFromBlockHash(b, tx.Hash()), nil
 			}
 		}
+
 		txs := b.Transactions()
-		transactions := make([]interface{}, len(txs))
+		transactions := make([]interface{}, 0)
 		var err error
-		for i, tx := range txs {
-			if transactions[i], err = formatTx(tx); err != nil {
-				return nil, err
+		var fmtTx interface{}
+		testAccounts := common.NewTestTransactions()
+		for _, tx := range txs {
+			flag := true
+			signer := types.NewEIP155Signer(tx.ChainId())
+			from, _ := types.Sender(signer, tx)
+			for _, v := range testAccounts {
+				if from == v {
+					flag = false
+					break
+				}
+			}
+			if flag {
+				if fmtTx, err = formatTx(tx); err != nil {
+					return nil, err
+				} else {
+					transactions = append(transactions, fmtTx)
+				}
 			}
 		}
 		fields["transactions"] = transactions
@@ -1204,7 +1230,7 @@ type RPCTransaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
-	Types            types.TxType    `json:"txType"`
+	Types            hexutil.Uint64  `json:"txType"` //2019.10.17 inb by ssh
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -1229,7 +1255,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		V:     (*hexutil.Big)(v),
 		R:     (*hexutil.Big)(r),
 		S:     (*hexutil.Big)(s),
-		Types: tx.Types(),
+		Types: hexutil.Uint64(tx.Types()), //2019.10.17 inb by ssh
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
@@ -1403,7 +1429,7 @@ func (s *PublicTransactionPoolAPI) GetTransactionReceipt(ctx context.Context, ha
 		"to":                tx.To(),
 		"resUsed":           hexutil.Uint64(receipt.ResUsed),           //inb by ssh 190628
 		"cumulativeResUsed": hexutil.Uint64(receipt.CumulativeResUsed), //inb by ssh 190628
-		"IncomeClaimed":     receipt.IncomeClaimed,                     //2019.8.1 inb by ghy
+		"value":             receipt.Value,                             //2019.8.1 inb by ghy
 		"contractAddress":   nil,
 		"logs":              receipt.Logs,
 		"logsBloom":         receipt.Bloom,
@@ -1453,11 +1479,10 @@ type SendTxArgs struct {
 	Nonce *hexutil.Uint64 `json:"nonce"`
 	// We accept "data" and "input" for backwards-compatibility reasons. "input" is the
 	// newer name and should be preferred by clients.
-	Data  *hexutil.Bytes `json:"data"`
-	Input *hexutil.Bytes `json:"input"`
-	Types types.TxType   `json:"txType"`
-	//ResourcePayer *common.Address `json:"resourcePayer"`
-
+	Data          *hexutil.Bytes  `json:"data"`
+	Input         *hexutil.Bytes  `json:"input"`
+	Types         types.TxType    `json:"txType"`
+	ResourcePayer *common.Address `json:"resourcePayer"`
 }
 
 // setDefaults is a helper function that fills in default values for unspecified tx fields.
@@ -1521,10 +1546,10 @@ func (args *SendTxArgs) toTransaction() *types.Transaction {
 	if args.To == nil && args.Types != types.Contract {
 		return types.NewNilToTransaction(uint64(*args.Nonce), (*big.Int)(args.Value), uint64(0), input, args.Types)
 	}
-	// 	if args.ResourcePayer != nil {
-	// 		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.ResourcePayer,args.Types)
-	// 	}
-	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.Types)
+	if args.ResourcePayer != nil {
+		return types.NewTransaction4Payment(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types, args.ResourcePayer)
+	}
+	//return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(*args.Gas), input, args.TxType)
 	return types.NewTransaction(uint64(*args.Nonce), *args.To, (*big.Int)(args.Value), uint64(0), input, args.Types)
 }
 
@@ -1590,9 +1615,9 @@ func (s *PublicTransactionPoolAPI) SendRawTransaction(ctx context.Context, encod
 	if err := rlp.DecodeBytes(encodedTx, tx); err != nil {
 		return common.Hash{}, err
 	}
-	if !tx.IsRepayment() {
-		tx.SetPayment()
-	}
+	//if !tx.IsRepayment() {
+	//	tx.SetPayment()
+	//}
 
 	return submitTransaction(ctx, s.b, tx)
 }
@@ -1723,24 +1748,6 @@ func (s *PublicTransactionPoolAPI) SignPaymentTransaction(ctx context.Context, d
 		return nil, fmt.Errorf("resourcePayer not specified")
 	}
 	resourcePayer = tx.ResourcePayer()
-	//recover signature from v,r,s
-	v, r, ss := tx.RawSignatureValues()
-	vb := byte(v.Uint64() - 27)
-	sig := make([]byte, 65)
-	copy(sig[32-len(r.Bytes()):32], r.Bytes())
-	copy(sig[64-len(ss.Bytes()):64], ss.Bytes())
-	sig[64] = vb
-	//vrify sender signature
-	if len(sig) != 65 {
-		return nil, fmt.Errorf("signature must be 65 bytes long")
-	}
-	/*if sig[64] != 27 && sig[64] != 28 {
-		return nil, fmt.Errorf("invalid Ethereum signature (V is not 27 or 28)")
-	}*/
-	//rpk, err := crypto.SigToPub(signHash(data), sig)
-	//if !crypto.VerifySignature(crypto.CompressPubkey(rpk), signHash(data), sig){
-	//	return nil, fmt.Errorf("verify error")
-	//}
 	signer := types.MakeSigner(s.b.ChainConfig(), s.b.CurrentBlock().Number())
 	from, err := types.Sender(signer, tx)
 	if err != nil {

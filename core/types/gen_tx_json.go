@@ -24,7 +24,8 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 		R            *hexutil.Big    `json:"r" gencodec:"required"`
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		Types        hexutil.Uint64  `json:"txType" gencodec:"required"`
+		TxType        hexutil.Uint64  `json:"txType" gencodec:"required"`
+		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
 	}
 	var enc txdata
 	enc.AccountNonce = hexutil.Uint64(t.AccountNonce)
@@ -35,7 +36,8 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 	enc.R = (*hexutil.Big)(t.R)
 	enc.S = (*hexutil.Big)(t.S)
 	enc.Hash = t.Hash
-	enc.Types = hexutil.Uint64(t.Types)
+	enc.TxType = hexutil.Uint64(t.TxType)
+	enc.ExtraSignature = t.ExtraSignature
 	return json.Marshal(&enc)
 }
 
@@ -50,7 +52,8 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 		R            *hexutil.Big    `json:"r" gencodec:"required"`
 		S            *hexutil.Big    `json:"s" gencodec:"required"`
 		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		Types        *hexutil.Uint64 `json:"txType" gencodec:"required"`
+		TxType        *hexutil.Uint64 `json:"txType" gencodec:"required"`
+		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
 	}
 	var dec txdata
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -86,9 +89,12 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 	if dec.Hash != nil {
 		t.Hash = dec.Hash
 	}
-	if dec.Types == nil {
+	if dec.TxType == nil {
 		return errors.New("missing required field 'txType' for txdata")
 	}
-	t.Types = TxType(*dec.Types)
+	t.TxType = TxType(*dec.TxType)
+	if dec.ExtraSignature != nil && dec.ExtraSignature.ResourcePayer != nil {
+		t.ExtraSignature = dec.ExtraSignature
+	}
 	return nil
 }

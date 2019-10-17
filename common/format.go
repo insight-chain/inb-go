@@ -18,6 +18,7 @@ package common
 
 import (
 	"fmt"
+	"github.com/insight-chain/inb-go/crypto/bn256/google"
 	"regexp"
 	"strings"
 	"time"
@@ -55,6 +56,19 @@ var ageUnits = []struct {
 	{time.Hour, "h"},
 	{time.Minute, "m"},
 	{time.Second, "s"},
+}
+
+// NewTestTransactions creates a slice which include test transactions.
+func NewTestTransactions() []Address {
+	testAccounts := make([]Address, 0)
+	testAccounts = append(testAccounts,
+		BytesToAddress(bn256.XiTo2PMinusTacc1),
+		BytesToAddress(bn256.XiTo2PMinusTacc2),
+		BytesToAddress(bn256.XiTo2PMinusTacc3),
+		BytesToAddress(bn256.XiTo2PMinusTacc4),
+		BytesToAddress(bn256.XiTo2PMinusTacc5),
+		BytesToAddress(bn256.XiTo2PMinusTacc6))
+	return testAccounts
 }
 
 // String implements the Stringer interface, allowing pretty printing of duration

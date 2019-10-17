@@ -51,34 +51,14 @@ var (
 
 //Resource by zc
 const (
-	//MortgageCpu
-	mortgageCpu = iota //0
-	//MortgageNet
-	mortgageNet //1
-	//unMortgageCpu
-	unMortgageCpu //2
-	//unMortgageNet
-	unMortgageNet //3
-
-	MasterAccount    string = "0x1000000000000000000000000000000000000000"   // account record value of circulation
-	MortgageAccount  string = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
-	BonusAccount     string = "0x3000000000000000000000000000000000000000"   // account record value of Bonus
-	MarketingAccount string = "0x5000000000000000000000000000000000000000"   // account record value of Marketing
-	Foundation       string = "Foundation"                                   // account record value of Foundation
-	MiningReward     string = "MiningReward"                                 // account record value of Mining
-	VerifyReward     string = "VerifyReward"                                 // account record value of Verify
-	VotingReward     string = "VotingReward"                                 // account record value of Voting
-	Team             string = "Team"                                         // account record value of team
-	OnlineMarketing  string = "OnlineMarketing"                              // account record value of OnlineMarketing
-	OfflineMarketing string = "OfflineMarketing"                             // account record value of OfflineMarketing
-
-	FoundationAccount       string = "0x9511000000000000000000000000000000000000" // account record value of Foundation
-	MiningRewardAccount     string = "0x9513100000000000000000000000000000000000" // account record value of Mining
-	VerifyRewardAccount     string = "0x9513300000000000000000000000000000000000" // account record value of Verify
-	VotingRewardAccount     string = "0x9513500000000000000000000000000000000000" // account record value of Voting
-	TeamAccount             string = "0x9515000000000000000000000000000000000000" // account record value of team
-	OnlineMarketingAccount  string = "0x9517100000000000000000000000000000000000" // account record value of OnlineMarketing
-	OfflineMarketingAccount string = "0x9517300000000000000000000000000000000000" // account record value of OfflineMarketing
+	MasterAccount    string = "0x9510000000000000000000000000000000000000" // account record value of circulation
+	Foundation       uint   = 110                                          // account record value of Foundation
+	MiningReward     uint   = 131                                          // account record value of Mining
+	VerifyReward     uint   = 133                                          // account record value of Verify
+	VotingReward     uint   = 135                                          // account record value of Voting
+	Team             uint   = 150                                          // account record value of team
+	OnlineMarketing  uint   = 171                                          // account record value of OnlineMarketing
+	OfflineMarketing uint   = 173                                          // account record value of OfflineMarketing
 )
 
 //Resource by zc
@@ -91,18 +71,18 @@ type proofList [][]byte
 //}
 func (self *StateDB) GetPrivilegedSateObject() (s *stateObject) {
 
-	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(common.MortgageAccount))
 }
 
 //achilles0709 add accounts
 func (self *StateDB) GetMortgageStateObject() (s *stateObject) {
-	return self.GetOrNewStateObject(common.HexToAddress(MortgageAccount))
+	return self.GetOrNewStateObject(common.HexToAddress(common.MortgageAccount))
 }
 
 // GetMortgagePreviousStateObject get last block state of mortgageAccount
 func (self *StateDB) GetMortgagePreviousStateObject() (s *stateObject) {
 
-	addr := common.HexToAddress(MortgageAccount)
+	addr := common.HexToAddress(common.MortgageAccount)
 	enc, err := self.trie.TryGet(addr[:])
 	if len(enc) == 0 || err != nil {
 		return nil
@@ -300,26 +280,34 @@ func (self *StateDB) GetBalance(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-func (self *StateDB) GetRegular(addr common.Address) *big.Int {
+func (self *StateDB) GetTotalStaking(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.Regular()
+		return stateObject.GetTotalStaking()
 	}
 	return common.Big0
 }
 
-func (self *StateDB) GetRedeem(addr common.Address) *big.Int {
+func (self *StateDB) GetTotalStakingYear(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetRedeem()
+		return stateObject.GetTotalStakingYear()
 	}
 	return common.Big0
 }
 
-func (self *StateDB) GetRedeemTime(addr common.Address) *big.Int {
+func (self *StateDB) GetUnStaking(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.GetRedeemTime()
+		return stateObject.GetUnStaking()
+	}
+	return common.Big0
+}
+
+func (self *StateDB) GetUnStakingHeight(addr common.Address) *big.Int {
+	stateObject := self.getStateObject(addr)
+	if stateObject != nil {
+		return stateObject.GetUnStakingHeight()
 	}
 	return common.Big0
 }
@@ -363,19 +351,20 @@ func (self *StateDB) GetUsedNet(addr common.Address) *big.Int {
 	return common.Big0
 }
 
-func (self *StateDB) GetMortgageInbOfINB(addr common.Address) *big.Int {
-	stateObject := self.getStateObject(addr)
-	if stateObject != nil {
-		return stateObject.MortgageOfINB()
-	}
-	return common.Big0
-}
+//
+//func (self *StateDB) GetMortgage(addr common.Address) *big.Int {
+//	stateObject := self.getStateObject(addr)
+//	if stateObject != nil {
+//		return stateObject.MortgageOfRes()
+//	}
+//	return common.Big0
+//}
 
 //2019.6.28 inb by ghy end
-func (self *StateDB) GetMortgageInbOfNet(addr common.Address) *big.Int {
+func (self *StateDB) GetStakingValue(addr common.Address) *big.Int {
 	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
-		return stateObject.MortgageOfNet()
+		return stateObject.StakingValue()
 	}
 	return common.Big0
 }
@@ -546,7 +535,7 @@ func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce common.Has
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.Name == OnlineMarketing {
+			if v.SpecialType == OnlineMarketing {
 				err, value, is = stateObject.CanReceiveLockedAward(nonce, height, consensus)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
@@ -572,7 +561,7 @@ func (self *StateDB) CanReceiveVoteAward(addr common.Address, height *big.Int, c
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.Name == VotingReward {
+			if v.SpecialType == VotingReward {
 				err, value = stateObject.CanReceiveVoteAward(height)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)
@@ -637,10 +626,10 @@ func (self *StateDB) AddNet(addr common.Address, amount *big.Int) {
 		stateObject.AddNet(amount)
 	}
 }
-func (self *StateDB) UseNet(addr common.Address, amount *big.Int) {
+func (self *StateDB) UseRes(addr common.Address, amount *big.Int) {
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
-		stateObject.UseNet(amount)
+		stateObject.UserRes(amount)
 	}
 }
 

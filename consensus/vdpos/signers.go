@@ -39,15 +39,15 @@ const (
 )
 
 type TallyItem struct {
-	addr  common.Address
-	stake *big.Int
+	addr       common.Address
+	votesValue *big.Int
 }
 type TallySlice []TallyItem
 
 func (s TallySlice) Len() int      { return len(s) }
 func (s TallySlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s TallySlice) Less(i, j int) bool {
-	isLess := s[i].stake.Cmp(s[j].stake)
+	isLess := s[i].votesValue.Cmp(s[j].votesValue)
 	if isLess > 0 {
 		return true
 
@@ -96,10 +96,10 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 			return nil
 		}
 		address := tally.Address
-		regular := s.statedb.GetRegular(address)
-		if regular.Cmp(new(big.Int).Mul(big.NewInt(5000000), big.NewInt(params.Inber))) >= 0 {
-			stake := tally.Stake
-			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+		tlsv := tally.TimeLimitedStakingValue
+		if tlsv.Cmp(new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Inber))) >= 0 {
+			votesValue := tally.VotesValue
+			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(votesValue, big.NewInt(defaultFullCredit))})
 		}
 		existTally = tallyIterator.Next()
 	}
@@ -153,8 +153,8 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 					return nil, fmt.Errorf("failed to decode tally: %s", err)
 				}
 				tallyItem := TallyItem{
-					addr:  tally.Address,
-					stake: tally.Stake,
+					addr:       tally.Address,
+					votesValue: tally.VotesValue,
 				}
 				tallySliceOrder = append(tallySliceOrder, tallyItem)
 			}
@@ -202,8 +202,14 @@ func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent
 		log.Error("Fail to decode header", "err", err)
 		return false
 	}
+	//signers, err := s.VdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+
 	headerTime := header.Time.Uint64()
 	loopStartTime := parentExtra.LoopStartTime
+	//loopStartTime := parent.LoopStartTime
 	signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
 		// handle config.Period != config.SignerPeriod

@@ -17,9 +17,12 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
+	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/params"
@@ -58,20 +61,22 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Difficulty:       new(big.Int).Set(header.Difficulty),
 		GasLimit:         header.ResLimit,
 		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:             CanMortgage,
-		CanRedeem:               CanRedeem,
-		CanReset:                CanReset,
-		CanReceive:              CanReceive,
-		RedeemTransfer:          RedeemTransfer,
-		ResetTransfer:           ResetTransfer,
-		ReceiveTransfer:         ReceiveTransfer,
-		CanReceiveLockedAward:   CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
-		ReceiveLockedAward:      ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
-		CanReceiveVoteAward:     CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
-		ReceiveVoteAward:        ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
-		Vote:                    Vote,                      //2019.7.24 inb by ghy
-		InsteadMortgageTransfer: InsteadMortgageTransfer,   //20190919 added replacement mortgage
-		CanInsteadMortgage:      CanInsteadMortgage,
+		CanMortgage:           CanMortgage,
+		CanRedeem:             CanRedeem,
+		CanReset:              CanReset,
+		CanReceive:            CanReceive,
+		RedeemTransfer:        RedeemTransfer,
+		ResetTransfer:         ResetTransfer,
+		ReceiveTransfer:       ReceiveTransfer,
+		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                  Vote,                      //2019.7.24 inb by ghy
+		InsteadMortgageTransfer:  InsteadMortgageTransfer, //20190919 added replacement mortgage
+		CanInsteadMortgage:       CanInsteadMortgage,
+		CanUpdateNodeInformation: CanUpdateNodeInformation, //2019.10.17 inb by ghy
+		CanVote:                  CanVote,                  //2019.10.17 inb by ghy
 	}
 }
 
@@ -177,18 +182,21 @@ func CanReset(db vm.StateDB, addr common.Address, now *big.Int) error {
 }
 
 func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *big.Int) error {
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(addr); count >= params.TxConfig.RegularLimit {
-			return errors.New(" exceeds mortgagtion count limit ")
+			return errors.New(" exceeds staking count limit ")
 		}
 		if !params.Contains(duration) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 	}
 
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New(" the value for mortgaging is too low ")
+		return errors.New(" the value for staking is too low ")
 	}
 	if db.GetBalance(addr).Cmp(amount) < 0 {
 		return errors.New(" insufficient balance ")
@@ -197,18 +205,21 @@ func CanMortgage(db vm.StateDB, addr common.Address, amount *big.Int, duration *
 }
 
 func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int, duration *big.Int) error {
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
 	if duration.Cmp(big.NewInt(0)) > 0 {
 		if count := db.StoreLength(to); count >= params.TxConfig.RegularLimit {
-			return errors.New(" exceeds mortgagtion count limit ")
+			return errors.New(" exceeds staking count limit ")
 		}
 		if !params.Contains(duration) {
-			return errors.New(" wrong duration of mortgagtion ")
+			return errors.New(" invalid duration for staking ")
 		}
 	}
 
 	temp := big.NewInt(1).Div(amount, params.TxConfig.WeiOfUseNet)
 	if temp.Cmp(big.NewInt(0)) <= 0 {
-		return errors.New(" the value for mortgaging is too low ")
+		return errors.New(" the value for staking is too low ")
 	}
 	if db.GetBalance(from).Cmp(amount) < 0 {
 		return errors.New(" insufficient balance ")
@@ -217,27 +228,55 @@ func CanInsteadMortgage(db vm.StateDB, from, to common.Address, amount *big.Int,
 }
 
 func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
-	mortgaging := db.GetMortgageInbOfNet(addr)
-	regular := db.GetRegular(addr)
-	value := db.GetRedeem(addr)
+	if params.TxConfig.MinStaking.Cmp(amount) > 0 {
+		return errors.New(" minimum value more than 100,000 ")
+	}
+	mortgaging := db.GetStakingValue(addr)
+	totalStaking := db.GetTotalStaking(addr)
+	value := db.GetUnStaking(addr)
 
-	usable := new(big.Int).Sub(mortgaging, regular)
+	usable := new(big.Int).Sub(mortgaging, totalStaking)
 	//usable = new(big.Int).Add(usable, value)
 	usable.Sub(usable, value)
 	if usable.Cmp(amount) < 0 {
-		return errors.New(" insufficient available value of mortgage ")
+		return errors.New(" insufficient available value for staking ")
+	}
+	return nil
+}
+
+func CanUpdateNodeInformation(db vm.StateDB, from common.Address, byte []byte) error {
+	nodeInfo := new(common.SuperNodeExtra)
+	if err := json.Unmarshal(byte, nodeInfo); err != nil {
+		return err
+	}
+	if err := ValidateUpdateInformation(nodeInfo); err != nil {
+		return err
+	}
+	if len(byte) > 900 {
+		return errors.New("date over size")
+	}
+
+	if db.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
+	}
+	return nil
+}
+
+func CanVote(db vm.StateDB, byte []byte) error {
+	if err := ValidateVote(db, byte); err != nil {
+		return err
 	}
 	return nil
 }
 
 func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
-	timeLimit := new(big.Int).Add(db.GetRedeemTime(addr), params.TxConfig.RedeemDuration)
+	timeLimit := new(big.Int).Add(db.GetUnStakingHeight(addr), params.TxConfig.RedeemDuration)
 	//now := big.NewInt(time.Now().Unix())
 	if timeLimit.Cmp(now) > 0 {
 		return errors.New(" before receive time ")
 	}
-	if big.NewInt(0).Cmp(db.GetRedeem(addr)) == 0 {
-		return errors.New(" insufficient available value of redeeming ")
+	if big.NewInt(0).Cmp(db.GetUnStaking(addr)) == 0 {
+		return errors.New(" insufficient available value for unstaking ")
 	}
 	return nil
 }

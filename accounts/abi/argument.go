@@ -24,7 +24,7 @@ import (
 )
 
 // Argument holds the name of the argument and the corresponding type.
-// Types are used when packing and testing arguments.
+// TxType are used when packing and testing arguments.
 type Argument struct {
 	Name    string
 	Type    Type
