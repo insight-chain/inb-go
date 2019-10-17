@@ -263,12 +263,12 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 		}
 		//2019.7.22 inb by ghy end
 	} else if txType == types.Regular {
-		regulars := strings.Split(inputStr, ":")
-		if len(regulars) <= 1 {
-			return nil, res, ErrNotResolveInput, big.NewInt(0)
-		}
-		convert, err := strconv.Atoi(regulars[1])
-
+		//regulars := strings.Split(inputStr, ":")
+		//if len(regulars) <= 1 {
+		//	return nil, res, ErrNotResolveInput, big.NewInt(0)
+		//}
+		//convert, err := strconv.Atoi(regulars[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
 			return nil, res, err, nil
 		}
@@ -282,12 +282,12 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 			return nil, res, err, nil
 		}
 	} else if txType == types.InsteadMortgage {
-		regulars := strings.Split(inputStr, ":")
-		if len(regulars) <= 1 {
-			return nil, res, ErrNotResolveInput, big.NewInt(0)
-		}
-		convert, err := strconv.Atoi(regulars[1])
-
+		//regulars := strings.Split(inputStr, ":")
+		//if len(regulars) <= 1 {
+		//	return nil, res, ErrNotResolveInput, big.NewInt(0)
+		//}
+		//convert, err := strconv.Atoi(regulars[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
 			return nil, res, err, nil
 		}
