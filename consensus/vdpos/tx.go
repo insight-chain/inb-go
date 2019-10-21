@@ -23,7 +23,6 @@ import (
 	"github.com/insight-chain/inb-go/params"
 	"github.com/pkg/errors"
 	"math/big"
-	"strconv"
 	"strings"
 
 	"github.com/insight-chain/inb-go/common"
@@ -34,18 +33,6 @@ import (
 )
 
 const (
-	PosEventDeclareInfoSplitLen       = 3
-	PosEventDeclareInfoId             = 0
-	PosEventDeclareInfoIp             = 1
-	PosEventDeclareInfoPort           = 2
-	PosEventDeclareInfoReceiveAccount = 3
-	PosEventDeclareInfoName           = 4
-	PosEventDeclareInfoNation         = 5
-	PosEventDeclareInfoImage          = 6
-	PosEventDeclareInfoWebsite        = 7
-	PosEventDeclareInfoEmail          = 8
-	PosEventDeclareInfoData           = 9
-
 	PosEventIssueLightTokenSplitLen    = 4
 	PosEventIssueLightTokenName        = 0
 	PosEventIssueLightTokenSymbol      = 1
@@ -298,70 +285,75 @@ func (v *Vdpos) processPredecessorVoter(state *state.StateDB, tx *types.Transact
 // inb by ssh 190904 end
 
 func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender common.Address, vdposContext *types.VdposContext) error {
-	txDataInfo := string(tx.Data())
-	lightTokenInfo := strings.Split(txDataInfo, "~")
-	if len(lightTokenInfo) < PosEventIssueLightTokenSplitLen {
-		return errors.Errorf("issue lightToken need 4 parameter")
-	} else {
-		name := lightTokenInfo[PosEventIssueLightTokenName]
-		symbol := lightTokenInfo[PosEventIssueLightTokenSymbol]
-		decimalsStr := lightTokenInfo[PosEventIssueLightTokenDecimals]
-		decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
-		if err != nil {
-			return errors.Errorf("decimals is not uint8")
-		} else if decimalsNum > 5 {
-			return errors.Errorf("decimals must from 0~5")
-		}
-		decimals := uint8(decimalsNum)
-		totalSupplyStr := lightTokenInfo[PosEventIssueLightTokenTotalSupply]
-		totalSupply, ok := new(big.Int).SetString(totalSupplyStr, 10)
-		if !ok {
-			return errors.Errorf("unable to convert string to big integer: %v", totalSupplyStr)
-		}
-		txHash := tx.Hash()
-		lightTokenAddressBytes := append([]byte{149}, txHash[:19]...)
-		lightTokenAddress := common.BytesToAddress(lightTokenAddressBytes)
-
-		// first update lightTokenTrie
-		lightToken := &types.LightToken{
-			Address:              lightTokenAddress,
-			Name:                 name,
-			Symbol:               symbol,
-			Decimals:             decimals,
-			TotalSupply:          totalSupply,
-			IssuedAccountAddress: txSender,
-			IssuedTxHash:         txHash,
-			Owner:                txSender,
-			PayForInb:            tx.Value(),
-			Type:                 1,
-		}
-		//lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
-		//if lightTokenExist != nil {
-		//	if err != nil {
-		//		return errors.Errorf("err in vdposContext.GetLightToken()")
-		//	} else {
-		//		return errors.Errorf("this lightToken has already exist")
-		//	}
-		//}
-		err = vdposContext.UpdateLightToken(lightToken)
-		if err != nil {
-			return err
-		}
-
-		// second update lightTokenAccountTrie
-		lightTokenChanges := new(types.LightTokenChanges)
-		lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
-			AccountAddress:    txSender,
-			LightTokenAddress: lightTokenAddress,
-			LT:                lightToken,
-			ChangeBalance:     totalSupply,
-			ChangeType:        types.Add,
-		})
-		err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
-		if err != nil {
-			return err
-		}
+	lightTokenJson := new(types.LightTokenJson)
+	if err := json.Unmarshal(tx.Data(), lightTokenJson); err != nil {
+		return err
 	}
+
+	//txDataInfo := string(tx.Data())
+	//lightTokenInfo := strings.Split(txDataInfo, "~")
+	//if len(lightTokenInfo) < PosEventIssueLightTokenSplitLen {
+	//	return errors.Errorf("issue lightToken need 4 parameter")
+	//} else {
+	//	name := lightTokenInfo[PosEventIssueLightTokenName]
+	//	symbol := lightTokenInfo[PosEventIssueLightTokenSymbol]
+	//	decimalsStr := lightTokenInfo[PosEventIssueLightTokenDecimals]
+	//	decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+	//	if err != nil {
+	//		return errors.Errorf("decimals is not uint8")
+	//	} else if decimalsNum > 5 {
+	//		return errors.Errorf("decimals must from 0~5")
+	//	}
+	//	decimals := uint8(decimalsNum)
+	//	totalSupplyStr := lightTokenInfo[PosEventIssueLightTokenTotalSupply]
+	//	totalSupply, ok := new(big.Int).SetString(totalSupplyStr, 10)
+	//	if !ok {
+	//		return errors.Errorf("unable to convert string to big integer: %v", totalSupplyStr)
+	//	}
+	txHash := tx.Hash()
+	lightTokenAddressBytes := append([]byte{149}, txHash[:19]...)
+	lightTokenAddress := common.BytesToAddress(lightTokenAddressBytes)
+
+	// first update lightTokenTrie
+	lightToken := &types.LightToken{
+		Address:              lightTokenAddress,
+		Name:                 lightTokenJson.Name,
+		Symbol:               lightTokenJson.Symbol,
+		Decimals:             lightTokenJson.Decimals,
+		TotalSupply:          lightTokenJson.TotalSupply,
+		IssuedAccountAddress: txSender,
+		IssuedTxHash:         txHash,
+		Owner:                txSender,
+		PayForInb:            tx.Value(),
+		Type:                 1,
+	}
+	//lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
+	//if lightTokenExist != nil {
+	//	if err != nil {
+	//		return errors.Errorf("err in vdposContext.GetLightToken()")
+	//	} else {
+	//		return errors.Errorf("this lightToken has already exist")
+	//	}
+	//}
+	err := vdposContext.UpdateLightToken(lightToken)
+	if err != nil {
+		return err
+	}
+
+	// second update lightTokenAccountTrie
+	lightTokenChanges := new(types.LightTokenChanges)
+	lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
+		AccountAddress:    txSender,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     lightTokenJson.TotalSupply,
+		ChangeType:        types.Add,
+	})
+	err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

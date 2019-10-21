@@ -92,6 +92,21 @@ web3i._extend({
 			call: 'vdpos_getCandidateNodesInfo',
 			params: 0
 		}),
+		new web3i._extend.Method({
+   			name: 'getLightTokenByAddress',
+   			call: 'vdpos_getLightTokenByAddress',
+   			params: 1
+  		}),
+  		new web3i._extend.Method({
+   			name: 'getLightTokenAccountByAccountAddress',
+   			call: 'vdpos_getLightTokenAccountByAccountAddress',
+			params: 1
+  		}),
+  		new web3i._extend.Method({
+   			name: 'getLightTokenBalanceByAddress',
+   			call: 'vdpos_getLightTokenBalanceByAddress',
+   			params: 2
+  		}),
 	]
 });
 `

@@ -54,7 +54,8 @@ func NewEnv(cfg *Config) *vm.EVM {
 		InsteadMortgageTransfer:  core.InsteadMortgageTransfer, //20190919 added replacement mortgage
 		CanInsteadMortgage:       core.CanInsteadMortgage,
 		CanUpdateNodeInformation: core.CanUpdateNodeInformation, //2019.10.17 inb by ghy
-		CanVote:                  core.CanVote,
+		CanVote:                  core.CanVote,                  //2019.10.18 inb by ghy
+		CanIssueLightToken:       core.CanIssueLightToken,       //2019.10.18 inb by ghy
 	}
 
 	return vm.NewEVM(context, cfg.State, cfg.ChainConfig, cfg.EVMConfig)

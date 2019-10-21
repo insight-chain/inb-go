@@ -40,7 +40,7 @@ var (
 type TxType uint8
 
 const (
-	_  TxType = iota
+	_                     TxType = iota
 	Ordinary                     //1
 	Mortgage                     //2
 	Regular                      //3
@@ -64,7 +64,7 @@ func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
 		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != SpecialTx && txType != Contract &&
-		txType != InsteadMortgage && txType != UpdateNodeInformation {
+		txType != InsteadMortgage && txType != UpdateNodeInformation && txType != IssueLightToken {
 		flag = false
 	}
 	return flag

@@ -78,6 +78,13 @@ type LightToken struct {
 	Type                 uint8
 }
 
+type LightTokenJson struct {
+	Name        string   `json:"name"`
+	Symbol      string   `json:"symbol"`
+	Decimals    uint8    `json:"decimals"`
+	TotalSupply *big.Int `json:"totalSupply"`
+}
+
 type ApproveInfo struct {
 	Receiver common.Address
 	Balance  *big.Int

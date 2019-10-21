@@ -62,6 +62,7 @@ type (
 	CanInsteadMortgageFunc       func(StateDB, common.Address, common.Address, *big.Int, *big.Int) error
 	CanUpdateNodeInformationFunc func(StateDB, common.Address, []byte) error //2019.10.17 inb by ghy
 	CanVoteFunc                  func(StateDB, []byte) error
+	CanIssueLightTokenFunc       func(StateDB, common.Address, []byte, *big.Int) error
 )
 
 // run runs the given contract and takes care of running precompiles with a fallback to the byte code interpreter.
@@ -131,7 +132,8 @@ type Context struct {
 	InsteadMortgageTransfer  InsteadMortgageTransferFunc //20190919 added replacement mortgage
 	CanInsteadMortgage       CanInsteadMortgageFunc
 	CanUpdateNodeInformation CanUpdateNodeInformationFunc //2019.10.17 inb by ghy
-	CanVote                  CanVoteFunc
+	CanVote                  CanVoteFunc                  //2019.10.17 inb by ghy
+	CanIssueLightToken       CanIssueLightTokenFunc       //2019.10.18 inb by ghy
 }
 
 // EVM is the Ethereum Virtual Machine base object and provides
@@ -316,6 +318,10 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 		}
 	} else if txType == types.Vote {
 		if err = evm.Context.CanVote(evm.StateDB, input); err != nil {
+			return nil, res, err, nil
+		}
+	} else if txType == types.IssueLightToken {
+		if err = evm.Context.CanIssueLightToken(evm.StateDB, caller.Address(), input, value); err != nil {
 			return nil, res, err, nil
 		}
 	} else if txType == types.TransferLightToken {

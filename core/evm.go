@@ -17,12 +17,9 @@
 package core
 
 import (
-	"encoding/json"
 	"errors"
-	"fmt"
 	"github.com/insight-chain/inb-go/common"
 	"github.com/insight-chain/inb-go/consensus"
-	"github.com/insight-chain/inb-go/consensus/vdpos"
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/params"
@@ -77,6 +74,7 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		CanInsteadMortgage:       CanInsteadMortgage,
 		CanUpdateNodeInformation: CanUpdateNodeInformation, //2019.10.17 inb by ghy
 		CanVote:                  CanVote,                  //2019.10.17 inb by ghy
+		CanIssueLightToken:       CanIssueLightToken,       //2019.10.18 inb by ghy
 	}
 }
 
@@ -244,20 +242,10 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	return nil
 }
 
+//2019.10.18 inb by ghy
 func CanUpdateNodeInformation(db vm.StateDB, from common.Address, byte []byte) error {
-	nodeInfo := new(common.SuperNodeExtra)
-	if err := json.Unmarshal(byte, nodeInfo); err != nil {
+	if err := ValidateUpdateInformation(db, from, byte); err != nil {
 		return err
-	}
-	if err := ValidateUpdateInformation(nodeInfo); err != nil {
-		return err
-	}
-	if len(byte) > 900 {
-		return errors.New("date over size")
-	}
-
-	if db.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
-		return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
 	}
 	return nil
 }
@@ -268,7 +256,14 @@ func CanVote(db vm.StateDB, byte []byte) error {
 	}
 	return nil
 }
+func CanIssueLightToken(db vm.StateDB, addr common.Address, byte []byte, value *big.Int) error {
+	if err := ValidateIssueLightToken(db, addr, byte, value); err != nil {
+		return err
+	}
+	return nil
+}
 
+//2019.10.18 inb by ghy
 func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
 	timeLimit := new(big.Int).Add(db.GetUnStakingHeight(addr), params.TxConfig.RedeemDuration)
 	//now := big.NewInt(time.Now().Unix())

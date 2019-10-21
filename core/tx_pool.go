@@ -633,20 +633,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	if tx.WhichTypes(types.UpdateNodeInformation) {
-		nodeInfo := new(common.SuperNodeExtra)
-		if err := json.Unmarshal(tx.Data(), nodeInfo); err != nil {
+		if err = ValidateUpdateInformation(pool.currentState, from, tx.Data()); err != nil {
 			return err
 		}
-		if err = ValidateUpdateInformation(nodeInfo); err != nil {
-			return err
-		}
-		if len(inputStr) > 900 {
-			return errors.New("date over size")
-		}
-		if pool.currentState.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
-			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
-		}
-
 	}
 
 	//2019.7.18 inb mod by ghy begin
@@ -795,27 +784,27 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// add by ssh 190921 begin
 	if tx.WhichTypes(types.IssueLightToken) {
-		lightTokenInfo := strings.Split(inputStr, "~")
-		if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
-			return errors.New("issue lightToken need 4 parameter")
-		} else {
-			decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
-			decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
-			if err != nil {
-				return errors.New("decimals is not uint8")
-			} else if decimalsNum > 5 {
-				return errors.New("decimals must from 0~5")
-			}
-			totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
-			_, ok := new(big.Int).SetString(totalSupplyStr, 10)
-			if !ok {
-				return errors.New("unable to convert totalSupply string to big integer")
-			}
+		if err := ValidateIssueLightToken(pool.currentState, from, tx.Data(), tx.Value()); err != nil {
+			return err
 		}
+		//lightTokenInfo := strings.Split(inputStr, "~")
+		//if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
+		//	return errors.New("issue lightToken need 4 parameter")
+		//} else {
+		//	decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
+		//	decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+		//	if err != nil {
+		//		return errors.New("decimals is not uint8")
+		//	} else if decimalsNum > 5 {
+		//		return errors.New("decimals must from 0~5")
+		//	}
+		//	totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
+		//	_, ok := new(big.Int).SetString(totalSupplyStr, 10)
+		//	if !ok {
+		//		return errors.New("unable to convert totalSupply string to big integer")
+		//	}
+		//}
 
-		if tx.Value().Cmp(new(big.Int).Mul(big.NewInt(1000), big.NewInt(params.Inber))) < 0 || tx.Value().Cmp(new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))) > 0 {
-			return errors.New("issue token must sub 1000~10000 inb")
-		}
 	}
 
 	if tx.WhichTypes(types.TransferLightToken) {
@@ -1683,7 +1672,17 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 }
 
 //2019.7.22 inb by ghy end
-func ValidateUpdateInformation(nodeInfo *common.SuperNodeExtra) error {
+func ValidateUpdateInformation(db vm.StateDB, from common.Address, input []byte) error {
+	nodeInfo := new(common.SuperNodeExtra)
+
+	if len(input) > common.LenOfNodeInfoByte {
+		return errors.New("date over size")
+	}
+
+	if err := json.Unmarshal(input, nodeInfo); err != nil {
+		return err
+	}
+
 	if ip := net.ParseIP(nodeInfo.Ip); ip == nil {
 		return errors.New("err of ip")
 	}
@@ -1692,7 +1691,7 @@ func ValidateUpdateInformation(nodeInfo *common.SuperNodeExtra) error {
 		return err
 	}
 
-	if len(nodeInfo.Id) != common.LenOfId || len(nodeInfo.Id) == 0 {
+	if len(nodeInfo.Id) != common.LenOfNodeInfoId || len(nodeInfo.Id) == 0 {
 		return errors.New("len of node id err")
 	}
 
@@ -1700,34 +1699,39 @@ func ValidateUpdateInformation(nodeInfo *common.SuperNodeExtra) error {
 		return errors.New("err of reward account")
 	}
 
-	if len(nodeInfo.Image) > common.LenOfImage {
+	if len(nodeInfo.Image) > common.LenOfNodeInfoImage {
 		return errors.New("out of image length")
 	}
 
-	if len(nodeInfo.Email) > common.LenOfEmail {
+	if len(nodeInfo.Email) > common.LenOfNodeInfoEmail {
 		return errors.New("out of email length")
 	}
 
-	if len(nodeInfo.Website) > common.LenOfWebsite {
+	if len(nodeInfo.Website) > common.LenOfNodeInfoWebsite {
 		return errors.New("out of website length")
 	}
 
-	if len(nodeInfo.Nation) > common.LenOfNation {
+	if len(nodeInfo.Nation) > common.LenOfNodeInfoNation {
 		return errors.New("out of nation length")
 	}
 
-	if len(nodeInfo.Name) > common.LenOfName {
+	if len(nodeInfo.Name) > common.LenOfNodeInfoName {
 		return errors.New("out of name length")
 	}
 
-	if len(nodeInfo.ExtraData) > common.LenOfExtraData {
+	if len(nodeInfo.ExtraData) > common.LenOfNodeInfoExtraData {
 		return errors.New("out of extra data length")
 	}
+
+	if db.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
+	}
+
 	return nil
 }
 
 func ValidatePort(port string) error {
-	if len(port) > common.LenOfPort || len(port) == 0 {
+	if len(port) > common.LenOfNodeInfoPort || len(port) == 0 {
 		return errors.New("len of port err")
 	}
 	intPort, err := strconv.Atoi(port)
@@ -1767,5 +1771,46 @@ func ValidateVote(db vm.StateDB, input []byte) error {
 	if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
 		return errors.New("candidates over size")
 	}
+	return nil
+}
+
+func ValidateIssueLightToken(db vm.StateDB, from common.Address, input []byte, value *big.Int) error {
+	lightTokenJson := new(types.LightTokenJson)
+
+	if len(input) > common.LenOfLightTokenByte {
+		return errors.New("data too big")
+	}
+
+	if err := json.Unmarshal(input, lightTokenJson); err != nil {
+		return err
+	}
+
+	if len(lightTokenJson.Name) > common.LenOfLightTokenName {
+		return errors.New("light token name too long")
+	}
+
+	if lightTokenJson.Decimals > common.LightTokenDecimals {
+		return errors.New("light token decimals must from 0~5")
+	}
+
+	if len(lightTokenJson.Symbol) > common.LenOfLightTokenSymbol {
+		return errors.New("light token symbol name  too long")
+	}
+
+	if lightTokenJson.TotalSupply.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("light token totalSupply can not negative")
+	}
+
+	if lightTokenJson.TotalSupply.Cmp(common.LenOfLightTokenTotalSupply) > 0 {
+		return errors.New("light token totalSupply too big")
+	}
+	if value.Cmp(common.LightTokenMinValue) < 0 || value.Cmp(common.LightTokenMaxValue) > 0 {
+		return errors.New("issue token must sub 1000~10000 inb")
+	}
+
+	if db.GetBalance(from).Cmp(value) < 0 {
+		return errors.New("issue token : balance not enough")
+	}
+
 	return nil
 }
