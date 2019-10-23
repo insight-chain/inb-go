@@ -64,7 +64,7 @@ func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
 		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != SpecialTx && txType != Contract &&
-		txType != InsteadMortgage && txType != UpdateNodeInformation && txType != IssueLightToken {
+		txType != InsteadMortgage && txType != UpdateNodeInformation && txType != IssueLightToken && txType != TransferLightToken {
 		flag = false
 	}
 	return flag
