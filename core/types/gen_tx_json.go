@@ -16,16 +16,16 @@ var _ = (*txdataMarshaling)(nil)
 // MarshalJSON marshals as JSON.
 func (t txdata) MarshalJSON() ([]byte, error) {
 	type txdata struct {
-		AccountNonce hexutil.Uint64  `json:"nonce"    gencodec:"required"`
-		Recipient    *common.Address `json:"to"       rlp:"nil"`
-		Amount       *hexutil.Big    `json:"value"    gencodec:"required"`
-		Payload      hexutil.Bytes   `json:"input"    gencodec:"required"`
-		V            *hexutil.Big    `json:"v" gencodec:"required"`
-		R            *hexutil.Big    `json:"r" gencodec:"required"`
-		S            *hexutil.Big    `json:"s" gencodec:"required"`
-		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		TxType        hexutil.Uint64  `json:"txType" gencodec:"required"`
-		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
+		AccountNonce   hexutil.Uint64  `json:"nonce"    gencodec:"required"`
+		Recipient      *common.Address `json:"to"       rlp:"nil"`
+		Amount         *hexutil.Big    `json:"value"    gencodec:"required"`
+		Payload        hexutil.Bytes   `json:"input"    gencodec:"required"`
+		V              *hexutil.Big    `json:"v" gencodec:"required"`
+		R              *hexutil.Big    `json:"r" gencodec:"required"`
+		S              *hexutil.Big    `json:"s" gencodec:"required"`
+		Hash           *common.Hash    `json:"hash" rlp:"-"`
+		TxType         hexutil.Uint64  `json:"txType" gencodec:"required"`
+		ExtraSignature *ExtraSignature `json:"extraSignature" gencodec:"nil"`
 	}
 	var enc txdata
 	enc.AccountNonce = hexutil.Uint64(t.AccountNonce)
@@ -38,22 +38,27 @@ func (t txdata) MarshalJSON() ([]byte, error) {
 	enc.Hash = t.Hash
 	enc.TxType = hexutil.Uint64(t.TxType)
 	enc.ExtraSignature = t.ExtraSignature
+	if t.ExtraSignature != nil {
+		enc.ExtraSignature.Rp = (t.ExtraSignature.Rp)
+		enc.ExtraSignature.Vp = (t.ExtraSignature.Vp)
+		enc.ExtraSignature.Sp = (t.ExtraSignature.Sp)
+	}
 	return json.Marshal(&enc)
 }
 
 // UnmarshalJSON unmarshals from JSON.
 func (t *txdata) UnmarshalJSON(input []byte) error {
 	type txdata struct {
-		AccountNonce *hexutil.Uint64 `json:"nonce"    gencodec:"required"`
-		Recipient    *common.Address `json:"to"       rlp:"nil"`
-		Amount       *hexutil.Big    `json:"value"    gencodec:"required"`
-		Payload      *hexutil.Bytes  `json:"input"    gencodec:"required"`
-		V            *hexutil.Big    `json:"v" gencodec:"required"`
-		R            *hexutil.Big    `json:"r" gencodec:"required"`
-		S            *hexutil.Big    `json:"s" gencodec:"required"`
-		Hash         *common.Hash    `json:"hash" rlp:"-"`
-		TxType        *hexutil.Uint64 `json:"txType" gencodec:"required"`
-		ExtraSignature    *ExtraSignature        `json:"extraSignature" gencodec:"nil"`
+		AccountNonce   *hexutil.Uint64 `json:"nonce"    gencodec:"required"`
+		Recipient      *common.Address `json:"to"       rlp:"nil"`
+		Amount         *hexutil.Big    `json:"value"    gencodec:"required"`
+		Payload        *hexutil.Bytes  `json:"input"    gencodec:"required"`
+		V              *hexutil.Big    `json:"v" gencodec:"required"`
+		R              *hexutil.Big    `json:"r" gencodec:"required"`
+		S              *hexutil.Big    `json:"s" gencodec:"required"`
+		Hash           *common.Hash    `json:"hash" rlp:"-"`
+		TxType         *hexutil.Uint64 `json:"txType" gencodec:"required"`
+		ExtraSignature *ExtraSignature `json:"extraSignature" gencodec:"nil"`
 	}
 	var dec txdata
 	if err := json.Unmarshal(input, &dec); err != nil {
@@ -95,6 +100,15 @@ func (t *txdata) UnmarshalJSON(input []byte) error {
 	t.TxType = TxType(*dec.TxType)
 	if dec.ExtraSignature != nil && dec.ExtraSignature.ResourcePayer != nil {
 		t.ExtraSignature = dec.ExtraSignature
+		if dec.ExtraSignature.Sp != nil {
+			t.ExtraSignature.Sp = (*big.Int)(dec.ExtraSignature.Sp)
+		}
+		if dec.ExtraSignature.Vp != nil {
+			t.ExtraSignature.Vp = (*big.Int)(dec.ExtraSignature.Vp)
+		}
+		if dec.ExtraSignature.Rp != nil {
+			t.ExtraSignature.Rp = (*big.Int)(dec.ExtraSignature.Rp)
+		}
 	}
 	return nil
 }

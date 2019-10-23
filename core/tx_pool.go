@@ -609,6 +609,16 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	to := tx.To()
+
+	var netPayment common.Address
+	if tx.IsRepayment() {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return ErrInvalidSender
+		}
+		netPayment = payment
+		tx.RemovePaymentSignatureValues()
+	}
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
@@ -645,16 +655,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 
-	var netPayment common.Address
-
-	if tx.IsRepayment() {
-		payment, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			return ErrInvalidSender
-		}
-		netPayment = payment
-		tx.RemovePaymentSignatureValues()
-	}
 	// Make sure the transaction is signed properly
 
 	if from[0] != crypto.PrefixToAddress[0] {
