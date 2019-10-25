@@ -456,10 +456,14 @@ func (v *Vdpos) Finalize(chain consensus.ChainReader, header *types.Header, stat
 	snapContext := v.snapContext(v.config, state, parent, vdposContext, parentHeaderExtra.SignersPool)
 	//header.ConfirmedBlockNumber = snapContext.getLastConfirmedBlockNumber().Uint64()
 
+	// reverts vdposContext changes
+	vdposSnap := vdposContext.Snapshot()
+
 	// calculate votes write into header.extra
 	err := v.processCustomTx(chain, header, state, txs, vdposContext)
 	if err != nil {
 		log.Error("Fail in processCustomTx()", "err", err)
+		vdposContext.RevertToSnapShot(vdposSnap)
 		return nil, err
 	}
 	currentHeaderExtra.ConfirmedBlockNumber = snapContext.getLastConfirmedBlockNumber().Uint64()

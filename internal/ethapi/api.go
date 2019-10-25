@@ -1154,6 +1154,7 @@ func RPCMarshalBlock(b *types.Block, inclTx bool, fullTx bool) (map[string]inter
 		"receiptsRoot":     head.ReceiptHash,
 		"reward":           head.Reward,           //2019.6.28 inb by ghy
 		"SpecialConsensus": head.SpecialConsensus, //2019.7.23 inb by ghy
+		"VdposContext":     *head.VdposContext,    //2019.10.17 inb by ssh
 	}
 
 	if inclTx {
@@ -1229,7 +1230,7 @@ type RPCTransaction struct {
 	V                *hexutil.Big    `json:"v"`
 	R                *hexutil.Big    `json:"r"`
 	S                *hexutil.Big    `json:"s"`
-	Types            types.TxType    `json:"txType"`
+	Types            hexutil.Uint64  `json:"txType"` //2019.10.17 inb by ssh
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -1254,7 +1255,7 @@ func newRPCTransaction(tx *types.Transaction, blockHash common.Hash, blockNumber
 		V:     (*hexutil.Big)(v),
 		R:     (*hexutil.Big)(r),
 		S:     (*hexutil.Big)(s),
-		Types: tx.Types(),
+		Types: hexutil.Uint64(tx.Types()), //2019.10.17 inb by ssh
 	}
 	if blockHash != (common.Hash{}) {
 		result.BlockHash = blockHash
@@ -1515,6 +1516,9 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	}
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
 		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
+	}
+	if args.To == nil && types.ValidateTo(args.Types) {
+		return errors.New(` 'to' not specified`)
 	}
 	if args.To == nil && args.Types == types.Contract {
 		// Contract creation

@@ -93,7 +93,6 @@ func getCompletions(vm *otto.Otto, line string) (results []string) {
 	//		results[i] = strings.Replace(result, "eth", "inb", -1)
 	//	}
 	//}
-
 	sort.Strings(results)
 	return results
 	//inb by ssh end

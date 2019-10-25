@@ -60,11 +60,20 @@ const (
 	InsteadMortgage //15
 )
 
+// tx type that to not nil
+func ValidateTo(txType TxType) bool {
+	flag := false
+	if txType == Ordinary || txType == SpecialTx || txType == TransferLightToken || txType == InsteadMortgage {
+		flag = true
+	}
+	return flag
+}
+
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
 		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != SpecialTx && txType != Contract &&
-		txType != InsteadMortgage {
+		txType != InsteadMortgage && txType != UpdateNodeInformation {
 		flag = false
 	}
 	return flag

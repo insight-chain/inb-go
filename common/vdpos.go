@@ -58,6 +58,24 @@ var (
 	//
 	SpecialAddressPrefix = 5
 	MortgageAccount      = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
+
+	LenOfNodeInfoByte      = 900
+	LenOfNodeInfoPort      = 5
+	LenOfNodeInfoImage     = 100
+	LenOfNodeInfoEmail     = 35
+	LenOfNodeInfoWebsite   = 35
+	LenOfNodeInfoId        = 128
+	LenOfNodeInfoNation    = 15
+	LenOfNodeInfoExtraData = 150
+	LenOfNodeInfoName      = 15
+
+	LenOfLightTokenByte        = 200
+	LenOfLightTokenName        = 20
+	LightTokenDecimals         = uint8(5)
+	LenOfLightTokenSymbol      = 10
+	LenOfLightTokenTotalSupply = new(big.Int).Mul(big.NewInt(1e12), big.NewInt(1e5))
+	LightTokenMinValue         = new(big.Int).Mul(big.NewInt(1000), big.NewInt(1e5))
+	LightTokenMaxValue         = new(big.Int).Mul(big.NewInt(10000), big.NewInt(1e5))
 )
 
 // Declare :

@@ -351,11 +351,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		from common.Address
 		err  error
 	)
-	var netPayment common.Address
-
 	if !types.ValidateType(tx.Types()) {
 		return core.ErrTxType
 	}
+
+	// Validate the transaction sender and it's sig. Throw
+	// if the from fields is invalid.
+	to := tx.To()
+	var netPayment common.Address
 	if tx.IsRepayment() {
 		payment, err := types.Sender(pool.signer, tx)
 		if err != nil {
@@ -364,10 +367,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 		netPayment = payment
 		tx.RemovePaymentSignatureValues()
 	}
-
-	// Validate the transaction sender and it's sig. Throw
-	// if the from fields is invalid.
-	to := tx.To()
 	if from, err = types.Sender(pool.signer, tx); err != nil {
 		return core.ErrInvalidSender
 	}
@@ -446,9 +445,6 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	if from[0] != crypto.PrefixToAddress[0] {
 		return core.ErrInvalidAddress
 	}
-	if !tx.IsRepayment() {
-		netPayment = from
-	}
 	// Drop non-local transactions under our own minimal accepted gas price
 	//achilles replace gas with net
 	//local = local || pool.locals.contains(from) // account may be local even if the transaction arrived from the network
@@ -511,13 +507,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	if tx.WhichTypes(types.Regular) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")
@@ -528,13 +525,14 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	if tx.WhichTypes(types.InsteadMortgage) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")

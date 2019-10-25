@@ -17,12 +17,15 @@
 package core
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/insight-chain/inb-go/consensus/vdpos"
+	"github.com/insight-chain/inb-go/core/vm"
 	"github.com/insight-chain/inb-go/crypto"
 	"math"
 	"math/big"
+	"net"
 	"sort"
 	"strconv"
 	"strings"
@@ -606,6 +609,19 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	to := tx.To()
+	if to == nil && types.ValidateTo(tx.Types()) {
+		return errors.New(" 'to' is required for this type ")
+	}
+
+	var netPayment common.Address
+	if tx.IsRepayment() {
+		payment, err := types.Sender(pool.signer, tx)
+		if err != nil {
+			return ErrInvalidSender
+		}
+		netPayment = payment
+		tx.RemovePaymentSignatureValues()
+	}
 	from, err := types.Sender(pool.signer, tx)
 	if err != nil {
 		return ErrInvalidSender
@@ -630,48 +646,18 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	//achilles config validate candidates size
 
 	if tx.WhichTypes(types.UpdateNodeInformation) {
-		if len(inputStr) > 600 {
-			return errors.New("date over size")
+		if err = ValidateUpdateInformation(pool.currentState, from, tx.Data()); err != nil {
+			return err
 		}
-		if pool.currentState.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
-			return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
-		}
-
 	}
 
 	//2019.7.18 inb mod by ghy begin
 	if tx.WhichTypes(types.Vote) {
-		var candidatesSlice []common.Address
-		var UnqualifiedCandidatesSlice []string
-		candidatesStr := strings.Split(inputStr, ",")
-		for _, value := range candidatesStr {
-			address := common.HexToAddress(value)
-			//2019.7.15 inb mod by ghy begin
-			if pool.currentState.GetStakingValue(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
-				candidatesSlice = append(candidatesSlice, address)
-			} else {
-				UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
-			}
-		}
-		if len(UnqualifiedCandidatesSlice) > 0 {
-			return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
-		}
-		//2019.7.15 inb mod by ghy end
-		if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
-			return errors.New("candidates over size")
+		if err = ValidateVote(pool.currentState, tx.Data()); err != nil {
+			return err
 		}
 	}
 
-	var netPayment common.Address
-
-	if tx.IsRepayment() {
-		payment, err := types.Sender(pool.signer, tx)
-		if err != nil {
-			return ErrInvalidSender
-		}
-		netPayment = payment
-		tx.RemovePaymentSignatureValues()
-	}
 	// Make sure the transaction is signed properly
 
 	if from[0] != crypto.PrefixToAddress[0] {
@@ -711,21 +697,15 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.ReceiveLockedAward) {
-		receivebonus := strings.Split(inputStr, ":")
-		if len(receivebonus) == 2 && receivebonus[0] == "ReceiveLockedAward" {
-			if err := pool.validateReceiveLockedAward(receivebonus, from); err != nil {
-				return err
-			}
-		} else {
-			return ErrParameterError
+		if err := pool.validateReceiveLockedAward(tx.Data(), from); err != nil {
+			return err
 		}
+
 	}
 
 	if tx.WhichTypes(types.ReceiveVoteAward) {
 		if err := pool.validateReceiveVoteAward(from); err != nil {
 			return err
-		} else {
-			return nil
 		}
 	}
 
@@ -741,13 +721,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.Regular) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")
@@ -758,13 +739,14 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	if tx.WhichTypes(types.InsteadMortgage) {
-		durations := strings.Split(inputStr, ":")
-		if len(durations) <= 1 {
-			return errors.New(" can't resolve field of input transaction ")
-		}
-		convert, err := strconv.Atoi(durations[1])
+		//durations := strings.Split(inputStr, ":")
+		//if len(durations) <= 1 {
+		//	return errors.New(" can't resolve field of input transaction ")
+		//}
+		//convert, err := strconv.Atoi(durations[1])
+		convert, err := strconv.Atoi(inputStr)
 		if err != nil {
-			return err
+			return errors.New(" can't resolve field of input transaction ")
 		}
 		if !params.Contains(big.NewInt(int64(convert))) {
 			return errors.New(" invalid duration for staking ")
@@ -805,27 +787,27 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 
 	// add by ssh 190921 begin
 	if tx.WhichTypes(types.IssueLightToken) {
-		lightTokenInfo := strings.Split(inputStr, "~")
-		if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
-			return errors.New("issue lightToken need 4 parameter")
-		} else {
-			decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
-			decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
-			if err != nil {
-				return errors.New("decimals is not uint8")
-			} else if decimalsNum > 5 {
-				return errors.New("decimals must from 0~5")
-			}
-			totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
-			_, ok := new(big.Int).SetString(totalSupplyStr, 10)
-			if !ok {
-				return errors.New("unable to convert totalSupply string to big integer")
-			}
+		if err := ValidateIssueLightToken(pool.currentState, from, tx.Data(), tx.Value()); err != nil {
+			return err
 		}
+		//lightTokenInfo := strings.Split(inputStr, "~")
+		//if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
+		//	return errors.New("issue lightToken need 4 parameter")
+		//} else {
+		//	decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
+		//	decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+		//	if err != nil {
+		//		return errors.New("decimals is not uint8")
+		//	} else if decimalsNum > 5 {
+		//		return errors.New("decimals must from 0~5")
+		//	}
+		//	totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
+		//	_, ok := new(big.Int).SetString(totalSupplyStr, 10)
+		//	if !ok {
+		//		return errors.New("unable to convert totalSupply string to big integer")
+		//	}
+		//}
 
-		if tx.Value().Cmp(new(big.Int).Mul(big.NewInt(1000), big.NewInt(params.Inber))) < 0 || tx.Value().Cmp(new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))) > 0 {
-			return errors.New("issue token must sub 1000~10000 inb")
-		}
 	}
 
 	if tx.WhichTypes(types.TransferLightToken) {
@@ -1544,7 +1526,7 @@ func (pool *TxPool) validateVote(inputStr string, txType types.TxType) error {
 }
 
 //2019.7.22 inb by ghy begin
-func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from common.Address) error {
+func (pool *TxPool) validateReceiveLockedAward(receivebonus []byte, from common.Address) error {
 	account := pool.currentState.GetAccountInfo(from)
 	if account == nil {
 		return errors.New("errors of address")
@@ -1562,7 +1544,7 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []string, from commo
 	LockedHundred := new(big.Int)
 	LockedNumberOfDaysOneYear := new(big.Int)
 	for _, v := range account.Stakings {
-		if v.Hash == common.HexToHash(receivebonus[1]) {
+		if v.Hash == common.BytesToHash(receivebonus) {
 			switch v.LockHeights.Uint64() {
 			case params.HeightOf30Days.Uint64():
 				LockedRewardCycleHeight = common.LockedRewardCycleSecondsFor30days
@@ -1693,3 +1675,145 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 }
 
 //2019.7.22 inb by ghy end
+func ValidateUpdateInformation(db vm.StateDB, from common.Address, input []byte) error {
+	nodeInfo := new(common.SuperNodeExtra)
+
+	if len(input) > common.LenOfNodeInfoByte {
+		return errors.New("date over size")
+	}
+
+	if err := json.Unmarshal(input, nodeInfo); err != nil {
+		return err
+	}
+
+	if ip := net.ParseIP(nodeInfo.Ip); ip == nil {
+		return errors.New("err of ip")
+	}
+
+	if err := ValidatePort(nodeInfo.Port); err != nil {
+		return err
+	}
+
+	if len(nodeInfo.Id) != common.LenOfNodeInfoId || len(nodeInfo.Id) == 0 {
+		return errors.New("len of node id err")
+	}
+
+	if nodeInfo.RewardAccount != "" && !common.IsHexAddress(nodeInfo.RewardAccount) {
+		return errors.New("err of reward account")
+	}
+
+	if len(nodeInfo.Image) > common.LenOfNodeInfoImage {
+		return errors.New("out of image length")
+	}
+
+	if len(nodeInfo.Email) > common.LenOfNodeInfoEmail {
+		return errors.New("out of email length")
+	}
+
+	if len(nodeInfo.Website) > common.LenOfNodeInfoWebsite {
+		return errors.New("out of website length")
+	}
+
+	if len(nodeInfo.Nation) > common.LenOfNodeInfoNation {
+		return errors.New("out of nation length")
+	}
+
+	if len(nodeInfo.Name) > common.LenOfNodeInfoName {
+		return errors.New("out of name length")
+	}
+
+	if len(nodeInfo.ExtraData) > common.LenOfNodeInfoExtraData {
+		return errors.New("out of extra data length")
+	}
+
+	if db.GetStakingValue(from).Cmp(vdpos.BeVotedNeedINB) == -1 {
+		return errors.New(fmt.Sprintf("update node mortgage Less than %v", vdpos.BeVotedNeedINB))
+	}
+
+	return nil
+}
+
+func ValidatePort(port string) error {
+	if len(port) > common.LenOfNodeInfoPort || len(port) == 0 {
+		return errors.New("len of port err")
+	}
+	intPort, err := strconv.Atoi(port)
+	if err != nil {
+		return err
+	}
+	if intPort <= 0 || intPort > 65535 {
+		return errors.New("out of port range")
+	}
+	return nil
+}
+
+func ValidateVote(db vm.StateDB, input []byte) error {
+	var candidatesSlice []common.Address
+	var UnqualifiedCandidatesSlice []string
+	var UnAddressSlice []string
+	candidatesStr := strings.Split(string(input), ",")
+	for _, value := range candidatesStr {
+		if !common.IsHexAddress(value) {
+			UnAddressSlice = append(UnAddressSlice, value)
+		}
+		address := common.HexToAddress(value)
+		//2019.7.15 inb mod by ghy begin
+		if db.GetStakingValue(address).Cmp(vdpos.BeVotedNeedINB) >= 0 {
+			candidatesSlice = append(candidatesSlice, address)
+		} else {
+			UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
+		}
+	}
+	if len(UnAddressSlice) > 0 {
+		return errors.New(fmt.Sprintf("Voting node : %v is not address", UnAddressSlice))
+	}
+	if len(UnqualifiedCandidatesSlice) > 0 {
+		return errors.New(fmt.Sprintf("Voting Node Account : %v Mortgage Less than %v", UnqualifiedCandidatesSlice, vdpos.BeVotedNeedINB))
+	}
+	//2019.7.15 inb mod by ghy end
+	if params.TxConfig.CandidateSize < uint64(len(candidatesSlice)) {
+		return errors.New("candidates over size")
+	}
+	return nil
+}
+
+func ValidateIssueLightToken(db vm.StateDB, from common.Address, input []byte, value *big.Int) error {
+	lightTokenJson := new(types.LightTokenJson)
+
+	if len(input) > common.LenOfLightTokenByte {
+		return errors.New("data too big")
+	}
+
+	if err := json.Unmarshal(input, lightTokenJson); err != nil {
+		return err
+	}
+
+	if len(lightTokenJson.Name) > common.LenOfLightTokenName {
+		return errors.New("light token name too long")
+	}
+
+	if lightTokenJson.Decimals > common.LightTokenDecimals {
+		return errors.New("light token decimals must from 0~5")
+	}
+
+	if len(lightTokenJson.Symbol) > common.LenOfLightTokenSymbol {
+		return errors.New("light token symbol name  too long")
+	}
+
+	if lightTokenJson.TotalSupply.Cmp(big.NewInt(0)) != 1 {
+		return errors.New("light token totalSupply can not negative")
+	}
+
+	if lightTokenJson.TotalSupply.Cmp(common.LenOfLightTokenTotalSupply) > 0 {
+		return errors.New("light token totalSupply too big")
+	}
+	if value.Cmp(common.LightTokenMinValue) < 0 || value.Cmp(common.LightTokenMaxValue) > 0 {
+		return errors.New("issue token must sub 1000~10000 inb")
+	}
+
+	if db.GetBalance(from).Cmp(value) < 0 {
+		return errors.New("issue token : balance not enough")
+	}
+
+	return nil
+}

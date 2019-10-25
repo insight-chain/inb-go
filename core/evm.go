@@ -58,20 +58,23 @@ func NewEVMContext(msg Message, header *types.Header, chain ChainContext, author
 		Difficulty:       new(big.Int).Set(header.Difficulty),
 		GasLimit:         header.ResLimit,
 		//GasPrice:              new(big.Int).Set(msg.GasPrice()),
-		CanMortgage:             CanMortgage,
-		CanRedeem:               CanRedeem,
-		CanReset:                CanReset,
-		CanReceive:              CanReceive,
-		RedeemTransfer:          RedeemTransfer,
-		ResetTransfer:           ResetTransfer,
-		ReceiveTransfer:         ReceiveTransfer,
-		CanReceiveLockedAward:   CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
-		ReceiveLockedAward:      ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
-		CanReceiveVoteAward:     CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
-		ReceiveVoteAward:        ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
-		Vote:                    Vote,                      //2019.7.24 inb by ghy
-		InsteadMortgageTransfer: InsteadMortgageTransfer,   //20190919 added replacement mortgage
-		CanInsteadMortgage:      CanInsteadMortgage,
+		CanMortgage:           CanMortgage,
+		CanRedeem:             CanRedeem,
+		CanReset:              CanReset,
+		CanReceive:            CanReceive,
+		RedeemTransfer:        RedeemTransfer,
+		ResetTransfer:         ResetTransfer,
+		ReceiveTransfer:       ReceiveTransfer,
+		CanReceiveLockedAward: CanReceiveLockedAwardFunc, //2019.7.22 inb by ghy
+		ReceiveLockedAward:    ReceiveLockedAwardFunc,    //2019.7.22 inb by ghy
+		CanReceiveVoteAward:   CanReceiveVoteAwardFunc,   //2019.7.24 inb by ghy
+		ReceiveVoteAward:      ReceiveVoteAwardFunc,      //2019.7.24 inb by ghy
+		Vote:                  Vote,                      //2019.7.24 inb by ghy
+		InsteadMortgageTransfer:  InsteadMortgageTransfer, //20190919 added replacement mortgage
+		CanInsteadMortgage:       CanInsteadMortgage,
+		CanUpdateNodeInformation: CanUpdateNodeInformation, //2019.10.17 inb by ghy
+		CanVote:                  CanVote,                  //2019.10.17 inb by ghy
+		CanIssueLightToken:       CanIssueLightToken,       //2019.10.18 inb by ghy
 	}
 }
 
@@ -239,6 +242,28 @@ func CanRedeem(db vm.StateDB, addr common.Address, amount *big.Int) error {
 	return nil
 }
 
+//2019.10.18 inb by ghy
+func CanUpdateNodeInformation(db vm.StateDB, from common.Address, byte []byte) error {
+	if err := ValidateUpdateInformation(db, from, byte); err != nil {
+		return err
+	}
+	return nil
+}
+
+func CanVote(db vm.StateDB, byte []byte) error {
+	if err := ValidateVote(db, byte); err != nil {
+		return err
+	}
+	return nil
+}
+func CanIssueLightToken(db vm.StateDB, addr common.Address, byte []byte, value *big.Int) error {
+	if err := ValidateIssueLightToken(db, addr, byte, value); err != nil {
+		return err
+	}
+	return nil
+}
+
+//2019.10.18 inb by ghy
 func CanReceive(db vm.StateDB, addr common.Address, now *big.Int) error {
 	timeLimit := new(big.Int).Add(db.GetUnStakingHeight(addr), params.TxConfig.RedeemDuration)
 	//now := big.NewInt(time.Now().Unix())
