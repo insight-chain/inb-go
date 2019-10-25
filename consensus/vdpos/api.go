@@ -129,51 +129,51 @@ func (api *API) GetSuperNodesInfo() []*types.Tally {
 	return nodesInfo
 }
 
-func (api *API) GetLightTokenByAddress(address common.Address) *types.LightToken {
-	header := api.chain.CurrentHeader()
-	if header == nil {
-		return nil
-	}
-
-	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
-	if err != nil {
-		return nil
-	}
-
-	lightToken, err := vdposContext.GetLightToken(address)
-	if err != nil {
-		return nil
-	} else {
-		return lightToken
-	}
-}
-
-func (api *API) GetLightTokenAccountByAccountAddress(address common.Address) *types.LightTokenAccount {
-	header := api.chain.CurrentHeader()
-	if header == nil {
-		return nil
-	}
-
-	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
-	if err != nil {
-		return nil
-	}
-
-	lightTokenAccount, _ := vdposContext.GetLightTokenAccountByAddress(address)
-	return lightTokenAccount
-}
-
-func (api *API) GetLightTokenBalanceByAddress(accountAddress common.Address, lightTokenAddress common.Address) string {
-	header := api.chain.CurrentHeader()
-	if header == nil {
-		return ""
-	}
-
-	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
-	if err != nil {
-		return ""
-	}
-
-	balance, _ := vdposContext.GetLightTokenBalanceByAddress(accountAddress, lightTokenAddress)
-	return balance.String()
-}
+//func (api *API) GetLightTokenByAddress(address common.Address) *types.LightToken {
+//	header := api.chain.CurrentHeader()
+//	if header == nil {
+//		return nil
+//	}
+//
+//	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+//	if err != nil {
+//		return nil
+//	}
+//
+//	lightToken, err := vdposContext.GetLightToken(address)
+//	if err != nil {
+//		return nil
+//	} else {
+//		return lightToken
+//	}
+//}
+//
+//func (api *API) GetLightTokenAccountByAccountAddress(address common.Address) *types.LightTokenAccount {
+//	header := api.chain.CurrentHeader()
+//	if header == nil {
+//		return nil
+//	}
+//
+//	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+//	if err != nil {
+//		return nil
+//	}
+//
+//	lightTokenAccount, _ := vdposContext.GetLightTokenAccountByAddress(address)
+//	return lightTokenAccount
+//}
+//
+//func (api *API) GetLightTokenBalanceByAddress(accountAddress common.Address, lightTokenAddress common.Address) string {
+//	header := api.chain.CurrentHeader()
+//	if header == nil {
+//		return ""
+//	}
+//
+//	vdposContext, err := types.NewVdposContextFromProto(api.vdpos.db, header.VdposContext)
+//	if err != nil {
+//		return ""
+//	}
+//
+//	balance, _ := vdposContext.GetLightTokenBalanceByAddress(accountAddress, lightTokenAddress)
+//	return balance.String()
+//}
