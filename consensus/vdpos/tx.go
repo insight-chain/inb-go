@@ -32,14 +32,6 @@ import (
 	"github.com/insight-chain/inb-go/rlp"
 )
 
-const (
-	PosEventIssueLightTokenSplitLen    = 4
-	PosEventIssueLightTokenName        = 0
-	PosEventIssueLightTokenSymbol      = 1
-	PosEventIssueLightTokenDecimals    = 2
-	PosEventIssueLightTokenTotalSupply = 3
-)
-
 // HeaderExtra is the struct of info in header.Extra[extraVanity:len(header.extra)-extraSeal]
 // HeaderExtra is the current struct
 type HeaderExtra struct {

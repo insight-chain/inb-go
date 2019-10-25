@@ -572,29 +572,29 @@ func (pool *TxPool) validateTx(ctx context.Context, tx *types.Transaction) error
 	}
 
 	// add by ssh 190921 begin
-	if tx.WhichTypes(types.IssueLightToken) {
-		lightTokenInfo := strings.Split(inputStr, "~")
-		if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
-			return errors.New("issue lightToken need 4 parameter")
-		} else {
-			decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
-			decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
-			if err != nil {
-				return errors.New("decimals is not uint8")
-			} else if decimalsNum > 5 {
-				return errors.New("decimals must from 0~5")
-			}
-			totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
-			_, ok := new(big.Int).SetString(totalSupplyStr, 10)
-			if !ok {
-				return errors.New("unable to convert totalSupply string to big integer")
-			}
-		}
-
-		if tx.Value().Cmp(new(big.Int).Mul(big.NewInt(1000), big.NewInt(params.Inber))) < 0 || tx.Value().Cmp(new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))) > 0 {
-			return errors.New("issue token must sub 1000~10000 inb")
-		}
-	}
+	//if tx.WhichTypes(types.IssueLightToken) {
+	//lightTokenInfo := strings.Split(inputStr, "~")
+	//if len(lightTokenInfo) < vdpos.PosEventIssueLightTokenSplitLen {
+	//	return errors.New("issue lightToken need 4 parameter")
+	//} else {
+	//	decimalsStr := lightTokenInfo[vdpos.PosEventIssueLightTokenDecimals]
+	//	decimalsNum, err := strconv.ParseUint(decimalsStr, 10, 64)
+	//	if err != nil {
+	//		return errors.New("decimals is not uint8")
+	//	} else if decimalsNum > 5 {
+	//		return errors.New("decimals must from 0~5")
+	//	}
+	//	totalSupplyStr := lightTokenInfo[vdpos.PosEventIssueLightTokenTotalSupply]
+	//	_, ok := new(big.Int).SetString(totalSupplyStr, 10)
+	//	if !ok {
+	//		return errors.New("unable to convert totalSupply string to big integer")
+	//	}
+	//}
+	//
+	//if tx.Value().Cmp(new(big.Int).Mul(big.NewInt(1000), big.NewInt(params.Inber))) < 0 || tx.Value().Cmp(new(big.Int).Mul(big.NewInt(10000), big.NewInt(params.Inber))) > 0 {
+	//	return errors.New("issue token must sub 1000~10000 inb")
+	//}
+	//	}
 
 	if tx.WhichTypes(types.TransferLightToken) {
 		lightTokenAddress := common.HexToAddress(inputStr)
