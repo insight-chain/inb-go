@@ -1517,6 +1517,9 @@ func (args *SendTxArgs) setDefaults(ctx context.Context, b Backend) error {
 	if args.Data != nil && args.Input != nil && !bytes.Equal(*args.Data, *args.Input) {
 		return errors.New(`Both "data" and "input" are set and not equal. Please use "input" to pass transaction call data.`)
 	}
+	if args.To == nil && types.ValidateTo(args.Types) {
+		return errors.New(` 'to' not specified`)
+	}
 	if args.To == nil && args.Types == types.Contract {
 		// Contract creation
 		var input []byte

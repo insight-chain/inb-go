@@ -232,6 +232,11 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 	if evm.vmConfig.NoRecursion && evm.depth > 0 {
 		return nil, res, nil, nil
 	}
+	//valiedate to is nil for required transaction type
+	/*var toAddr common.Address
+	if types.ValidateTo(txType) && toAddr == addr {
+		return nil, res, ErrToRequired, nil
+	}*/
 	// Fail if we're trying to execute above the call depth limit
 	if evm.depth > int(params.CallCreateDepth) {
 		return nil, res, ErrDepth, nil
@@ -335,12 +340,8 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 
 	// add by ssh 190925 begin
 	// check up if the tx need 'to' address
-	flag := true
-	if txType != types.Ordinary && txType != types.SpecialTx && txType != types.TransferLightToken && txType != types.InsteadMortgage {
-		flag = false
-	}
 	//if !evm.StateDB.Exist(addr) {
-	if !evm.StateDB.Exist(addr) && flag {
+	if !evm.StateDB.Exist(addr) && types.ValidateTo(txType) {
 		// add by ssh 190925 end
 		precompiles := PrecompiledContractsHomestead
 		if evm.ChainConfig().IsByzantium(evm.BlockNumber) {

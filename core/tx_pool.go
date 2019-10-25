@@ -609,6 +609,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 
 	to := tx.To()
+	if to == nil && types.ValidateTo(tx.Types()) {
+		return errors.New(" 'to' is required for this type ")
+	}
 
 	var netPayment common.Address
 	if tx.IsRepayment() {
