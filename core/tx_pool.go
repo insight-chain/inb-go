@@ -1698,7 +1698,7 @@ func ValidateUpdateInformation(db vm.StateDB, from common.Address, input []byte)
 		return errors.New("len of node id err")
 	}
 
-	if nodeInfo.RewardAccount != "" && !common.IsHexAddress(nodeInfo.RewardAccount) {
+	if nodeInfo.RewardAccount != "" && !common.IsRewardAddress(nodeInfo.RewardAccount) {
 		return errors.New("err of reward account")
 	}
 
@@ -1753,7 +1753,7 @@ func ValidateVote(db vm.StateDB, input []byte) error {
 	var UnAddressSlice []string
 	candidatesStr := strings.Split(string(input), ",")
 	for _, value := range candidatesStr {
-		if !common.IsHexAddress(value) {
+		if !common.IsRewardAddress(value) {
 			UnAddressSlice = append(UnAddressSlice, value)
 		}
 		address := common.HexToAddress(value)
