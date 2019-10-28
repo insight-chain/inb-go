@@ -1753,7 +1753,9 @@ func ValidateVote(db vm.StateDB, input []byte) error {
 	var UnAddressSlice []string
 	candidatesStr := strings.Split(string(input), ",")
 	for _, value := range candidatesStr {
+		fmt.Println(value)
 		if !common.IsRewardAddress(value) {
+			fmt.Println("1")
 			UnAddressSlice = append(UnAddressSlice, value)
 		}
 		address := common.HexToAddress(value)
@@ -1764,6 +1766,7 @@ func ValidateVote(db vm.StateDB, input []byte) error {
 			UnqualifiedCandidatesSlice = append(UnqualifiedCandidatesSlice, address.String())
 		}
 	}
+	fmt.Println(len(UnAddressSlice))
 	if len(UnAddressSlice) > 0 {
 		return errors.New(fmt.Sprintf("Voting node : %v is not address", UnAddressSlice))
 	}

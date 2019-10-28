@@ -187,7 +187,7 @@ func IsRewardAddress(s string) bool {
 	if len(s) >= 4 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X') && s[2] == '9' && s[3] == '5' {
 		s = s[2:]
 	}
-	return len(s) == 2*AddressLength && isHex(s)
+	return len(s) == 2*AddressLength && isHex(s) && s[0] == '9' && s[1] == '5'
 }
 
 // vdpos by ssh begin
