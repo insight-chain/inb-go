@@ -128,7 +128,7 @@ func (c *stateObject) AddNet(amount *big.Int) {
 	used := c.data.Res.Used
 	usable := c.AddUsableNet(gainNumberOfNet)
 	mortgagetion := c.AddMortgageINBOfNet(amount)
-	c.setNet(used, usable, mortgagetion)
+	c.setRes(used, usable, mortgagetion)
 	c.db.GetMortgageStateObject()
 	PrivilegedSateObject.AddMortgageINBOfNet(amount)
 }
@@ -139,10 +139,10 @@ func (c *stateObject) SubNet(amount *big.Int) {
 
 	used := c.AddUsableNet(expendNetFromUnMortgageNet)
 	mortgagetion := c.SubMortgageINBOfNet(amount)
-	calculateNetNumber := c.db.ConvertToNets(c.data.Res.Mortgage)
+	calculateNetNumber := c.db.ConvertToNets(c.data.Res.StakingValue)
 	remainingNetNumber := calculateNetNumber.Sub(calculateNetNumber, expendNetFromUnMortgageNet)
 	usable := c.AddUsableNet(remainingNetNumber)
-	c.SetNet(used, usable, mortgagetion)
+	c.SetRes(used, usable, mortgagetion)
 
 	//achilles replace gas with net
 	//cpuUsed := c.AddUsedCpu(expendCpuFromUnMortgageCpu)
@@ -154,10 +154,10 @@ func (c *stateObject) SubNet(amount *big.Int) {
 }
 
 //achilles replace gas with net
-func (c *stateObject) UseNet(bytes *big.Int) {
+func (c *stateObject) UserRes(bytes *big.Int) {
 	usable := c.SubUsableNet(bytes)
 	used := c.AddUsedNet(bytes)
-	c.SetNet(used, usable, c.data.Res.Mortgage)
+	c.SetRes(used, usable, c.data.Res.StakingValue)
 }
 
 //func (self *stateObject) SetNet(usedAmount *big.Int, usableAmount *big.Int, mortgageInb *big.Int) {
@@ -192,10 +192,10 @@ func (self *stateObject) SubUsableNet(amout *big.Int) *big.Int {
 //Mortgage
 
 func (self *stateObject) AddMortgageINBOfNet(amout *big.Int) *big.Int {
-	return self.data.Res.Mortgage.Add(self.data.Res.Mortgage, amout)
+	return self.data.Res.StakingValue.Add(self.data.Res.StakingValue, amout)
 }
 func (self *stateObject) SubMortgageINBOfNet(amout *big.Int) *big.Int {
-	return self.data.Res.Mortgage.Sub(self.data.Res.Mortgage, amout)
+	return self.data.Res.StakingValue.Sub(self.data.Res.StakingValue, amout)
 }
 
 //Updates the user's CPU and net 24 hours a day

@@ -70,7 +70,7 @@ func SignTx(tx *Transaction, s Signer, prv *ecdsa.PrivateKey) (*Transaction, err
 // signing method. The cache is invalidated if the cached signer does
 // not match the signer used in the current call.
 func Sender(signer Signer, tx *Transaction) (common.Address, error) {
-	if tx.Types() == SpecilaTx && tx.Data() != nil {
+	if tx.Types() == SpecialTx && tx.Data() != nil && common.BytesToAddress(tx.Data()[common.SpecialAddressPrefix:]) == common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000")) {
 		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
 	}
 
@@ -89,8 +89,8 @@ func Sender(signer Signer, tx *Transaction) (common.Address, error) {
 	if err != nil {
 		return common.Address{}, err
 	}
-	var flag *big.Int
-	if tx.data.Repayment != nil && (tx.data.Repayment.Vp == flag || tx.data.Repayment.Sp == flag || tx.data.Repayment.Rp == flag) {
+	flag := new(big.Int)
+	if !tx.IsRepayment() || (tx.data.ExtraSignature.Vp.Cmp(flag) == 0 || tx.data.ExtraSignature.Rp.Cmp(flag) == 0 || tx.data.ExtraSignature.Sp.Cmp(flag) == 0) {
 		tx.from.Store(sigCache{signer: signer, from: addr})
 	}
 	return addr, nil
@@ -133,7 +133,7 @@ func (s EIP155Signer) Equal(s2 Signer) bool {
 var big8 = big.NewInt(8)
 
 func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
-	if tx.Types() == SpecilaTx && tx.Data() != nil && string(tx.Data()[5:]) == "000000000000000000000000000000" {
+	if tx.Types() == SpecialTx && tx.Data() != nil && common.BytesToAddress(tx.Data()[common.SpecialAddressPrefix:]) == common.BytesToAddress(common.Hex2Bytes("0000000000000000000000000000000")) {
 		return common.BytesToAddress(tx.Data()), nil //2019.8.13 inb by ghy
 	}
 
@@ -142,14 +142,14 @@ func (s EIP155Signer) Sender(tx *Transaction) (common.Address, error) {
 		return HomesteadSigner{}.Sender(tx)
 	}
 	//achilles repayment add apis
-	var flag *big.Int
-	if tx.IsRepayment() && tx.data.Repayment.Vp != flag && tx.data.Repayment.Rp != flag && tx.data.Repayment.Sp != flag {
+	flag := new(big.Int)
+	if tx.IsRepayment() && tx.data.ExtraSignature.Vp.Cmp(flag) != 0 && tx.data.ExtraSignature.Rp.Cmp(flag) != 0 && tx.data.ExtraSignature.Sp.Cmp(flag) != 0 {
 		if tx.ChainId4Payment().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
 		}
-		V := new(big.Int).Sub(tx.data.Repayment.Vp, s.chainIdMul)
+		V := new(big.Int).Sub(tx.data.ExtraSignature.Vp, s.chainIdMul)
 		V.Sub(V, big8)
-		return recoverPlain(s.Hash(tx), tx.data.Repayment.Rp, tx.data.Repayment.Sp, V, true)
+		return recoverPlain(s.Hash(tx), tx.data.ExtraSignature.Rp, tx.data.ExtraSignature.Sp, V, true)
 	} else {
 		if tx.ChainId().Cmp(s.chainId) != 0 {
 			return common.Address{}, ErrInvalidChainId
@@ -179,13 +179,10 @@ func (s EIP155Signer) SignatureValues(tx *Transaction, sig []byte) (R, S, V *big
 func (s EIP155Signer) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		//tx.data.Price,
-		//tx.data.GasLimit,
-		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
-		s.chainId, uint(0), uint(0), tx.data.Types,
+		s.chainId, uint(0), uint(0), tx.data.TxType, "",
 	})
 }
 
@@ -232,13 +229,10 @@ func (fs FrontierSigner) SignatureValues(tx *Transaction, sig []byte) (r, s, v *
 func (fs FrontierSigner) Hash(tx *Transaction) common.Hash {
 	return rlpHash([]interface{}{
 		tx.data.AccountNonce,
-		//tx.data.Price,
-		//tx.data.GasLimit,
-		//tx.data.Net,
 		tx.data.Recipient,
 		tx.data.Amount,
 		tx.data.Payload,
-		tx.data.Types,
+		tx.data.TxType, "",
 	})
 }
 
@@ -270,7 +264,7 @@ func recoverPlain(sighash common.Hash, R, S, Vb *big.Int, homestead bool) (commo
 	}
 	var addr common.Address
 	//achilles0814 add a prefix to the address
-	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[12:]...)
+	newAddrBytes := append(crypto.PrefixToAddress, crypto.Keccak256(pub[1:])[13:]...)
 	copy(addr[:], newAddrBytes)
 	//copy(addr[:], crypto.Keccak256(pub[1:])[12:])
 	return addr, nil

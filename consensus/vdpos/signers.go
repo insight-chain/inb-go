@@ -25,6 +25,7 @@ import (
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/crypto"
 	"github.com/insight-chain/inb-go/log"
+	"github.com/insight-chain/inb-go/params"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/trie"
 	"math/big"
@@ -38,15 +39,15 @@ const (
 )
 
 type TallyItem struct {
-	addr  common.Address
-	stake *big.Int
+	addr       common.Address
+	votesValue *big.Int
 }
 type TallySlice []TallyItem
 
 func (s TallySlice) Len() int      { return len(s) }
 func (s TallySlice) Swap(i, j int) { s[i], s[j] = s[j], s[i] }
 func (s TallySlice) Less(i, j int) bool {
-	isLess := s[i].stake.Cmp(s[j].stake)
+	isLess := s[i].votesValue.Cmp(s[j].votesValue)
 	if isLess > 0 {
 		return true
 
@@ -95,8 +96,11 @@ func (s *SnapContext) buildTallySlice() TallySlice {
 			return nil
 		}
 		address := tally.Address
-		stake := tally.Stake
-		tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(stake, big.NewInt(defaultFullCredit))})
+		tlsv := tally.TimeLimitedStakingValue
+		if tlsv.Cmp(new(big.Int).Mul(big.NewInt(1000000), big.NewInt(params.Inber))) >= 0 {
+			votesValue := tally.VotesValue
+			tallySlice = append(tallySlice, TallyItem{address, new(big.Int).Mul(votesValue, big.NewInt(defaultFullCredit))})
+		}
 		existTally = tallyIterator.Next()
 	}
 
@@ -117,26 +121,24 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 
 	// only recalculate signers from to tally per defaultLoopCntRecalculateSigners loop,
 	// other loop end just random the order of signers base on parent block hash
-	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*defaultLoopCntRecalculateSigners) == 0 {
+	if (s.Number+1)%(s.config.MaxSignerCount*s.config.SignerBlocks*s.config.LoopCntRecalculate) == 0 {
 		tallySlice := s.buildTallySlice()
-		sort.Sort(TallySlice(tallySlice))
-
-		// remove minimum tickets tally beyond candidateMaxLen
-		s.removeExtraCandidate(&tallySlice)
-
-		for _, item := range tallySlice {
-			log.Debug(item.addr.Hex())
-		}
-
-		poolLength := int(s.config.MaxSignerCount)
-		if poolLength > len(tallySlice) {
-			poolLength = len(tallySlice)
-		}
-		tallySliceOrder = tallySlice[:poolLength]
-		s.random(tallySliceOrder, seed)
-
-		for _, itemx := range tallySliceOrder {
-			log.Debug(itemx.addr.Hex())
+		if tallySlice != nil {
+			sort.Sort(TallySlice(tallySlice))
+			// remove minimum tickets tally beyond candidateMaxLen
+			s.removeExtraCandidate(&tallySlice)
+			for _, item := range tallySlice {
+				log.Debug(item.addr.Hex())
+			}
+			poolLength := int(s.config.MaxSignerCount)
+			if poolLength > len(tallySlice) {
+				poolLength = len(tallySlice)
+			}
+			tallySliceOrder = tallySlice[:poolLength]
+			s.random(tallySliceOrder, seed)
+			for _, itemx := range tallySliceOrder {
+				log.Debug(itemx.addr.Hex())
+			}
 		}
 	} else {
 		if s.SignersPool == nil {
@@ -151,8 +153,8 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 					return nil, fmt.Errorf("failed to decode tally: %s", err)
 				}
 				tallyItem := TallyItem{
-					addr:  tally.Address,
-					stake: tally.Stake,
+					addr:       tally.Address,
+					votesValue: tally.VotesValue,
 				}
 				tallySliceOrder = append(tallySliceOrder, tallyItem)
 			}
@@ -165,7 +167,9 @@ func (s *SnapContext) createSignersPool() ([]common.Address, error) {
 
 	// Set the top signers in random order base on parent block hash
 	if len(tallySliceOrder) == 0 {
-		return nil, errSignersPoolEmpty
+		//return nil, errSignersPoolEmpty
+		log.Error("signers pool is empty when createSignersPool")
+		return s.SignersPool, nil
 	}
 	for i := 0; i < int(s.config.MaxSignerCount); i++ {
 		topStakeAddress = append(topStakeAddress, tallySliceOrder[i%len(tallySliceOrder)].addr)
@@ -198,8 +202,14 @@ func (s *SnapContext) inturn(signer common.Address, header *types.Header, parent
 		log.Error("Fail to decode header", "err", err)
 		return false
 	}
+	//signers, err := s.VdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+
 	headerTime := header.Time.Uint64()
 	loopStartTime := parentExtra.LoopStartTime
+	//loopStartTime := parent.LoopStartTime
 	signers := parentExtra.SignersPool
 	if signersCount := len(signers); signersCount > 0 {
 		// handle config.Period != config.SignerPeriod

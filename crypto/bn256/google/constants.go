@@ -29,22 +29,22 @@ var XiToPMinusTnum1 = new(big.Int).Mul(big.NewInt(5e+5), big.NewInt(1e+5))
 var XiToPMinusTnum2 = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5))
 
 //XiTo2PMinusTacc1 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc1 = []byte{149, 92, 223, 37, 106, 209, 25, 37, 169, 212, 97, 197, 189, 54, 202, 105, 249, 127, 65, 162, 122}
+var XiTo2PMinusTacc1 = []byte{149, 80, 137, 227, 60, 253, 240, 174, 42, 61, 22, 248, 133, 77, 35, 131, 164, 53, 138, 150}
 
 //XiTo2PMinusTacc2 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc2 = []byte{149, 144, 88, 186, 194, 232, 41, 180, 130, 190, 165, 226, 42, 228, 46, 164, 57, 4, 200, 154, 190}
+var XiTo2PMinusTacc2 = []byte{149, 191, 36, 82, 139, 52, 12, 242, 186, 147, 195, 5, 209, 47, 82, 245, 248, 79, 113, 19}
 
 //XiTo2PMinusTacc3 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc3 = []byte{149, 160, 77, 94, 169, 247, 17, 7, 113, 34, 96, 185, 74, 20, 125, 73, 127, 131, 35, 234, 173}
+var XiTo2PMinusTacc3 = []byte{149, 169, 227, 120, 40, 18, 229, 152, 55, 22, 154, 210, 219, 186, 142, 89, 63, 241, 121, 134}
 
 //XiTo2PMinusTacc4 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc4 = []byte{149, 33, 47, 200, 108, 35, 92, 118, 98, 191, 80, 189, 13, 220, 140, 164, 191, 60, 112, 76, 117}
+var XiTo2PMinusTacc4 = []byte{149, 120, 51, 108, 108, 194, 170, 186, 94, 154, 14, 134, 212, 83, 89, 31, 128, 207, 31, 190}
 
 //XiTo2PMinusTacc5 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc5 = []byte{149, 140, 160, 246, 159, 215, 51, 141, 160, 104, 95, 243, 55, 36, 176, 62, 156, 125, 46, 96, 193}
+var XiTo2PMinusTacc5 = []byte{149, 148, 86, 132, 241, 47, 108, 243, 16, 119, 156, 199, 14, 27, 20, 24, 245, 142, 17, 61}
 
 //XiTo2PMinusTacc6 is Tacc, represented as little-endian 64-bit words.
-var XiTo2PMinusTacc6 = []byte{149, 87, 198, 212, 197, 22, 193, 93, 231, 10, 252, 121, 98, 84, 250, 101, 194, 175, 109, 246, 162}
+var XiTo2PMinusTacc6 = []byte{149, 128, 30, 204, 127, 145, 176, 159, 42, 116, 217, 155, 15, 153, 114, 165, 198, 179, 153, 87}
 
 // xiToPMinus1Over6 is ξ^((p-1)/6) where ξ = i+9.
 var xiToPMinus1Over6 = &gfP2{bigFromBase10("16469823323077808223889137241176536799009286646108169935659301613961712198316"), bigFromBase10("8376118865763821496583973867626364092589906065868298776909617916018768340080")}

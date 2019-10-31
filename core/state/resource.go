@@ -46,7 +46,7 @@ type Unmortgagtion struct {
 //1 inb can be exchanged for Net
 func (c *StateDB) PerInbIsNet() *big.Int {
 
-	as := c.GetMortgageStateObject().data.Res.Mortgage
+	as := c.GetMortgageStateObject().data.Res.StakingValue
 	asString := as.Set(as).String()
 	asValue, err := strconv.ParseInt(asString, 10, 64)
 	if err != nil {
@@ -75,7 +75,9 @@ func (c *StateDB) UnitConvertNet() *big.Int {
 	if mortgage.Cmp(params.TxConfig.MortgageInbLimit) < 0 {
 		totalMortgageInb = params.TxConfig.MortgageInbLimit
 	}
-
+	if mortgage.Cmp(big.NewInt(1e+10)) > 0 {
+		totalMortgageInb = big.NewInt(1e+10)
+	}
 	weiToNet := big.NewInt(1).Div(params.TxConfig.Net, totalMortgageInb)
 	temp := big.NewInt(1).Div(params.TxConfig.Wei, params.TxConfig.WeiOfUseNet)
 	weiToNet.Div(weiToNet, temp)

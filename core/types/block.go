@@ -19,7 +19,6 @@ package types
 
 import (
 	"encoding/binary"
-	"fmt"
 	"io"
 	"math/big"
 	"sort"
@@ -93,7 +92,7 @@ type Header struct {
 type SpecialConsensus struct {
 	Molecule                *big.Int                  `json:"molecule"`
 	Denominator             *big.Int                  `json:"denominator"`
-	SpecialNumer            []SpecialNumber           `json:"specialNumber"`
+	SpecialNumber           []SpecialNumber           `json:"specialNumber"`
 	SpecialConsensusAddress []SpecialConsensusAddress `json:"specialConsensusAddress"`
 }
 
@@ -102,9 +101,9 @@ type SpecialNumber struct {
 }
 
 type SpecialConsensusAddress struct {
-	Name         string         `json:"name"`
-	TotalAddress common.Address `json:"totalAddress"`
-	ToAddress    common.Address `json:"toAddress"`
+	SpecialType uint           `json:"specialType"`
+	Address     common.Address `json:"address"`
+	ToAddress   common.Address `json:"toAddress"`
 }
 
 // field type overrides for gencodec
@@ -124,16 +123,34 @@ func (h *Header) Hash() common.Hash {
 	return rlpHash(h)
 }
 
+//2019.9.20 inb by ghy begin
 func (h *Header) GetSpecialConsensus() SpecialConsensus {
 	SpecialConsensus := SpecialConsensus{}
-
-	err := rlp.DecodeBytes(h.SpecialConsensus, &SpecialConsensus)
-	if err != nil {
-		fmt.Println(err)
-		return SpecialConsensus
+	if h.SpecialConsensus != nil {
+		rlp.DecodeBytes(h.SpecialConsensus, &SpecialConsensus)
 	}
 	return SpecialConsensus
 }
+
+//func (h *Header) GetEnodesInfoByAddress(address common.Address) *common.SuperNode {
+//
+//	b := h.Extra[32 : len(h.Extra)-65]
+//	headerExtra := vdpos.HeaderExtra{}
+//	val := &headerExtra
+//	err := rlp.DecodeBytes(b, val)
+//	if err == nil {
+//		for _, v := range val.Enodes {
+//			if v.Address == address {
+//				return &v
+//			}
+//		}
+//	} else {
+//		return nil
+//	}
+//	return nil
+//}
+
+//2019.9.20 inb by ghy end
 
 // Size returns the approximate memory used by all internal contents. It is used
 // to approximate and limit the memory consumption of various caches.

@@ -1120,7 +1120,7 @@ var formatOutputString = function (param) {
  */
 var formatOutputAddress = function (param) {
     var value = param.staticPart();
-    return "0x" + value.slice(value.length - 42, value.length);
+    return "0x" + value.slice(value.length - 40, value.length);
 };
 
 module.exports = {
@@ -1763,32 +1763,9 @@ var BigNumber = require('bignumber.js');
 
 var ETH_UNITS = [
     'wei',
-    'kwei',
-    'Mwei',
-    'Gwei',
-    'szabo',
-    'finney',
-    'femtoether',
-    'picoether',
-    'nanoether',
-    'microether',
-    'milliether',
-    'nano',
-    'micro',
-    'milli',
-    'ether',
-    'grand',
-    'Mether',
-    'Gether',
-    'Tether',
-    'Pether',
-    'Eether',
-    'Zether',
-    'Yether',
-    'Nether',
-    'Dether',
-    'Vether',
-    'Uether'
+
+    'inb'
+
 ];
 
 module.exports = {
@@ -1884,34 +1861,11 @@ var sha3 = require('./sha3.js');
 var utf8 = require('utf8');
 
 var unitMap = {
-    'noether':      '0',
+
     'wei':          '1',
-    'kwei':         '1000',
-    'Kwei':         '1000',
-    'babbage':      '1000',
-    'femtoether':   '1000',
-    'mwei':         '1000000',
-    'Mwei':         '1000000',
-    'inb':          '100000',
-    'lovelace':     '1000000',
-    'picoether':    '1000000',
-    'gwei':         '1000000000',
-    'Gwei':         '1000000000',
-    'shannon':      '1000000000',
-    'nanoether':    '1000000000',
-    'nano':         '1000000000',
-    'szabo':        '1000000000000',
-    'microether':   '1000000000000',
-    'micro':        '1000000000000',
-    'finney':       '1000000000000000',
-    'milliether':    '1000000000000000',
-    'milli':         '1000000000000000',
-    'ether':        '1000000000000000000',
-    'kether':       '1000000000000000000000',
-    'grand':        '1000000000000000000000',
-    'mether':       '1000000000000000000000000',
-    'gether':       '1000000000000000000000000000',
-    'tether':       '1000000000000000000000000000000'
+
+    'inb':          '100000'
+
 };
 
 /**
@@ -2236,7 +2190,7 @@ var toTwosComplement = function (number) {
  * @return {Boolean}
 */
 var isStrictAddress = function (address) {
-    return /^0x95[0-9a-f]{40}$/i.test(address);
+    return /^0x95[0-9a-f]{38}$/i.test(address);
 };
 
 /**
@@ -2247,10 +2201,10 @@ var isStrictAddress = function (address) {
  * @return {Boolean}
 */
 var isAddress = function (address) {
-    if (!/^(0x)?95[0-9a-f]{40}$/i.test(address)) {
+    if (!/^(0x)?95[0-9a-f]{38}$/i.test(address)) {
         // check if it has the basic requirements of an address
         return false;
-    } else if (/^(0x)?95[0-9a-f]{40}$/.test(address) || /^(0x)?95[0-9A-F]{40}$/.test(address)) {
+    } else if (/^(0x)?95[0-9a-f]{38}$/.test(address) || /^(0x)?95[0-9A-F]{38}$/.test(address)) {
         // If it's all small caps or all caps, return true
         return true;
     } else {
@@ -2271,7 +2225,7 @@ var isChecksumAddress = function (address) {
     address = address.replace('0x','');
     var addressHash = sha3(address.toLowerCase());
 
-    for (var i = 0; i < 42; i++ ) {
+    for (var i = 0; i < 40; i++ ) {
         // the nth letter should be uppercase if the nth digit of casemap is 1
         if ((parseInt(addressHash[i], 16) > 7 && address[i].toUpperCase() !== address[i]) || (parseInt(addressHash[i], 16) <= 7 && address[i].toLowerCase() !== address[i])) {
             return false;
@@ -2319,11 +2273,11 @@ var toAddress = function (address) {
         return address;
     }
 
-    if (/^95[0-9a-f]{40}$/.test(address)) {
+    if (/^95[0-9a-f]{38}$/.test(address)) {
         return '0x' + address;
     }
 
-    return '0x' + padLeft(toHex(address).substr(2), 42);
+    return '0x' + padLeft(toHex(address).substr(2), 40);
 };
 
 /**
@@ -2528,7 +2482,7 @@ var BigNumber = require('bignumber.js');
 
 
 
-function Web3 (provider) {
+function Web3i (provider) {
     this._requestManager = new RequestManager(provider);
     this.currentProvider = provider;
     this.inb = new Eth(this);
@@ -2552,48 +2506,48 @@ function Web3 (provider) {
 }
 
 // expose providers on the class
-Web3.providers = {
+Web3i.providers = {
     HttpProvider: HttpProvider,
     IpcProvider: IpcProvider
 };
 
-Web3.prototype.setProvider = function (provider) {
+Web3i.prototype.setProvider = function (provider) {
     this._requestManager.setProvider(provider);
     this.currentProvider = provider;
 };
 
-Web3.prototype.reset = function (keepIsSyncing) {
+Web3i.prototype.reset = function (keepIsSyncing) {
     this._requestManager.reset(keepIsSyncing);
     this.settings = new Settings();
 };
 
-Web3.prototype.BigNumber = BigNumber;
-Web3.prototype.toHex = utils.toHex;
-Web3.prototype.toAscii = utils.toAscii;
-Web3.prototype.toUtf8 = utils.toUtf8;
-Web3.prototype.fromAscii = utils.fromAscii;
-Web3.prototype.fromUtf8 = utils.fromUtf8;
-Web3.prototype.toDecimal = utils.toDecimal;
-Web3.prototype.fromDecimal = utils.fromDecimal;
-Web3.prototype.toBigNumber = utils.toBigNumber;
-Web3.prototype.toWei = utils.toWei;
-Web3.prototype.fromWei = utils.fromWei;
-Web3.prototype.isAddress = utils.isAddress;
-Web3.prototype.isChecksumAddress = utils.isChecksumAddress;
-Web3.prototype.toChecksumAddress = utils.toChecksumAddress;
-Web3.prototype.isIBAN = utils.isIBAN;
-Web3.prototype.padLeft = utils.padLeft;
-Web3.prototype.padRight = utils.padRight;
+Web3i.prototype.BigNumber = BigNumber;
+Web3i.prototype.toHex = utils.toHex;
+Web3i.prototype.toAscii = utils.toAscii;
+Web3i.prototype.toUtf8 = utils.toUtf8;
+Web3i.prototype.fromAscii = utils.fromAscii;
+Web3i.prototype.fromUtf8 = utils.fromUtf8;
+Web3i.prototype.toDecimal = utils.toDecimal;
+Web3i.prototype.fromDecimal = utils.fromDecimal;
+Web3i.prototype.toBigNumber = utils.toBigNumber;
+Web3i.prototype.toWei = utils.toWei;
+Web3i.prototype.fromWei = utils.fromWei;
+Web3i.prototype.isAddress = utils.isAddress;
+Web3i.prototype.isChecksumAddress = utils.isChecksumAddress;
+Web3i.prototype.toChecksumAddress = utils.toChecksumAddress;
+Web3i.prototype.isIBAN = utils.isIBAN;
+Web3i.prototype.padLeft = utils.padLeft;
+Web3i.prototype.padRight = utils.padRight;
 
 
-Web3.prototype.sha3 = function(string, options) {
+Web3i.prototype.sha3 = function(string, options) {
     return '0x' + sha3(string, options);
 };
 
 /**
  * Transforms direct icap to address
  */
-Web3.prototype.fromICAP = function (icap) {
+Web3i.prototype.fromICAP = function (icap) {
     var iban = new Iban(icap);
     return iban.address();
 };
@@ -2602,7 +2556,7 @@ var properties = function () {
     return [
         new Property({
             name: 'version.node',
-            getter: 'web3_clientVersion'
+            getter: 'web3i_clientVersion'
         }),
         new Property({
             name: 'version.network',
@@ -2622,15 +2576,15 @@ var properties = function () {
     ];
 };
 
-Web3.prototype.isConnected = function(){
+Web3i.prototype.isConnected = function(){
     return (this.currentProvider && this.currentProvider.isConnected());
 };
 
-Web3.prototype.createBatch = function () {
+Web3i.prototype.createBatch = function () {
     return new Batch(this);
 };
 
-module.exports = Web3;
+module.exports = Web3i;
 
 
 },{"./utils/sha3":19,"./utils/utils":20,"./version.json":21,"./web3/batch":24,"./web3/extend":28,"./web3/httpprovider":32,"./web3/iban":33,"./web3/ipcprovider":34,"./web3/methods/db":37,"./web3/methods/eth":38,"./web3/methods/net":39,"./web3/methods/personal":40,"./web3/methods/shh":41,"./web3/methods/swarm":42,"./web3/property":45,"./web3/requestmanager":46,"./web3/settings":47,"bignumber.js":"bignumber.js"}],23:[function(require,module,exports){
@@ -4595,7 +4549,7 @@ Iban.prototype.isDirect = function () {
  * @returns {Boolean} true if it is, otherwise false
  */
 Iban.prototype.isIndirect = function () {
-    return this._iban.length === 21;
+    return this._iban.length === 20;
 };
 
 /**
@@ -5302,9 +5256,9 @@ var methods = function () {
     outputFormatter: formatters.outputBigNumberFormatter
   });
 //inb by ghy end
-    var getMortgage = new Method({
-      name: 'getMortgage',
-      call: 'inb_getMortgage',
+    var getStaking = new Method({
+      name: 'getStaking',
+      call: 'inb_getStaking',
       params: 2,
       inputFormatter: [formatters.inputAddressFormatter, formatters.inputDefaultBlockNumberFormatter],
       outputFormatter: formatters.outputBigNumberFormatter
@@ -5480,7 +5434,7 @@ var methods = function () {
         //inb by ghy begin
         getUsedRes,
       //inb by ghy end
-        getMortgage,
+      getStaking,
         //Resource by zc
         getBalance,
         getStorageAt,
@@ -13670,14 +13624,14 @@ module.exports = BigNumber; // jshint ignore:line
 
 
 },{}],"web3":[function(require,module,exports){
-var Web3 = require('./lib/web3');
+var Web3i = require('./lib/web3');
 
 // dont override global variable
-if (typeof window !== 'undefined' && typeof window.Web3 === 'undefined') {
-    window.Web3 = Web3;
+if (typeof window !== 'undefined' && typeof window.Web3i === 'undefined') {
+    window.Web3i = Web3i;
 }
 
-module.exports = Web3;
+module.exports = Web3i;
 
 },{"./lib/web3":22}]},{},["web3"])
 //# sourceMappingURL=web3-light.js.map

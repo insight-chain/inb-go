@@ -251,7 +251,8 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 	root := statedb.IntermediateRoot(false)
 
 	// add by ssh 190815 begin
-	vdposContext, headE := initGenesisVdposContext(g, db)
+	//vdposContext, headerExtra := initGenesisVdposContext(g, db)
+	vdposContext := initGenesisVdposContext(g, db)
 	vdposContextProto := vdposContext.ToProto()
 	head := &types.Header{
 		Number:           new(big.Int).SetUint64(g.Number),
@@ -269,34 +270,44 @@ func (g *Genesis) ToBlock(db ethdb.Database) *types.Block {
 		Reward:           vdpos.DefaultMinerReward.String(), //inb by ghy 19.6.28
 		SpecialConsensus: []byte{},                          //2019.7.23 inb by ghy
 		VdposContext:     vdposContextProto,                 //add by ssh 190805
+		//LoopStartTime:        0,
+		//ConfirmedBlockNumber: 0,
 	}
 
 	// inb by ssh 190724
 	if g.Config.Vdpos != nil {
 		//inb by ghy begin
-		//headE:=new(vdpos.HeaderExtra)
-		//headE.Enode=g.Config.Vdpos.Enode
+		headerExtra := new(vdpos.HeaderExtra)
+		//headerExtra.Enode=g.Config.Vdpos.Enode
 
 		//for i,v:=range g.Config.Vdpos.Enodes{
 		//	marshal, _:= json.Marshal(v.Data)
 		//	g.Config.Vdpos.Enodes[i].DataJson=string(marshal)
 
-		//headE.Enodes = g.Config.Vdpos.Enodes
+		//headerExtra.Enodes = g.Config.Vdpos.Enodes
+		//head.LoopStartTime = g.Config.Vdpos.GenesisTimestamp
 
+		headerExtra.LoopStartTime = g.Config.Vdpos.GenesisTimestamp
 		if len(head.Extra) < 32 {
 			head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 32-len(head.Extra))...)
 		}
 		head.Extra = head.Extra[:32]
-		toBytes, _ := rlp.EncodeToBytes(headE)
-		head.Extra = append(head.Extra, toBytes...)
+		extraByte, _ := rlp.EncodeToBytes(headerExtra)
+		head.Extra = append(head.Extra, extraByte...)
 		head.Extra = append(head.Extra, bytes.Repeat([]byte{0x00}, 65)...)
 
 		//inb by ghy end
-		encodeToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
 		if err != nil {
-
+			log.Trace("EncodeToBytes", err)
 		}
-		head.SpecialConsensus = encodeToBytes
+		head.SpecialConsensus = encodeSpecialConsensusToBytes
+		//encodeSpecialConsensusToBytes, err := rlp.EncodeToBytes(g.SpecialConsensus)
+		//if err != nil {
+		//
+		//}
+		//key := common.BytesToHash(encodeSpecialConsensusToBytes)
+		//head.SpecialConsensus = key
 	}
 
 	if g.ResLimit == 0 {
@@ -432,7 +443,7 @@ func DeveloperGenesisBlock(period uint64, faucet common.Address) *Genesis {
 			common.BytesToAddress([]byte{6}): {Balance: big.NewInt(1)}, // ECAdd
 			common.BytesToAddress([]byte{7}): {Balance: big.NewInt(1)}, // ECScalarMul
 			common.BytesToAddress([]byte{8}): {Balance: big.NewInt(1)}, // ECPairing
-			faucet:                           {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
+			faucet: {Balance: new(big.Int).Sub(new(big.Int).Lsh(big.NewInt(1), 256), big.NewInt(9))},
 		},
 	}
 }
@@ -449,49 +460,67 @@ func decodePrealloc(data string) GenesisAlloc {
 	return ga
 }
 
-func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext, *vdpos.HeaderExtra) {
+//func initGenesisVdposContext(g *Genesis, db ethdb.Database) (*types.VdposContext, *vdpos.HeaderExtra) {
+func initGenesisVdposContext(g *Genesis, db ethdb.Database) *types.VdposContext {
 	dc, err := types.NewVdposContext(db)
 	if err != nil {
-		return nil, nil
+		//return nil, nil
+		return nil
 	}
-	headE := new(vdpos.HeaderExtra)
+	//headerExtra := new(vdpos.HeaderExtra)
 	if g.Config != nil && g.Config.Vdpos != nil && g.Config.Vdpos.SelfVoteSigners != nil {
 		alreadyVote := make(map[common.Address]struct{})
+		//currentSigners := make([]common.Address, 0)
 		for _, unPrefixVoter := range g.Config.Vdpos.SelfVoteSigners {
 			voter := common.Address(unPrefixVoter)
+			//currentSigners = append(currentSigners, voter)
 			candidates := []common.Address{voter}
 			if _, ok := alreadyVote[voter]; !ok {
 				vote := &types.Votes{
-					Voter:     voter,
-					Candidate: candidates,
-					//Stake:     state.GetMortgageInbOfNet(voter),
-					Stake: big.NewInt(1),
+					Voter:        voter,
+					Candidate:    candidates,
+					StakingValue: big.NewInt(1),
 				}
-				err = dc.UpdateTallysByVotes(vote)
+				err = dc.UpdateTallysByVotes(vote, nil)
 				if err != nil {
-					return nil, nil
+					//eturn nil, nil
+					return nil
 				}
 				err = dc.UpdateVotes(vote)
 				if err != nil {
-					return nil, nil
+					//return nil, nil
+					return nil
 				}
 				alreadyVote[voter] = struct{}{}
 			}
 		}
+		//err := dc.SetSignersToTrie(currentSigners)
+		//if err != nil {
+		//	log.Error("Fail in vdposContext.SetSignersToTrie()", "err", err)
+		//	return nil
+		//}
 		//2019.9.4 inb by ghy begin
+		currentEnodeInfos := make([]common.SuperNode, 0)
 		for _, v := range g.Config.Vdpos.Enodes {
-			enode := new(common.EnodeInfo)
+			enode := new(common.SuperNode)
 			enode.Address = v.Address
 			enode.Id = v.Id
 			enode.Ip = v.Ip
 			enode.Port = v.Port
-			headE.Enodes = append(headE.Enodes, *enode)
+			enode.RewardAccount = v.RewardAccount
 
-			//vdposContext, _ := types.NewVdposContext(db)
+			currentEnodeInfos = append(currentEnodeInfos, *enode)
 			dc.UpdateTallysByNodeInfo(v)
 		}
+		err = dc.SetSuperNodesToTrie(currentEnodeInfos)
+		if err != nil {
+			log.Error("Fail in vdposContext.SetSuperNodesToTrie()", "err", err)
+			return nil
+		}
 		//2019.9.4 inb by ghy end
+
 	}
 
-	return dc, headE
+	//return dc, headerExtra
+	return dc
 }

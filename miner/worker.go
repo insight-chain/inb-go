@@ -621,12 +621,13 @@ func (w *worker) resultLoop() {
 				logs = append(logs, receipt.Logs...)
 			}
 			// 2019.8.29 inb by ghy begin
-			//if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
-			if err := types.ValidateTx(block.Transactions(), block.Header(), w.config.Vdpos.Period); err != nil {
-				fmt.Println(err)
-				return
+			if w.chain.CurrentHeader().Number.Cmp(big.NewInt(0)) == 1 {
+				parentBlock := w.chain.GetBlock(block.ParentHash(), block.NumberU64()-1)
+				if err := types.ValidateTx(w.chain.GetDb(), block.Transactions(), block.Header(), parentBlock.Header(), w.config.Vdpos.Period); err != nil {
+					fmt.Println(err)
+					return
+				}
 			}
-			//}
 			// 2019.8.29 inb by ghy end
 
 			// Commit block and state to database.
@@ -1006,60 +1007,116 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	//2019.8.29 inb by ghy begin
 	//blockNumberOneYear := vdpos.OneYearBySec / int64(v.config.Period)
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
-	reward := new(big.Int).Div(vdpos.DefaultInbIncreaseOneYear, big.NewInt(blockNumberOneYear))
+
+	minerReward := new(big.Int).Div(vdpos.DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
+	foundationReward := new(big.Int).Div(vdpos.DefaultFoundationRewardOneYear, big.NewInt(blockNumberOneYear))
+	verifyReward := new(big.Int).Div(vdpos.DefaultVerifyRewardOneYear, big.NewInt(blockNumberOneYear))
+	teamReward := new(big.Int).Div(vdpos.DefaultTeamRewardOneYear, big.NewInt(blockNumberOneYear))
+	offlineReward := new(big.Int).Div(vdpos.DefaultOfflineRewardOneYear, big.NewInt(blockNumberOneYear))
+
+	votingReward := new(big.Int).Div(vdpos.DefaultVotingRewardOneYear, vdpos.WeekNumberOfOneYear)
+	onlineReward := new(big.Int).Div(vdpos.DefaultOnlineRewardOneYear, vdpos.WeekNumberOfOneYear)
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
-		for _, v := range SpecialConsensus.SpecialNumer {
+		for _, v := range SpecialConsensus.SpecialNumber {
 			if header.Number.Cmp(v.Number) == 1 {
-				mul := new(big.Int).Mul(reward, SpecialConsensus.Molecule)
-				reward = new(big.Int).Div(mul, SpecialConsensus.Denominator)
+				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
+				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
+
+				FoundationMul := new(big.Int).Mul(foundationReward, SpecialConsensus.Molecule)
+				foundationReward = new(big.Int).Div(FoundationMul, SpecialConsensus.Denominator)
+
+				VerifyMul := new(big.Int).Mul(verifyReward, SpecialConsensus.Molecule)
+				verifyReward = new(big.Int).Div(VerifyMul, SpecialConsensus.Denominator)
+
+				TeamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
+				teamReward = new(big.Int).Div(TeamMul, SpecialConsensus.Denominator)
+
+				OfflineMul := new(big.Int).Mul(offlineReward, SpecialConsensus.Molecule)
+				offlineReward = new(big.Int).Div(OfflineMul, SpecialConsensus.Denominator)
+
+				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
+				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
+
+				onlineMul := new(big.Int).Mul(onlineReward, SpecialConsensus.Molecule)
+				onlineReward = new(big.Int).Div(onlineMul, SpecialConsensus.Denominator)
+
 			}
 
 		}
 
 	}
-	vdpos.DefaultMinerReward = reward
-	header.Reward = reward.String()
+	vdpos.DefaultMinerReward = minerReward
+	header.Reward = minerReward.String()
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-		switch v.Name {
-		case "Foundation":
-			from := v.TotalAddress
+		switch v.SpecialType {
+		case state.Foundation:
+			from := v.Address
 			to := v.ToAddress
-			value := reward
+			value := foundationReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
-		case "MiningReward":
-			from := v.TotalAddress
+		case state.MiningReward:
+			from := v.Address
 			to := header.Coinbase
-			value := reward
+
+			//b := header.Extra[32 : len(header.Extra)-65]
+			//headerExtra := vdpos.HeaderExtra{}
+			//val := &headerExtra
+			//err := rlp.DecodeBytes(b, val)
+			//if err == nil {
+			//	for _, v := range val.Enodes {
+			//		if v.Address == header.Coinbase && v.RewardAccount != "" {
+			//			address := common.HexToAddress(v.RewardAccount)
+			//			to = address
+			//		}
+			//	}
+			//}
+
+			superNodes, err := w.current.vdposContext.GetSuperNodesFromTrie()
+			if err == nil {
+				for _, v := range superNodes {
+					if v.Address == header.Coinbase && v.RewardAccount != "" {
+						address := common.HexToAddress(v.RewardAccount)
+						to = address
+					}
+				}
+			}
+			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx, newTx)
-		case "VerifyReward":
+		case state.VerifyReward:
 
-		case "VotingReward":
-			from := v.TotalAddress
+		case state.VotingReward:
+			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+				from := v.Address
+				to := v.ToAddress
+				value := votingReward
+				//value := big.NewInt(int64(minerReward))
+				newTx := w.CreateTx(from, to, value)
+				localTxs[from] = append(localTxs[from], newTx)
+			}
+
+		case state.Team:
+			from := v.Address
 			to := v.ToAddress
-			value := reward
-			//value := big.NewInt(int64(reward))
+			value := teamReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
-		case "Team":
-			from := v.TotalAddress
+		case state.OnlineMarketing:
+			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
+				from := v.Address
+				to := v.ToAddress
+				value := onlineReward
+				newTx := w.CreateTx(from, to, value)
+				localTxs[from] = append(localTxs[from], newTx)
+			}
+		case state.OfflineMarketing:
+			from := v.Address
 			to := v.ToAddress
-			value := reward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
-		case "OnlineMarketing":
-			from := v.TotalAddress
-			to := v.ToAddress
-			value := reward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
-		case "OfflineMarketing":
-			from := v.TotalAddress
-			to := v.ToAddress
-			value := new(big.Int).Div(reward, big.NewInt(2))
+			//value := new(big.Int).Div(offlineReward, big.NewInt(2))
+			value := offlineReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx)
 		default:
@@ -1085,7 +1142,7 @@ func (w *worker) CreateTx(from, to common.Address, value *big.Int) *types.Transa
 		From:  from,
 		To:    to,
 		Value: new(big.Int),
-		Types: types.SpecilaTx,
+		Types: types.SpecialTx,
 		Nonce: 0,
 	}
 	if args.Gas == nil {
@@ -1168,11 +1225,12 @@ func (w *worker) inturn(signer common.Address, headerTime uint64, parent *types.
 	}
 	loopStartTime := parentExtra.LoopStartTime
 	signers := parentExtra.SignersPool
+	//signers, err := w.current.vdposContext.GetSignersFromTrie()
+	//if err != nil {
+	//	return false
+	//}
+	//loopStartTime := parent.LoopStartTime
 	if signersCount := len(signers); signersCount > 0 {
-		//config.Period != config.SignerPeriod
-		//if loopIndex := ((headerTime - s.LoopStartTime) / (s.config.Period * s.config.SignerBlocks)) % uint64(signersCount); *s.Signers[loopIndex] == signer {
-		//	return true
-		//}
 		if loopIndex := ((headerTime - loopStartTime) / (w.config.Vdpos.Period*(w.config.Vdpos.SignerBlocks-1) + w.config.Vdpos.SignerPeriod)) % uint64(signersCount); signers[loopIndex] == signer {
 			return true
 		}

@@ -42,11 +42,12 @@ var (
 		ConstantinopleBlock: big.NewInt(7080000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           2,
-			SignerPeriod:     2,
-			SignerBlocks:     6,
-			MaxSignerCount:   21,
-			GenesisTimestamp: 1554004800,
+			Period:             2,
+			SignerPeriod:       2,
+			SignerBlocks:       6,
+			LoopCntRecalculate: 350,
+			MaxSignerCount:     21,
+			GenesisTimestamp:   1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
 				common.UnprefixedAddress(common.HexToAddress("t04909b4e54395de9e313ad8a2254fe2dcda99e91c")),
@@ -76,11 +77,12 @@ var (
 		ConstantinopleBlock: big.NewInt(4230000),
 		Ethash:              new(EthashConfig),
 		Vdpos: &VdposConfig{
-			Period:           2,
-			SignerPeriod:     2,
-			SignerBlocks:     6,
-			MaxSignerCount:   21,
-			GenesisTimestamp: 1554004800,
+			Period:             2,
+			SignerPeriod:       2,
+			SignerBlocks:       6,
+			LoopCntRecalculate: 350,
+			MaxSignerCount:     21,
+			GenesisTimestamp:   1554004800,
 			SelfVoteSigners: []common.UnprefixedAddress{
 				common.UnprefixedAddress(common.HexToAddress("t0be6865ffcbbe5f9746bef5c84b912f2ad9e52075")),
 				common.UnprefixedAddress(common.HexToAddress("t04909b4e54395de9e313ad8a2254fe2dcda99e91c")),
@@ -141,26 +143,35 @@ var (
 	// adding flags to the config to also have to set these fields.
 	AllVdposProtocolChanges = &ChainConfig{big.NewInt(1337), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, nil, nil, &VdposConfig{Period: 3, MaxSignerCount: 21, GenesisTimestamp: 0, SelfVoteSigners: []common.UnprefixedAddress{}}}
 
-	TestChainConfig = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
-	TestRules       = TestChainConfig.Rules(new(big.Int))
+	TestChainConfig  = &ChainConfig{big.NewInt(1), big.NewInt(0), big.NewInt(0), common.Hash{}, big.NewInt(0), big.NewInt(0), big.NewInt(0), big.NewInt(0), nil, new(EthashConfig), nil, nil}
+	TestRules        = TestChainConfig.Rules(new(big.Int))
+	HeightOf30Days   = big.NewInt(30 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf90Days   = big.NewInt(90 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf180Days  = big.NewInt(180 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf360Days  = big.NewInt(360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf720Days  = big.NewInt(2 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf1080Days = big.NewInt(3 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf1800Days = big.NewInt(5 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
+	HeightOf3600Days = big.NewInt(10 * 360 * 60 * 60 * 24 / int64(MainnetChainConfig.Vdpos.Period))
 )
 var (
 	TxConfig = &CommonConfig{
 		UseNet:        300,
 		UseCpu:        50,
-		CandidateSize: 30,
+		CandidateSize: 10,
 		//Wei:              big.NewInt(1e+18),
-		Wei:         big.NewInt(1e+5), // 2019.9.11 inb by ghy
+		Wei:         big.NewInt(1e+5),
 		Circulation: big.NewInt(5e+8),
 		Net:         big.NewInt(86400 * 1024 * 1024 * 12.5),
 		//WeiOfUseNet:      big.NewInt(1e+16),
-		WeiOfUseNet:      big.NewInt(1e+3), // 2019.9.11 inb by ghy
+		WeiOfUseNet:      big.NewInt(1e+3),
 		MortgageInbLimit: big.NewInt(5e+8),
 		NetRatio:         3,
 		RegularLimit:     5,
-		Days:             [4]*big.Int{big.NewInt(30 * 60 * 60 * 24 / 2), big.NewInt(90 * 60 * 60 * 24 / 2), big.NewInt(180 * 60 * 60 * 24 / 2), big.NewInt(360 * 60 * 60 * 24 / 2)},
+		Days:             [8]*big.Int{HeightOf30Days, HeightOf90Days, HeightOf180Days, HeightOf360Days, HeightOf720Days, HeightOf1080Days, HeightOf1800Days, HeightOf3600Days},
 		ResetDuration:    big.NewInt(24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
 		RedeemDuration:   big.NewInt(3 * 24 * 60 * 60 / int64(MainnetChainConfig.Vdpos.Period)),
+		MinStaking: big.NewInt(100000),
 	}
 )
 
@@ -224,8 +235,9 @@ type CommonConfig struct {
 
 	ResetDuration  *big.Int // duration of resetting nets
 	RegularLimit   int      // max value for regular mortgaging
-	Days           [4]*big.Int
+	Days           [8]*big.Int
 	RedeemDuration *big.Int //duration of redeeming
+	MinStaking *big.Int
 }
 
 // String implements the stringer interface, returning the consensus engine details.
@@ -255,14 +267,15 @@ type VdposLightConfig struct {
 
 // VdposConfig is the consensus engine configs for delegated-proof-of-stake based sealing.
 type VdposConfig struct {
-	Period           uint64                     `json:"period"`           // Number of seconds between blocks to enforce
-	SignerPeriod     uint64                     `json:"signerPeriod"`     // Number of seconds between two consecutive signers
-	SignerBlocks     uint64                     `json:"signerBlocks"`     // Number of blocks every signer created
-	MaxSignerCount   uint64                     `json:"maxSignersCount"`  // Max count of signers
-	GenesisTimestamp uint64                     `json:"genesisTimestamp"` // The LoopStartTime of first Block
-	SelfVoteSigners  []common.UnprefixedAddress `json:"signers"`          // Signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
-	PBFTEnable       bool                       `json:"pbft"`
-	Enodes           []common.EnodesInfo        `json:"enodes"` //inb by ghy
+	Period             uint64                     `json:"period"`             // number of seconds between blocks to enforce
+	SignerPeriod       uint64                     `json:"signerPeriod"`       // number of seconds between two consecutive signers
+	SignerBlocks       uint64                     `json:"signerBlocks"`       // number of blocks every signer created
+	LoopCntRecalculate uint64                     `json:"loopCntRecalculate"` // default loop count to recreate signers from top tally
+	MaxSignerCount     uint64                     `json:"maxSignersCount"`    // max count of signers
+	GenesisTimestamp   uint64                     `json:"genesisTimestamp"`   // the LoopStartTime of first Block
+	SelfVoteSigners    []common.UnprefixedAddress `json:"signers"`            // signers vote by themselves to seal the block, make sure the signer accounts are pre-funded
+	PBFTEnable         bool                       `json:"pbft"`
+	Enodes             []common.SuperNodeExtra    `json:"enodes"` //inb by ghy
 
 	LightConfig *VdposLightConfig `json:"lightConfig,omitempty"`
 }

@@ -257,29 +257,46 @@ func ConnectAllSuperNodes(n *Node) {
 		}
 
 		for {
-			LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+			//LastSuperNodeEncodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLastBlockEnode()
+			signersPool, superNodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLastBlockEnode()
+			//signersPool, _ := LastSuperNodeEncodes.GetSignersFromTrie()
+			//superNodes, _ := LastSuperNodeEncodes.GetSuperNodesFromTrie()
+			if len(signersPool) > 0 {
+				for _, signer := range signersPool {
+					if len(superNodes) > 0 {
+						for _, superNode := range superNodes {
+							if signer == superNode.Address && !n.server.Self().Equals(ParsePeerUrl(superNode)) && len(superNode.Id) == 128 {
 
-			if len(LatesSuperNodeEcodes.SignersPool) > 0 {
-				for _, signer := range LatesSuperNodeEcodes.SignersPool {
-					if len(LatesSuperNodeEcodes.Enodes) > 0 {
-						for _, enodes := range LatesSuperNodeEcodes.Enodes {
-							if signer == enodes.Address && !n.server.Self().Equals(ParsePeerUrl(enodes)) && len(enodes.Id) == 128 {
-
-								latessuperNode, _ := enode.ParseV4(ParsePeerUrl(enodes))
-								n.server.AddPeer(latessuperNode)
+								lastSuperNode, _ := enode.ParseV4(ParsePeerUrl(superNode))
+								n.server.AddPeer(lastSuperNode)
 
 							}
 						}
 					}
 				}
 			}
-			time.Sleep(50 * 60 * 3 * time.Second)
+			//LatesSuperNodeEcodes := n.rpcAPIs[6].Service.(*ethapi.PublicBlockChainAPI).GetLatesBlockEnode()
+			//if len(LatesSuperNodeEcodes.SignersPool) > 0 {
+			//	for _, signer := range LatesSuperNodeEcodes.SignersPool {
+			//		if len(LatesSuperNodeEcodes.Enodes) > 0 {
+			//			for _, enodes := range LatesSuperNodeEcodes.Enodes {
+			//				if signer == enodes.Address && !n.server.Self().Equals(ParsePeerUrl(enodes)) && len(enodes.Id) == 128 {
+			//
+			//					latessuperNode, _ := enode.ParseV4(ParsePeerUrl(enodes))
+			//					n.server.AddPeer(latessuperNode)
+			//
+			//				}
+			//			}
+			//		}
+			//	}
+			//}
+			time.Sleep(350 * 18 * 2 * time.Second)
 		}
 	}
 
 }
 
-func ParsePeerUrl(nodeinfo common.EnodeInfo) string {
+func ParsePeerUrl(nodeinfo common.SuperNode) string {
 	var urlBuffer bytes.Buffer
 	if !common.IsBlank(nodeinfo.Id) && !common.IsBlank(nodeinfo.Ip) {
 		urlBuffer.WriteString("enode://")
@@ -680,7 +697,7 @@ func (n *Node) apis() []rpc.API {
 			Service:   NewPublicDebugAPI(n),
 			Public:    true,
 		}, {
-			Namespace: "web3",
+			Namespace: "web3i",
 			Version:   "1.0",
 			Service:   NewPublicWeb3API(n),
 			Public:    true,

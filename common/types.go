@@ -35,7 +35,7 @@ const (
 	// HashLength is the expected length of the hash
 	HashLength = 32
 	// AddressLength is the expected length of the address
-	AddressLength = 21
+	AddressLength = 20
 )
 
 var (
@@ -182,6 +182,12 @@ func IsHexAddress(s string) bool {
 		s = s[2:]
 	}
 	return len(s) == 2*AddressLength && isHex(s)
+}
+func IsRewardAddress(s string) bool {
+	if len(s) >= 4 && s[0] == '0' && (s[1] == 'x' || s[1] == 'X') && s[2] == '9' && s[3] == '5' {
+		s = s[2:]
+	}
+	return len(s) == 2*AddressLength && isHex(s) && s[0] == '9' && s[1] == '5'
 }
 
 // vdpos by ssh begin

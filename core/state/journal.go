@@ -103,11 +103,11 @@ type (
 		account *common.Address
 		prev    *big.Int
 	}
-	netChange struct {
+	resChange struct {
 		account      *common.Address
 		Used         *big.Int
-		Usableness   *big.Int
-		MortgagteINB *big.Int
+		Usable   *big.Int
+		StakingValue *big.Int
 	}
 	//Resource by zc
 	nonceChange struct {
@@ -116,14 +116,13 @@ type (
 	}
 
 	//achilles0718 regular mortgagtion
-	regularChange struct {
+	stakingChange struct {
 		account *common.Address
-		stores  []Store
-		regular *big.Int
+		stakings  []Staking
 	}
-	redeemChange struct {
+	unStakingChange struct {
 		account *common.Address
-		redeems []Redeem
+		unStaking UnStaking
 	}
 	dateChange struct {
 		account *common.Address
@@ -157,19 +156,19 @@ type (
 )
 
 //achilles0722 redeem t+3
-func (ch redeemChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setRedeems(ch.redeems)
+func (ch unStakingChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setUnStaking(ch.unStaking)
 }
 
-func (ch redeemChange) dirtied() *common.Address {
+func (ch unStakingChange) dirtied() *common.Address {
 	return ch.account
 }
 
-func (ch regularChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setStores(ch.stores, ch.regular)
+func (ch stakingChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setStakings(ch.stakings)
 }
 
-func (ch regularChange) dirtied() *common.Address {
+func (ch stakingChange) dirtied() *common.Address {
 	return ch.account
 }
 
@@ -195,11 +194,11 @@ func (ch resetObjectChange) revert(s *StateDB) {
 }
 
 //Resource  by zc
-func (ch netChange) revert(s *StateDB) {
-	s.getStateObject(*ch.account).setNet(ch.Used, ch.Usableness, ch.MortgagteINB)
+func (ch resChange) revert(s *StateDB) {
+	s.getStateObject(*ch.account).setRes(ch.Used, ch.Usable, ch.StakingValue)
 }
 
-func (ch netChange) dirtied() *common.Address {
+func (ch resChange) dirtied() *common.Address {
 	return ch.account
 }
 

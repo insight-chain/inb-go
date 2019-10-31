@@ -27,26 +27,35 @@ import (
 	"math/big"
 )
 
+type GetState interface {
+	GetStakingValue(addr common.Address) *big.Int
+	GetTotalStakingYear(addr common.Address) *big.Int
+}
+
 type VdposContext struct {
 	voteTrie              *trie.Trie
 	tallyTrie             *trie.Trie
 	lightTokenTrie        *trie.Trie
 	lightTokenAccountTrie *trie.Trie
+	//signersTrie           *trie.Trie
+	superNodesTrie *trie.Trie
 
 	db     ethdb.Database
 	triedb *trie.Database
 }
 
 type Tally struct {
-	Address  common.Address
-	Stake    *big.Int
-	NodeInfo common.EnodesInfo //2019.9.4 inb by ghy
+	Address                 common.Address
+	VotesValue              *big.Int
+	StakingValue            *big.Int
+	TimeLimitedStakingValue *big.Int
+	NodeInfo                common.SuperNodeExtra //2019.9.4 inb by ghy
 }
 
 type Votes struct {
-	Voter     common.Address
-	Candidate []common.Address
-	Stake     *big.Int
+	Voter        common.Address
+	Candidate    []common.Address
+	StakingValue *big.Int
 }
 
 type LightTokenChangeType uint8
@@ -57,14 +66,23 @@ const (
 )
 
 type LightToken struct {
-	Address             common.Address
-	Name                string
-	Symbol              string
-	Decimals            uint8
-	TotalSupply         *big.Int
-	IssueAccountAddress common.Address
-	IssueTxHash         common.Hash
-	Owner               common.Address
+	Address              common.Address
+	Name                 string
+	Symbol               string
+	Decimals             uint8
+	TotalSupply          *big.Int
+	IssuedAccountAddress common.Address
+	IssuedTxHash         common.Hash
+	Owner                common.Address
+	PayForInb            *big.Int
+	Type                 uint8
+}
+
+type LightTokenJson struct {
+	Name        string   `json:"name"`
+	Symbol      string   `json:"symbol"`
+	Decimals    uint8    `json:"decimals"`
+	TotalSupply *big.Int `json:"totalSupply"`
 }
 
 type ApproveInfo struct {
@@ -99,10 +117,12 @@ type LightTokenChanges struct {
 }
 
 var (
-	votePrefix              = []byte("vote-")
-	tallyPrefix             = []byte("tally-")
+	votePrefix              = []byte("vt-")
+	tallyPrefix             = []byte("ty-")
 	lightTokenPrefix        = []byte("lt-")
 	lightTokenAccountPrefix = []byte("lta-")
+	//signersPrefix           = []byte("si-")
+	superNodesPrefix = []byte("sn-")
 )
 
 func NewVoteTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
@@ -119,6 +139,14 @@ func NewLightTokenTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, err
 
 func NewLightTokenAccountTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
 	return trie.NewTrieWithPrefix(root, lightTokenAccountPrefix, triedb)
+}
+
+//func NewSignersTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+//	return trie.NewTrieWithPrefix(root, signersPrefix, triedb)
+//}
+
+func NewSuperNodesTrie(root common.Hash, triedb *trie.Database) (*trie.Trie, error) {
+	return trie.NewTrieWithPrefix(root, superNodesPrefix, triedb)
 }
 
 func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
@@ -139,13 +167,24 @@ func NewVdposContext(db ethdb.Database) (*VdposContext, error) {
 	if err != nil {
 		return nil, err
 	}
+	//signersTrie, err := NewSignersTrie(common.Hash{}, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(common.Hash{}, triedb)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContext{
 		voteTrie:              voteTrie,
 		tallyTrie:             tallyTrie,
 		lightTokenTrie:        lightTokenTrie,
 		lightTokenAccountTrie: lightTokenAccountTrie,
-		db:     db,
-		triedb: triedb,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
 	}, nil
 }
 
@@ -167,13 +206,63 @@ func NewVdposContextFromProto(db ethdb.Database, ctxProto *VdposContextProto) (*
 	if err != nil {
 		return nil, err
 	}
+	//signersTrie, err := NewSignersTrie(ctxProto.SignersHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(ctxProto.SuperNodesHash, triedb)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContext{
 		voteTrie:              voteTrie,
 		tallyTrie:             tallyTrie,
 		lightTokenTrie:        lightTokenTrie,
 		lightTokenAccountTrie: lightTokenAccountTrie,
-		db:     db,
-		triedb: triedb,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
+	}, nil
+}
+
+func NewVdposContextFromProtoJustSuperNodes(db ethdb.Database, ctxProto *VdposContextProto) (*VdposContext, error) {
+	triedb := trie.NewDatabase(db)
+	//voteTrie, err := NewVoteTrie(ctxProto.VoteHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//tallyTrie, err := NewTallyTrie(ctxProto.TallyHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//lightTokenTrie, err := NewLightTokenTrie(ctxProto.LightTokenHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//lightTokenAccountTrie, err := NewLightTokenAccountTrie(ctxProto.LightTokenAccountHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//signersTrie, err := NewSignersTrie(ctxProto.SignersHash, triedb)
+	//if err != nil {
+	//	return nil, err
+	//}
+	superNodesTrie, err := NewSuperNodesTrie(ctxProto.SuperNodesHash, triedb)
+	if err != nil {
+		return nil, err
+	}
+
+	return &VdposContext{
+		voteTrie:              nil,
+		tallyTrie:             nil,
+		lightTokenTrie:        nil,
+		lightTokenAccountTrie: nil,
+		//signersTrie:           signersTrie,
+		superNodesTrie: superNodesTrie,
+		db:             db,
+		triedb:         triedb,
 	}, nil
 }
 
@@ -182,11 +271,15 @@ func (vc *VdposContext) Copy() *VdposContext {
 	tallyTrie := *vc.tallyTrie
 	lightTokenTrie := *vc.lightTokenTrie
 	lightTokenAccountTrie := *vc.lightTokenAccountTrie
+	//signersTrie := *vc.signersTrie
+	superNodesTrie := *vc.superNodesTrie
 	return &VdposContext{
 		voteTrie:              &voteTrie,
 		tallyTrie:             &tallyTrie,
 		lightTokenTrie:        &lightTokenTrie,
 		lightTokenAccountTrie: &lightTokenAccountTrie,
+		//signersTrie:           &signersTrie,
+		superNodesTrie: &superNodesTrie,
 	}
 }
 
@@ -196,6 +289,8 @@ func (vc *VdposContext) Root() (h common.Hash) {
 	rlp.Encode(hw, vc.tallyTrie.Hash())
 	rlp.Encode(hw, vc.lightTokenTrie.Hash())
 	rlp.Encode(hw, vc.lightTokenAccountTrie.Hash())
+	//rlp.Encode(hw, vc.signersTrie.Hash())
+	rlp.Encode(hw, vc.superNodesTrie.Hash())
 	hw.Sum(h[:0])
 	return h
 }
@@ -209,6 +304,8 @@ func (vc *VdposContext) RevertToSnapShot(snapshot *VdposContext) {
 	vc.tallyTrie = snapshot.tallyTrie
 	vc.lightTokenTrie = snapshot.lightTokenTrie
 	vc.lightTokenAccountTrie = snapshot.lightTokenAccountTrie
+	//vc.signersTrie = snapshot.signersTrie
+	vc.superNodesTrie = snapshot.superNodesTrie
 }
 
 func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
@@ -226,6 +323,14 @@ func (vc *VdposContext) FromProto(dcp *VdposContextProto) error {
 		return err
 	}
 	vc.lightTokenAccountTrie, err = NewLightTokenAccountTrie(dcp.LightTokenAccountHash, vc.triedb)
+	if err != nil {
+		return err
+	}
+	//vc.signersTrie, err = NewSignersTrie(dcp.SignersHash, vc.triedb)
+	//if err != nil {
+	//	return err
+	//}
+	vc.superNodesTrie, err = NewSuperNodesTrie(dcp.SuperNodesHash, vc.triedb)
 	return err
 }
 
@@ -234,6 +339,8 @@ type VdposContextProto struct {
 	TallyHash             common.Hash `json:"tallyRoot"                 gencodec:"required"`
 	LightTokenHash        common.Hash `json:"lightTokenRoot"            gencodec:"required"`
 	LightTokenAccountHash common.Hash `json:"lightTokenAccountRoot"     gencodec:"required"`
+	//SignersHash           common.Hash `json:"signersRoot"               gencodec:"required"`
+	SuperNodesHash common.Hash `json:"superNodesRoot"            gencodec:"required"`
 }
 
 func (vc *VdposContext) ToProto() *VdposContextProto {
@@ -242,6 +349,8 @@ func (vc *VdposContext) ToProto() *VdposContextProto {
 		TallyHash:             vc.tallyTrie.Hash(),
 		LightTokenHash:        vc.lightTokenTrie.Hash(),
 		LightTokenAccountHash: vc.lightTokenAccountTrie.Hash(),
+		//SignersHash:           vc.signersTrie.Hash(),
+		SuperNodesHash: vc.superNodesTrie.Hash(),
 	}
 }
 
@@ -251,6 +360,8 @@ func (p *VdposContextProto) Root() (h common.Hash) {
 	rlp.Encode(hw, p.TallyHash)
 	rlp.Encode(hw, p.LightTokenHash)
 	rlp.Encode(hw, p.LightTokenAccountHash)
+	//rlp.Encode(hw, p.SignersHash)
+	rlp.Encode(hw, p.SuperNodesHash)
 	hw.Sum(h[:0])
 	return h
 }
@@ -292,11 +403,31 @@ func (vc *VdposContext) Commit() (*VdposContextProto, error) {
 		return nil, err
 	}
 
+	//signersRoot, err := vc.signersTrie.Commit(nil)
+	//if err != nil {
+	//	return nil, err
+	//}
+	//err = vc.triedb.Commit(signersRoot, false)
+	//if err != nil {
+	//	return nil, err
+	//}
+
+	superNodesRoot, err := vc.superNodesTrie.Commit(nil)
+	if err != nil {
+		return nil, err
+	}
+	err = vc.triedb.Commit(superNodesRoot, false)
+	if err != nil {
+		return nil, err
+	}
+
 	return &VdposContextProto{
 		VoteHash:              voteRoot,
 		TallyHash:             tallyRoot,
 		LightTokenHash:        lightTokenRoot,
 		LightTokenAccountHash: lightTokenAccountRoot,
+		//SignersHash:           signersRoot,
+		SuperNodesHash: superNodesRoot,
 	}, nil
 }
 
@@ -313,13 +444,67 @@ func (vc *VdposContext) SetLightTokenAccount(lightTokenAccount *trie.Trie) {
 	vc.lightTokenAccountTrie = lightTokenAccount
 }
 
-func (vc *VdposContext) UpdateTallys(tally *Tally) error {
-	addr := tally.Address
-	tallyRLP, err := rlp.EncodeToBytes(tally)
-	if err != nil {
-		return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+//func (vc *VdposContext) SignersTrie() *trie.Trie             { return vc.signersTrie }
+func (vc *VdposContext) SuperNodesTrie() *trie.Trie { return vc.superNodesTrie }
+
+//func (vc *VdposContext) SetSigners(signers *trie.Trie)       { vc.signersTrie = signers }
+func (vc *VdposContext) SetSuperNodes(superNodes *trie.Trie) { vc.superNodesTrie = superNodes }
+
+//func (vc *VdposContext) GetSignersFromTrie() ([]common.Address, error) {
+//	var signers []common.Address
+//	key := []byte("signers")
+//	signersRLP := vc.signersTrie.Get(key)
+//	if err := rlp.DecodeBytes(signersRLP, &signers); err != nil {
+//		return nil, fmt.Errorf("failed to decode signers: %s", err)
+//	}
+//	return signers, nil
+//}
+//
+//func (vc *VdposContext) SetSignersToTrie(signers []common.Address) error {
+//	key := []byte("signers")
+//	signersRLP, err := rlp.EncodeToBytes(signers)
+//	if err != nil {
+//		return fmt.Errorf("failed to encode signers to rlp bytes: %s", err)
+//	}
+//	vc.signersTrie.Update(key, signersRLP)
+//	return nil
+//}
+
+func (vc *VdposContext) GetSuperNodesFromTrie() ([]common.SuperNode, error) {
+	var superNodes []common.SuperNode
+	key := []byte("superNodes")
+	superNodesRLP := vc.superNodesTrie.Get(key)
+	if err := rlp.DecodeBytes(superNodesRLP, &superNodes); err != nil {
+		return nil, fmt.Errorf("failed to decode superNodes: %s", err)
 	}
-	vc.tallyTrie.Update(addr[:], tallyRLP)
+	return superNodes, nil
+}
+
+func (vc *VdposContext) SetSuperNodesToTrie(superNodes []common.SuperNode) error {
+	key := []byte("superNodes")
+	superNodesRLP, err := rlp.EncodeToBytes(superNodes)
+	if err != nil {
+		return fmt.Errorf("failed to encode superNodes to rlp bytes: %s", err)
+	}
+	vc.superNodesTrie.Update(key, superNodesRLP)
+	return nil
+}
+
+func (vc *VdposContext) UpdateTallysByNewState(addr common.Address, state GetState) error {
+	oldTallyRLP := vc.tallyTrie.Get(addr[:])
+	if oldTallyRLP != nil {
+		tally := new(Tally)
+		if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
+			return fmt.Errorf("failed to decode tally: %s", err)
+		}
+		tally.StakingValue = state.GetStakingValue(addr)
+		tally.TimeLimitedStakingValue = state.GetTotalStakingYear(addr)
+		newTallyRLP, err := rlp.EncodeToBytes(tally)
+		if err != nil {
+			return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+		}
+		vc.tallyTrie.Update(addr[:], newTallyRLP)
+	}
 	return nil
 }
 
@@ -327,13 +512,13 @@ func (vc *VdposContext) UpdateVotes(vote *Votes) error {
 	addr := vote.Voter
 	voteRLP, err := rlp.EncodeToBytes(vote)
 	if err != nil {
-		return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
+		return fmt.Errorf("failed to encode votes to rlp bytes: %s", err)
 	}
 	vc.voteTrie.Update(addr[:], voteRLP)
 	return nil
 }
 
-func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
+func (vc *VdposContext) UpdateTallysByVotes(vote *Votes, state GetState) error {
 	voteAddr := vote.Voter
 	voteRLP := vc.voteTrie.Get(voteAddr[:])
 	if voteRLP != nil {
@@ -348,10 +533,10 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 					return fmt.Errorf("failed to decode tally: %s", err)
 				}
-				if tally.Stake.Cmp(vote.Stake) == -1 {
-					tally.Stake = big.NewInt(0)
+				if tally.VotesValue.Cmp(vote.StakingValue) == -1 {
+					tally.VotesValue = big.NewInt(0)
 				} else {
-					tally.Stake = tally.Stake.Sub(tally.Stake, vote.Stake)
+					tally.VotesValue = tally.VotesValue.Sub(tally.VotesValue, vote.StakingValue)
 				}
 				newTallyRLP, err := rlp.EncodeToBytes(tally)
 				if err != nil {
@@ -368,11 +553,23 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 			if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 				return fmt.Errorf("failed to decode tally: %s", err)
 			}
-			tally.Stake = tally.Stake.Add(tally.Stake, vote.Stake)
+			tally.VotesValue = tally.VotesValue.Add(tally.VotesValue, vote.StakingValue)
 		} else {
+			stakingValue := new(big.Int)
+			timeLimitedStakingValue := new(big.Int)
+			if state == nil {
+				stakingValue.SetUint64(0)
+				timeLimitedStakingValue.SetUint64(0)
+			} else {
+				stakingValue.Set(state.GetStakingValue(candidate))
+				timeLimitedStakingValue.Set(state.GetTotalStakingYear(candidate))
+			}
+
 			tally = &Tally{
-				Address: candidate,
-				Stake:   vote.Stake,
+				Address:                 candidate,
+				VotesValue:              vote.StakingValue,
+				StakingValue:            stakingValue,
+				TimeLimitedStakingValue: timeLimitedStakingValue,
 			}
 		}
 		newTallyRLP, err := rlp.EncodeToBytes(tally)
@@ -385,7 +582,7 @@ func (vc *VdposContext) UpdateTallysByVotes(vote *Votes) error {
 }
 
 //2019.9.4 inb by ghy begin
-func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error {
+func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.SuperNodeExtra) error {
 	Addr := nodeInfo.Address
 	tallyRLP := vc.tallyTrie.Get(Addr[:])
 	tally := new(Tally)
@@ -413,12 +610,16 @@ func (vc *VdposContext) UpdateTallysByNodeInfo(nodeInfo common.EnodesInfo) error
 
 //2019.9.4 inb by ghy end
 
-func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *big.Int) error {
+func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stakingValue *big.Int) error {
 	voteRLP := vc.voteTrie.Get(voter[:])
 	if voteRLP != nil {
 		oldVote := new(Votes)
 		if err := rlp.DecodeBytes(voteRLP, oldVote); err != nil {
 			return fmt.Errorf("failed to decode votes: %s", err)
+		}
+		if oldVote.StakingValue.Cmp(stakingValue) == 0 {
+			log.Debug("Just do nothing because the stake remains unchanged")
+			return nil
 		}
 		for _, candidate := range oldVote.Candidate {
 			oldTallyRLP := vc.tallyTrie.Get(candidate[:])
@@ -427,12 +628,12 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 				if err := rlp.DecodeBytes(oldTallyRLP, tally); err != nil {
 					return fmt.Errorf("failed to decode tally: %s", err)
 				}
-				if tally.Stake.Cmp(oldVote.Stake) == -1 {
-					tally.Stake = big.NewInt(0)
+				if tally.VotesValue.Cmp(oldVote.StakingValue) == -1 {
+					tally.VotesValue = big.NewInt(0)
 				} else {
-					tally.Stake = tally.Stake.Sub(tally.Stake, oldVote.Stake)
+					tally.VotesValue = tally.VotesValue.Sub(tally.VotesValue, oldVote.StakingValue)
 				}
-				tally.Stake = tally.Stake.Add(tally.Stake, stake)
+				tally.VotesValue = tally.VotesValue.Add(tally.VotesValue, stakingValue)
 				newTallyRLP, err := rlp.EncodeToBytes(tally)
 				if err != nil {
 					return fmt.Errorf("failed to encode tally to rlp bytes: %s", err)
@@ -441,9 +642,9 @@ func (vc *VdposContext) UpdateTallysAndVotesByMPV(voter common.Address, stake *b
 			}
 		}
 		newVote := &Votes{
-			Voter:     voter,
-			Candidate: oldVote.Candidate,
-			Stake:     stake,
+			Voter:        voter,
+			Candidate:    oldVote.Candidate,
+			StakingValue: stakingValue,
 		}
 		err := vc.UpdateVotes(newVote)
 		if err != nil {
