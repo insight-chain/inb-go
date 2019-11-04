@@ -381,16 +381,6 @@ func (ec *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.H
 	return head, err
 }
 
-/*type SdkRpcTransaction struct {
-	tx *types.Transaction
-	txExtraInfo
-}*/
-
-/*type SdkTxExtraInfo struct {
-	BlockNumber *string         `json:"blockNumber,omitempty"`
-	BlockHash   *common.Hash    `json:"blockHash,omitempty"`
-	From        *common.Address `json:"from,omitempty"`
-}*/
 type RpcTransaction struct {
 	tx *types.Transaction
 	txExtraInfo
