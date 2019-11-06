@@ -93,7 +93,7 @@ var (
 	ErrParameterError  = errors.New("parameter error")
 
 	//achilles0718 regular mortgagtion
-	ErrCountLimit     = errors.New("exceeds mortgagtion count limit")
+	ErrCountLimit     = errors.New("exceeds timeLimitedStaking count limit")
 	ErrInvalidAddress = errors.New("invalid address without right prefix")
 	ErrTxType         = errors.New("invalid transaction type")
 )
@@ -700,7 +700,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if err := pool.validateReceiveLockedAward(tx.Data(), from); err != nil {
 			return err
 		}
-
 	}
 
 	if tx.WhichTypes(types.ReceiveVoteAward) {
@@ -712,7 +711,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if tx.WhichTypes(types.Receive) {
 		timeLimit := new(big.Int).Add(pool.currentState.GetUnStakingHeight(from), params.TxConfig.RedeemDuration)
 		if timeLimit.Cmp(pool.chain.CurrentBlock().Number()) > 0 {
-
 			return errors.New(" before receive time ")
 		}
 		if big.NewInt(0).Cmp(pool.currentState.GetUnStaking(from)) == 0 {
@@ -824,9 +822,10 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			}
 		}
 
+		// check up if lightToken balance is enough
 		senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(from, lightTokenAddress)
 		if err != nil {
-			return errors.New("err in vdposContext.GetLightTokenBalanceByAddress()")
+			return err
 		} else {
 			if senderBalance.Cmp(tx.Value()) == -1 {
 				return errors.New("not enough lightToken balance to transfer")
@@ -834,6 +833,137 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		}
 	}
 	// add by ssh 190921 end
+
+	if tx.WhichTypes(types.RegularLightToken) {
+		stakingJson := new(types.StakingJson)
+		if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
+			return err
+		}
+
+		if !params.Contains(stakingJson.LockHeights) {
+			return errors.New(" invalid duration for staking ")
+		}
+
+		vdposContext := pool.chain.CurrentBlock().VdposContext
+
+		// check up if lightToken exist
+		lightTokenExist, err := vdposContext.GetLightToken(stakingJson.LightTokenAddress)
+		if lightTokenExist == nil {
+			return errors.New("this lightToken do not exist")
+		} else {
+			if err != nil {
+				return errors.New("err in vdposContext.GetLightToken()")
+			}
+		}
+
+		// check up if lightToken balance is enough
+		senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(from, stakingJson.LightTokenAddress)
+		if err != nil {
+			return err
+		} else {
+			if senderBalance.Cmp(tx.Value()) == -1 {
+				return errors.New("not enough lightToken balance to stake")
+			}
+		}
+
+		// check up lightToken stakings count limit
+		stakings, err := vdposContext.GetLightTokenStakingsByAddress(from, stakingJson.LightTokenAddress)
+		if err != nil {
+			return err
+		} else {
+			if count := len(stakings); count >= params.TxConfig.RegularLimit {
+				return ErrCountLimit
+			}
+		}
+	}
+
+	if tx.WhichTypes(types.RedeemLightToken) {
+		unStakingJson := new(types.UnStakingJson)
+		if err := json.Unmarshal(tx.Data(), unStakingJson); err != nil {
+			return err
+		}
+
+		vdposContext := pool.chain.CurrentBlock().VdposContext
+
+		// check up if lightToken exist
+		lightTokenExist, err := vdposContext.GetLightToken(unStakingJson.LightTokenAddress)
+		if lightTokenExist == nil {
+			return errors.New("this lightToken do not exist")
+		} else {
+			if err != nil {
+				return errors.New("err in vdposContext.GetLightToken()")
+			}
+		}
+
+		// check up lightToken stakings
+		stakings, err := vdposContext.GetLightTokenStakingsByAddress(from, unStakingJson.LightTokenAddress)
+		if err != nil {
+			return err
+		} else {
+			if count := len(stakings); count <= 0 {
+				return errors.New("no this locked record")
+			}
+			flag := false
+			for _, staking := range stakings {
+				if staking.Hash == unStakingJson.StakingHash {
+					heightNow := pool.chain.CurrentBlock().Header().Number
+					startHeight := staking.StartHeight
+					lockHeights := staking.LockHeights
+					endTimeHeight := new(big.Int).Add(startHeight, lockHeights)
+					if heightNow.Cmp(endTimeHeight) == -1 {
+						return errors.New("not correct block height to redeemLightToken")
+					} else {
+						flag = true
+						break
+					}
+				}
+			}
+			if !flag {
+				return errors.New("no this locked record")
+			}
+		}
+	}
+
+	if tx.WhichTypes(types.InsteadRegularLightToken) {
+		stakingJson := new(types.StakingJson)
+		if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
+			return err
+		}
+
+		if !params.Contains(stakingJson.LockHeights) {
+			return errors.New(" invalid duration for staking ")
+		}
+
+		vdposContext := pool.chain.CurrentBlock().VdposContext
+
+		// check up if lightToken exist
+		lightTokenExist, err := vdposContext.GetLightToken(stakingJson.LightTokenAddress)
+		if lightTokenExist == nil {
+			return errors.New("this lightToken do not exist")
+		} else {
+			if err != nil {
+				return errors.New("err in vdposContext.GetLightToken()")
+			}
+		}
+
+		// check up if lightToken balance is enough
+		senderBalance, err := vdposContext.GetLightTokenBalanceByAddress(from, stakingJson.LightTokenAddress)
+		if err != nil {
+			return err
+		} else {
+			if senderBalance.Cmp(tx.Value()) == -1 {
+				return errors.New("not enough lightToken balance to insteadRegular")
+			}
+		}
+
+		// check up lightToken stakings count limit
+		stakings, err := vdposContext.GetLightTokenStakingsByAddress(*tx.To(), stakingJson.LightTokenAddress)
+		if stakings != nil {
+			if count := len(stakings); count >= params.TxConfig.RegularLimit {
+				return ErrCountLimit
+			}
+		}
+	}
 
 	return nil
 }

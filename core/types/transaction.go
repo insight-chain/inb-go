@@ -58,12 +58,16 @@ const (
 	TransferLightToken //14
 
 	InsteadMortgage //15
+
+	RegularLightToken        //16
+	RedeemLightToken         //17
+	InsteadRegularLightToken //18
 )
 
 // tx type that to not nil
 func ValidateTo(txType TxType) bool {
 	flag := false
-	if txType == Ordinary || txType == SpecialTx || txType == TransferLightToken || txType == InsteadMortgage {
+	if txType == Ordinary || txType == SpecialTx || txType == TransferLightToken || txType == InsteadMortgage || txType == InsteadRegularLightToken {
 		flag = true
 	}
 	return flag
@@ -72,8 +76,9 @@ func ValidateTo(txType TxType) bool {
 func ValidateType(txType TxType) bool {
 	flag := true
 	if txType != Ordinary && txType != Mortgage && txType != Regular && txType != Redeem && txType != Vote && txType != Reset && txType != Receive &&
-		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != SpecialTx && txType != Contract &&
-		txType != InsteadMortgage && txType != UpdateNodeInformation {
+		txType != ReceiveLockedAward && txType != ReceiveVoteAward && txType != UpdateNodeInformation && txType != SpecialTx && txType != Contract &&
+		txType != IssueLightToken && txType != TransferLightToken && txType != InsteadMortgage && txType != RegularLightToken &&
+		txType != RedeemLightToken && txType != InsteadRegularLightToken {
 		flag = false
 	}
 	return flag
@@ -293,7 +298,7 @@ func (tx *Transaction) NoNeedUseNet() bool {
 
 func (tx *Transaction) NoNeedUseBalance() bool {
 	flag := false
-	if !(tx.WhichTypes(Reset) || tx.WhichTypes(Receive)) {
+	if !(tx.WhichTypes(Reset) || tx.WhichTypes(Receive) || tx.WhichTypes(TransferLightToken) || tx.WhichTypes(RegularLightToken) || tx.WhichTypes(RedeemLightToken) || tx.WhichTypes(InsteadRegularLightToken)) {
 		flag = true
 	}
 	return flag
