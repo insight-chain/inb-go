@@ -63,6 +63,8 @@ type LightTokenChangeType uint8
 const (
 	Add LightTokenChangeType = iota
 	Sub
+	Stake
+	UnStake
 )
 
 type LightToken struct {
@@ -76,6 +78,7 @@ type LightToken struct {
 	Owner                common.Address
 	PayForInb            *big.Int
 	Type                 uint8
+	TotalStakings        *big.Int
 }
 
 type LightTokenJson struct {
@@ -91,12 +94,30 @@ type ApproveInfo struct {
 	State    uint8
 }
 
+type Staking struct {
+	Hash        common.Hash // transaction of regular mortgaging
+	StartHeight *big.Int    // start time
+	LockHeights *big.Int    // duration of mortgaging
+	Value       *big.Int    // amount of mortgaging
+}
+
+type StakingJson struct {
+	LightTokenAddress common.Address `json:"lightTokenAddress"`
+	LockHeights       *big.Int       `json:"lockHeights"`
+}
+
+type UnStakingJson struct {
+	LightTokenAddress common.Address `json:"lightTokenAddress"`
+	StakingHash       common.Hash    `json:"stakingHash"`
+}
+
 type LightTokenState struct {
 	LightTokenAddress common.Address
 	LT                *LightToken
 	Balance           *big.Int
 	ApproveInfos      []*ApproveInfo
 	State             uint8
+	Stakings          []*Staking
 }
 
 type LightTokenAccount struct {
@@ -110,6 +131,7 @@ type LightTokenChange struct {
 	LT                *LightToken
 	ChangeBalance     *big.Int
 	ChangeType        LightTokenChangeType
+	ChangeStaking     *Staking
 }
 
 type LightTokenChanges struct {
@@ -744,6 +766,39 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 					log.Debug("Not found token,so do't need to sub")
 					continue
 				}
+			} else if lightTokenChange.ChangeType == Stake {
+				if place != -1 {
+					balance := lightTokenAccount.LightTokens[place].Balance
+					if balance.Cmp(lightTokenChange.ChangeBalance) == -1 {
+						log.Debug("Not enough balance")
+						continue
+					} else {
+						lightTokenAccount.LightTokens[place].Balance = balance.Sub(balance, lightTokenChange.ChangeBalance)
+						lightTokenAccount.LightTokens[place].LT = lightTokenChange.LT
+						lightTokenAccount.LightTokens[place].Stakings = append(lightTokenAccount.LightTokens[place].Stakings, lightTokenChange.ChangeStaking)
+					}
+				} else {
+					log.Debug("Not found token,so do't need to stake")
+					continue
+				}
+			} else if lightTokenChange.ChangeType == UnStake {
+				if place != -1 {
+					balance := lightTokenAccount.LightTokens[place].Balance
+					lightTokenAccount.LightTokens[place].Balance = balance.Add(balance, lightTokenChange.ChangeBalance)
+					lightTokenAccount.LightTokens[place].LT = lightTokenChange.LT
+
+					// remove staking record by hash
+					newStakings := make([]*Staking, 0)
+					for _, staking := range lightTokenAccount.LightTokens[place].Stakings {
+						if staking.Hash != lightTokenChange.ChangeStaking.Hash {
+							newStakings = append(newStakings, staking)
+						}
+					}
+					lightTokenAccount.LightTokens[place].Stakings = newStakings
+				} else {
+					log.Debug("Not found token,so do't need to unStake")
+					continue
+				}
 			}
 
 			newLightTokenAccountRLP, err := rlp.EncodeToBytes(lightTokenAccount)
@@ -766,8 +821,8 @@ func (vc *VdposContext) UpdateLightTokenAccount(lightTokenChanges *LightTokenCha
 					return fmt.Errorf("failed to encode lightTokenAccount to rlp bytes: %s", err)
 				}
 				vc.lightTokenAccountTrie.Update(lightTokenChange.AccountAddress[:], newLightTokenAccountRLP)
-			} else if lightTokenChange.ChangeType == Sub {
-				log.Debug("Not found account,so do't need to sub")
+			} else {
+				log.Debug("Not found account,so do nothing")
 				continue
 			}
 		}
@@ -783,4 +838,74 @@ func (vc *VdposContext) IsLightTokenExistInAccount(lightTokenAddress common.Addr
 		}
 	}
 	return -1
+}
+
+func (vc *VdposContext) UpdateLightTokenByTotalStakings(lightTokenAddress common.Address, stakingValue *big.Int, updateType LightTokenChangeType) (*LightToken, error) {
+	address := lightTokenAddress[:]
+	lightTokenRLP := vc.lightTokenTrie.Get(address)
+	if lightTokenRLP != nil {
+		lightToken := new(LightToken)
+		if err := rlp.DecodeBytes(lightTokenRLP, lightToken); err != nil {
+			return nil, fmt.Errorf("failed to decode lightToken: %s", err)
+		}
+		if updateType == Add {
+			lightToken.TotalStakings = lightToken.TotalStakings.Add(lightToken.TotalStakings, stakingValue)
+		} else if updateType == Sub {
+			if lightToken.TotalStakings.Cmp(stakingValue) == -1 {
+				lightToken.TotalStakings = big.NewInt(0)
+			} else {
+				lightToken.TotalStakings = lightToken.TotalStakings.Sub(lightToken.TotalStakings, stakingValue)
+			}
+		}
+		newlightTokenRLP, err := rlp.EncodeToBytes(lightToken)
+		if err != nil {
+			return nil, fmt.Errorf("failed to encode lightToken to rlp bytes: %s", err)
+		}
+		vc.lightTokenTrie.Update(address, newlightTokenRLP)
+		return lightToken, nil
+	} else {
+		return nil, fmt.Errorf("lightToken is not exist")
+	}
+
+}
+
+func (vc *VdposContext) GetStakingByHash(accountAddress common.Address, lightTokenAddress common.Address, stakingHash common.Hash) (*Staking, error) {
+	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(accountAddress[:])
+	if lightTokenAccountRLP == nil {
+		return nil, fmt.Errorf("this account has none of lightTokens")
+	} else {
+		lightTokenAccount := new(LightTokenAccount)
+		if err := rlp.DecodeBytes(lightTokenAccountRLP, lightTokenAccount); err != nil {
+			return nil, fmt.Errorf("failed to decode lightTokenAccount: %s", err)
+		}
+		place := vc.IsLightTokenExistInAccount(lightTokenAddress, lightTokenAccount.LightTokens)
+		if place == -1 {
+			return nil, fmt.Errorf("this account do not has this lightToken")
+		} else {
+			for _, staking := range lightTokenAccount.LightTokens[place].Stakings {
+				if staking.Hash == stakingHash {
+					return staking, nil
+				}
+			}
+			return nil, fmt.Errorf("this account do not has this lightToken staking")
+		}
+	}
+}
+
+func (vc *VdposContext) GetLightTokenStakingsByAddress(accountAddress common.Address, lightTokenAddress common.Address) ([]*Staking, error) {
+	lightTokenAccountRLP := vc.lightTokenAccountTrie.Get(accountAddress[:])
+	if lightTokenAccountRLP == nil {
+		return nil, fmt.Errorf("this account has none of lightTokens")
+	} else {
+		lightTokenAccount := new(LightTokenAccount)
+		if err := rlp.DecodeBytes(lightTokenAccountRLP, lightTokenAccount); err != nil {
+			return nil, fmt.Errorf("failed to decode lightTokenAccount: %s", err)
+		}
+		place := vc.IsLightTokenExistInAccount(lightTokenAddress, lightTokenAccount.LightTokens)
+		if place == -1 {
+			return nil, fmt.Errorf("this account do not has this lightToken")
+		} else {
+			return lightTokenAccount.LightTokens[place].Stakings, nil
+		}
+	}
 }
