@@ -18,13 +18,16 @@ package main
 
 import (
 	"crypto/ecdsa"
+	"encoding/hex"
 	"fmt"
+	"github.com/insight-chain/inb-go/accounts/keystore"
 	"github.com/insight-chain/inb-go/cmd/utils"
 	"github.com/insight-chain/inb-go/consensus/ethash"
-	"github.com/insight-chain/inb-go/eth"
 	"github.com/insight-chain/inb-go/crypto"
+	"github.com/insight-chain/inb-go/eth"
 	"github.com/insight-chain/inb-go/params"
 	"gopkg.in/urfave/cli.v1"
+	"io/ioutil"
 	"os"
 	"runtime"
 	"strconv"
@@ -84,6 +87,14 @@ The output of this command is supposed to be machine-readable.
 		Category:  "create nodekey before init",
 	}
 	//inb by ghy end
+
+	ImportPrivateKeyCommand = cli.Command{
+		Action:    utils.MigrateFlags(keystoreToPrivateKey),
+		Name:      "privatekey",
+		Usage:     "print private key",
+		ArgsUsage: " data-source path",
+		Category:  "print private key",
+	}
 )
 
 // makecache generates an ethash verification cache into the provided folder.
@@ -156,12 +167,12 @@ func nodekey(ctx *cli.Context) error {
 		utils.Fatalf(`Usage: ginb nodekey <block number> <outputdir>`)
 	}
 	var nodeKey *ecdsa.PrivateKey
-	_, err := os.Stat(args[0]+"/ginb/nodekey")
-	if os.IsExist(err)||err==nil {
+	_, err := os.Stat(args[0] + "/ginb/nodekey")
+	if os.IsExist(err) || err == nil {
 		fmt.Println("nodekey is already exist")
-		nodeKey, _ = crypto.LoadECDSA(args[0]+"/ginb/nodekey")
+		nodeKey, _ = crypto.LoadECDSA(args[0] + "/ginb/nodekey")
 
-	}else{
+	} else {
 		nodeKey, _ = crypto.GenerateKey()
 
 		err = os.MkdirAll(args[0]+"/ginb/", os.ModePerm)
@@ -169,8 +180,31 @@ func nodekey(ctx *cli.Context) error {
 			utils.Fatalf(error.Error(err))
 		}
 	}
-	nodeid:=fmt.Sprintf("%x", crypto.FromECDSAPub(&nodeKey.PublicKey)[1:])
+	nodeid := fmt.Sprintf("%x", crypto.FromECDSAPub(&nodeKey.PublicKey)[1:])
 	fmt.Println(nodeid)
 	return nil
 }
+
 //inb by ghy end
+
+func keystoreToPrivateKey(ctx *cli.Context) error {
+	args := ctx.Args()
+	if len(args) != 2 {
+		utils.Fatalf(`filename and password are necessary`)
+	}
+	filename := args[0]
+	auth := args[1]
+	// Load the key from the keystore and decrypt its contents
+	keyjson, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return err
+	}
+	key, err := keystore.DecryptKey(keyjson, auth)
+	if err != nil {
+		return err
+	}
+	fmt.Println("privateKey:", hex.EncodeToString(key.PrivateKey.D.Bytes()))
+	fmt.Println("address:", crypto.PubkeyToAddress(key.PrivateKey.PublicKey).String())
+
+	return nil
+}
