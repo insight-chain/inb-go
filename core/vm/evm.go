@@ -329,8 +329,8 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 		if err = evm.Context.CanIssueLightToken(evm.StateDB, caller.Address(), input, value); err != nil {
 			return nil, res, err, nil
 		}
-	} else if txType == types.TransferLightToken {
-		// do nothing because we don't need to check up value when transferLightToken
+	} else if txType == types.TransferLightToken || txType == types.RegularLightToken || txType == types.RedeemLightToken || txType == types.InsteadRegularLightToken {
+		// do nothing because we don't need to check up value when transferLightToken,regularLightToken,redeemLightToken,insteadRegularLightToken
 	} else {
 		// Fail if we're trying to transfer more than the available balance
 		if !evm.Context.CanTransfer(evm.StateDB, caller.Address(), value) {
@@ -384,8 +384,8 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 				break
 			}
 		}
-	} else if txType == types.TransferLightToken {
-		// do nothing when transferLightToken
+	} else if txType == types.TransferLightToken || txType == types.RegularLightToken || txType == types.RedeemLightToken || txType == types.InsteadRegularLightToken {
+		// do nothing when transferLightToken,regularLightToken,redeemLightToken,insteadRegularLightToken
 	} else {
 		evm.Transfer(evm.StateDB, caller.Address(), to.Address(), value)
 	}

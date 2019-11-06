@@ -117,6 +117,30 @@ func (v *Vdpos) processCustomTx(chain consensus.ChainReader, header *types.Heade
 			}
 		}
 
+		if tx.WhichTypes(types.RegularLightToken) {
+			err = v.processEventRegularLightToken(tx, txSender, header.Number, vdposContext)
+			if err != nil {
+				log.Error("Fail in Vdpos.processEventRegularLightToken()", "err", err)
+				continue
+			}
+		}
+
+		if tx.WhichTypes(types.RedeemLightToken) {
+			err = v.processEventRedeemLightToken(tx, txSender, header.Number, vdposContext)
+			if err != nil {
+				log.Error("Fail in Vdpos.processEventRedeemLightToken()", "err", err)
+				continue
+			}
+		}
+
+		if tx.WhichTypes(types.InsteadRegularLightToken) {
+			err = v.processEventInsteadRegularLightToken(tx, txSender, header.Number, vdposContext)
+			if err != nil {
+				log.Error("Fail in Vdpos.processEventInsteadRegularLightToken()", "err", err)
+				continue
+			}
+		}
+
 		// check each address
 		number := header.Number.Uint64()
 		if number > 1 {
@@ -318,6 +342,7 @@ func (v *Vdpos) processEventIssueLightToken(tx *types.Transaction, txSender comm
 		Owner:                txSender,
 		PayForInb:            tx.Value(),
 		Type:                 1,
+		TotalStakings:        big.NewInt(0),
 	}
 	//lightTokenExist, err := vdposContext.GetLightToken(lightTokenAddress)
 	//if lightTokenExist != nil {
@@ -388,6 +413,136 @@ func (v *Vdpos) processEventTransferLightToken(txData string, txSender common.Ad
 				return err
 			}
 		}
+	}
+
+	return nil
+}
+
+func (v *Vdpos) processEventRegularLightToken(tx *types.Transaction, txSender common.Address, blockNum *big.Int, vdposContext *types.VdposContext) error {
+	stakingJson := new(types.StakingJson)
+	if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
+		return err
+	}
+
+	lightTokenAddress := stakingJson.LightTokenAddress
+	lockHeights := stakingJson.LockHeights
+	stakingValue := tx.Value()
+
+	// first update lightTokenTrie
+	lightToken, err := vdposContext.UpdateLightTokenByTotalStakings(lightTokenAddress, stakingValue, types.Add)
+	if err != nil {
+		return err
+	}
+
+	// second update lightTokenAccountTrie
+	lightTokenChanges := new(types.LightTokenChanges)
+	lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
+		AccountAddress:    txSender,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     stakingValue,
+		ChangeType:        types.Stake,
+		ChangeStaking: &types.Staking{
+			Hash:        tx.Hash(),
+			StartHeight: blockNum,
+			LockHeights: lockHeights,
+			Value:       stakingValue,
+		},
+	})
+	err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *Vdpos) processEventRedeemLightToken(tx *types.Transaction, txSender common.Address, blockNum *big.Int, vdposContext *types.VdposContext) error {
+	unStakingJson := new(types.UnStakingJson)
+	if err := json.Unmarshal(tx.Data(), unStakingJson); err != nil {
+		return err
+	}
+
+	lightTokenAddress := unStakingJson.LightTokenAddress
+	stakingHash := unStakingJson.StakingHash
+
+	// first get the staking record
+	staking, err := vdposContext.GetStakingByHash(txSender, lightTokenAddress, stakingHash)
+	if err != nil {
+		return err
+	}
+
+	// second update lightTokenTrie
+	lightToken, err := vdposContext.UpdateLightTokenByTotalStakings(lightTokenAddress, staking.Value, types.Sub)
+	if err != nil {
+		return err
+	}
+
+	// third update lightTokenAccountTrie
+	lightTokenChanges := new(types.LightTokenChanges)
+	lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
+		AccountAddress:    txSender,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     staking.Value,
+		ChangeType:        types.UnStake,
+		ChangeStaking:     staking,
+	})
+	err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (v *Vdpos) processEventInsteadRegularLightToken(tx *types.Transaction, txSender common.Address, blockNum *big.Int, vdposContext *types.VdposContext) error {
+	stakingJson := new(types.StakingJson)
+	if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
+		return err
+	}
+
+	lightTokenAddress := stakingJson.LightTokenAddress
+	lockHeights := stakingJson.LockHeights
+	value := tx.Value()
+	txReceiver := *tx.To()
+
+	// first update lightTokenTrie
+	lightToken, err := vdposContext.UpdateLightTokenByTotalStakings(lightTokenAddress, value, types.Add)
+	if err != nil {
+		return err
+	}
+
+	// second update lightTokenAccountTrie
+	lightTokenChanges := new(types.LightTokenChanges)
+	lightTokenChanges.LTCs = append(lightTokenChanges.LTCs, &types.LightTokenChange{
+		AccountAddress:    txSender,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     value,
+		ChangeType:        types.Sub,
+	}, &types.LightTokenChange{
+		AccountAddress:    txReceiver,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     value,
+		ChangeType:        types.Add,
+	}, &types.LightTokenChange{
+		AccountAddress:    txReceiver,
+		LightTokenAddress: lightTokenAddress,
+		LT:                lightToken,
+		ChangeBalance:     value,
+		ChangeType:        types.Stake,
+		ChangeStaking: &types.Staking{
+			Hash:        tx.Hash(),
+			StartHeight: blockNum,
+			LockHeights: lockHeights,
+			Value:       value,
+		},
+	})
+	err = vdposContext.UpdateLightTokenAccount(lightTokenChanges)
+	if err != nil {
+		return err
 	}
 
 	return nil

@@ -30,11 +30,58 @@ import (
 	"github.com/insight-chain/inb-go/core/types"
 	"github.com/insight-chain/inb-go/rlp"
 	"github.com/insight-chain/inb-go/rpc"
+
+	"encoding/hex"
+	"github.com/insight-chain/inb-go/core/state"
+	"github.com/insight-chain/inb-go/crypto"
+	"log"
 )
 
+//var SdkRpcTx *RpcTransaction
 // Client defines typed wrappers for the Ethereum RPC API.
 type Client struct {
 	c *rpc.Client
+}
+
+//Client received transaction
+type SdkTransaction struct {
+	Nonce       uint64
+	FromAddress common.Address
+	ToAddress   common.Address
+	Amount      *big.Int
+	//	gasLimit uint64
+	Data   []byte
+	TxType types.TxType
+}
+
+// sdk recevieve SdkHeader
+type SdkHeader struct {
+	ParentHash       common.Hash      `json:"parentHash"       gencodec:"required"`
+	UncleHash        common.Hash      `json:"sha3Uncles"       gencodec:"required"`
+	Coinbase         common.Address   `json:"miner"            gencodec:"required"`
+	Root             common.Hash      `json:"stateRoot"        gencodec:"required"`
+	TxHash           common.Hash      `json:"transactionsRoot" gencodec:"required"`
+	ReceiptHash      common.Hash      `json:"receiptsRoot"     gencodec:"required"`
+	Bloom            types.Bloom      `json:"logsBloom"        gencodec:"required"`
+	Difficulty       *hexutil.Big     `json:"difficulty"       gencodec:"required"`
+	Number           *hexutil.Big     `json:"number"           gencodec:"required"`
+	ResLimit         hexutil.Uint64   `json:"resLimit"         gencodec:"required"`
+	ResUsed          hexutil.Uint64   `json:"resUsed"          gencodec:"required"`
+	Time             *hexutil.Big     `json:"timestamp"        gencodec:"required"`
+	Extra            hexutil.Bytes    `json:"extraData"        gencodec:"required"`
+	MixDigest        common.Hash      `json:"mixHash"`
+	Nonce            types.BlockNonce `json:"nonce"`
+	DataRoot         common.Hash      `json:"dataRoot"`
+	Reward           string           `json:"reward"           gencodec:"required"`
+	SpecialConsensus []byte           `json:"specialConsensus"  gencodec:"required"`
+	//VdposContext     *VdposContextProto `json:"vdposContext"     gencodec:"required"`
+	Hash common.Hash `json:"hash"`
+}
+
+//SignTransactionResult
+type SignTransactionResult struct {
+	Raw hexutil.Bytes      `json:"raw"`
+	Tx  *types.Transaction `json:"tx"`
 }
 
 // Dial connects a client to the given URL.
@@ -80,7 +127,7 @@ func (ec *Client) BlockByNumber(ctx context.Context, number *big.Int) (*types.Bl
 
 type rpcBlock struct {
 	Hash         common.Hash      `json:"hash"`
-	Transactions []rpcTransaction `json:"transactions"`
+	Transactions []RpcTransaction `json:"transactions"`
 	UncleHashes  []common.Hash    `json:"uncles"`
 }
 
@@ -150,14 +197,178 @@ func (ec *Client) getBlock(ctx context.Context, method string, args ...interface
 }
 
 // HeaderByHash returns the block header with the given hash.
-func (ec *Client) HeaderByHash(ctx context.Context, hash common.Hash) (*types.Header, error) {
-	var head *types.Header
+func (ec *Client) HeaderByHash(ctx context.Context, hash common.Hash) (*SdkHeader, error) {
+	var head *SdkHeader
 	err := ec.c.CallContext(ctx, &head, "inb_getBlockByHash", hash, false)
 	if err == nil && head == nil {
 		err = ethereum.NotFound
 	}
 	return head, err
 }
+
+// start by cq
+//get account balance
+/*func (ec *Client) GetBalance(address string) string {
+	toAddress := common.HexToAddress(address)
+	balance, err := ec.BalanceAt(context.Background(), toAddress, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return balance.String()
+}*/
+func (ec *Client) NewTransaction(chainId *big.Int, nonce uint64, priv string, to string, value *big.Int, data string, txtype types.TxType) (*types.Transaction, error) {
+	txdata := []byte(data)
+	var tx = new(types.Transaction)
+	if common.IsHexAddress(to) {
+		toaddr := common.HexToAddress(to)
+		tx = types.NewTransaction(nonce, toaddr, value, 0, txdata, txtype)
+	} else {
+		tx = types.NewNilToTransaction(nonce, value, 0, txdata, txtype)
+	}
+	key, err := crypto.HexToECDSA(priv)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), key)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return signedTx, nil
+}
+
+//special Transaction for receive ReceiveLockedAward
+func (ec *Client) NewTransactionForRLA(chainId *big.Int, nonce uint64, priv string, to string, value *big.Int, data []byte, txtype types.TxType) (*types.Transaction, error) {
+	//txdata := []byte(data)
+	var tx = new(types.Transaction)
+	if common.IsHexAddress(to) {
+		toaddr := common.HexToAddress(to)
+		tx = types.NewTransaction(nonce, toaddr, value, 0, data, txtype)
+	} else {
+		tx = types.NewNilToTransaction(nonce, value, 0, data, txtype)
+	}
+	key, err := crypto.HexToECDSA(priv)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), key)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return signedTx, nil
+}
+
+//create a raw transaction
+func (ec *Client) NewRawTx(chainId *big.Int, nonce uint64, priv, to, resourcePayer string, value *big.Int, data string, txtype types.TxType) (string, error) {
+	txdata := []byte(data)
+	payment := common.HexToAddress(resourcePayer)
+	tx := types.NewTransaction4Payment(nonce, common.HexToAddress(to), value, 0, txdata, txtype, &payment)
+	privKey, err := crypto.HexToECDSA(priv)
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), privKey)
+	ts := types.Transactions{signedTx}
+	rawTxBytes := ts.GetRlp(0)
+	rawTx := &types.Transaction{}
+	if err := rlp.DecodeBytes(rawTxBytes, rawTx); err != nil {
+		return "", err
+	}
+	rawTxHex := hex.EncodeToString(rawTxBytes)
+	//fmt.Println("rawTx_str:", hex.EncodeToString(rawTxBytes))
+	return rawTxHex, nil
+}
+
+//send signPayTX
+func (ec *Client) SignPaymentTx(chainId *big.Int, rawTxHex string, resourcePayerPriv string) (*SignTransactionResult, error) {
+	rawTxBytes, err := hex.DecodeString(rawTxHex)
+	tx := new(types.Transaction)
+	if err := rlp.DecodeBytes(rawTxBytes, tx); err != nil {
+		return nil, err
+	}
+	key, err := crypto.HexToECDSA(resourcePayerPriv)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	//sign for rawTx.......
+	payTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), key)
+
+	if err != nil {
+		return nil, err
+	}
+	returnData, err := rlp.EncodeToBytes(payTx)
+	if err != nil {
+		return nil, err
+	}
+	return &SignTransactionResult{returnData, payTx}, nil
+}
+
+//send raw Transaction
+func (ec *Client) SendRawTx(rawTx string) (string, error) {
+	rawTxT := rawTx[2:]
+	rawTxBytes, err := hex.DecodeString(rawTxT)
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+	tx := new(types.Transaction)
+	rlp.DecodeBytes(rawTxBytes, &tx)
+	err = ec.SendTransaction(context.Background(), tx)
+	if err != nil {
+		log.Fatal(err)
+		return "", err
+	}
+	return tx.Hash().Hex(), nil
+}
+
+//test rawTx
+func (ec *Client) RawTransaction(chainId *big.Int, nonce uint64, priv string, to string, value *big.Int, data string, txtype types.TxType) (*types.Transaction, error) {
+	txdata := []byte(data)
+	var tx = new(types.Transaction)
+	if common.IsHexAddress(to) {
+		toaddr := common.HexToAddress(to)
+		tx = types.NewTransaction(nonce, toaddr, value, 0, txdata, txtype)
+	} else {
+		tx = types.NewNilToTransaction(nonce, value, 0, txdata, txtype)
+	}
+	key, err := crypto.HexToECDSA(priv)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	signedTx, err := types.SignTx(tx, types.NewEIP155Signer(chainId), key)
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
+	return signedTx, nil
+}
+
+//get account info
+func (ec *Client) AccountInfo(ctx context.Context, account common.Address) (*state.Account, error) {
+	var accountInfo *state.Account
+	err := ec.c.CallContext(ctx, &accountInfo, "inb_getAccountInfo", account)
+	if err == nil && accountInfo == nil {
+		err = ethereum.NotFound
+	}
+	return accountInfo, err
+}
+
+//send wrapped transaction
+func (ec *Client) SdkSendTransaction(tx *types.Transaction) (string, error) {
+	err := ec.SendTransaction(context.Background(), tx)
+	if err != nil {
+		return "", err
+	}
+	return tx.Hash().Hex(), nil
+}
+
+//end by cq
 
 // HeaderByNumber returns a block header from the current canonical chain. If number is
 // nil, the latest known header is returned.
@@ -170,7 +381,7 @@ func (ec *Client) HeaderByNumber(ctx context.Context, number *big.Int) (*types.H
 	return head, err
 }
 
-type rpcTransaction struct {
+type RpcTransaction struct {
 	tx *types.Transaction
 	txExtraInfo
 }
@@ -181,7 +392,7 @@ type txExtraInfo struct {
 	From        *common.Address `json:"from,omitempty"`
 }
 
-func (tx *rpcTransaction) UnmarshalJSON(msg []byte) error {
+func (tx *RpcTransaction) UnmarshalJSON(msg []byte) error {
 	if err := json.Unmarshal(msg, &tx.tx); err != nil {
 		return err
 	}
@@ -189,9 +400,10 @@ func (tx *rpcTransaction) UnmarshalJSON(msg []byte) error {
 }
 
 // TransactionByHash returns the transaction with the given hash.
-func (ec *Client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *types.Transaction, isPending bool, err error) {
-	var json *rpcTransaction
+func (ec *Client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *RpcTransaction, isPending bool, err error) {
+	var json *RpcTransaction
 	err = ec.c.CallContext(ctx, &json, "inb_getTransactionByHash", hash)
+	fmt.Println()
 	if err != nil {
 		return nil, false, err
 	} else if json == nil {
@@ -202,7 +414,7 @@ func (ec *Client) TransactionByHash(ctx context.Context, hash common.Hash) (tx *
 	if json.From != nil && json.BlockHash != nil {
 		setSenderFromServer(json.tx, *json.From, *json.BlockHash)
 	}
-	return json.tx, json.BlockNumber == nil, nil
+	return json, json.BlockNumber == nil, nil
 }
 
 // TransactionSender returns the sender address of the given transaction. The transaction
@@ -239,7 +451,7 @@ func (ec *Client) TransactionCount(ctx context.Context, blockHash common.Hash) (
 
 // TransactionInBlock returns a single transaction at index in the given block.
 func (ec *Client) TransactionInBlock(ctx context.Context, blockHash common.Hash, index uint) (*types.Transaction, error) {
-	var json *rpcTransaction
+	var json *RpcTransaction
 	err := ec.c.CallContext(ctx, &json, "inb_getTransactionByBlockHashAndIndex", blockHash, hexutil.Uint64(index))
 	if err == nil {
 		if json == nil {

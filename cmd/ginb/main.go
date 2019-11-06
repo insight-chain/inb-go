@@ -202,6 +202,7 @@ func init() {
 		dumpConfigCommand,
 		//inb by ghy begin
 		nodekeyCommand,
+		ImportPrivateKeyCommand,
 		//inb by ghy end
 	}
 	sort.Sort(cli.CommandsByName(app.Commands))
