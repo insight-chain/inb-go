@@ -839,7 +839,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
 			return err
 		}
-
+		if stakingJson.LockHeights == nil {
+			return errors.New(" lock heights is necessary ")
+		}
 		if !params.Contains(stakingJson.LockHeights) {
 			return errors.New(" invalid duration for staking ")
 		}
@@ -929,7 +931,9 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 		if err := json.Unmarshal(tx.Data(), stakingJson); err != nil {
 			return err
 		}
-
+		if stakingJson.LockHeights == nil {
+			return errors.New(" lock heights is necessary ")
+		}
 		if !params.Contains(stakingJson.LockHeights) {
 			return errors.New(" invalid duration for staking ")
 		}
@@ -1929,7 +1933,9 @@ func ValidateIssueLightToken(db vm.StateDB, from common.Address, input []byte, v
 	if len(lightTokenJson.Symbol) > common.LenOfLightTokenSymbol {
 		return errors.New("light token symbol name  too long")
 	}
-
+	if lightTokenJson.TotalSupply == nil {
+		return errors.New(" totalSupply is necessary")
+	}
 	if lightTokenJson.TotalSupply.Cmp(big.NewInt(0)) != 1 {
 		return errors.New("light token totalSupply can not negative")
 	}
