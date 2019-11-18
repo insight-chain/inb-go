@@ -596,9 +596,7 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	}
 	// Transactions can't be negative. This may never happen using RLP decoded
 	// transactions but may occur if you create a transaction using the RPC.
-	//Resource by zc
 	inputStr := string(tx.Data())
-	//Resource by zc
 	if tx.Value().Sign() < 0 {
 		return ErrNegativeValue
 	}
@@ -626,11 +624,6 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 	if err != nil {
 		return ErrInvalidSender
 	}
-	// Ensure the transaction doesn't exceed the current block limit gas.
-	//achilles replace gas with net
-	//if pool.currentMaxGas < tx.Gas() {
-	//	return ErrGasLimit
-	//}
 	for _, v := range pool.chain.CurrentBlock().SpecialConsensus().SpecialConsensusAddress {
 		if nil != to && (v.Address == *to || v.Address == from) {
 			return errors.New("can not transfer to special consensus address")
