@@ -55,7 +55,7 @@ var (
 	LockedNumberOfDaysOneYearForMoreThan360days = big.NewInt(365)
 
 	// 2019.7.22 inb by ghy end
-	//
+
 	SpecialAddressPrefix = 5
 	MortgageAccount      = "0x9530000000000000000000000000000000000000" // account record value of mortgaging
 

@@ -26,7 +26,7 @@ func IsEmpty(str string) bool {
 }
 
 func IsBlank(str string) bool {
-	//TODO 同样需要做不是空白字符的判断
+
 	return IsEmpty(str)
 }
 
