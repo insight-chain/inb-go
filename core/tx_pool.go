@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -636,11 +636,11 @@ func (pool *TxPool) validateTx(tx *types.Transaction, local bool) error {
 			return errors.New("can not transfer to special consensus address")
 		}
 
-		if v.SpecialType == state.VotingReward || v.SpecialType == state.OnlineMarketing {
-			if nil != to && (v.ToAddress == *to || v.ToAddress == from) {
-				return errors.New("can not transfer online or voting address")
-			}
-		}
+		//if v.SpecialType == state.SealReward || v.SpecialType == state.OnlineMarketing {
+		//	if nil != to && (v.ToAddress == *to || v.ToAddress == from) {
+		//		return errors.New("can not transfer online or voting address")
+		//	}
+		//}
 	}
 
 	//achilles config validate candidates size
@@ -1755,14 +1755,14 @@ func (pool *TxPool) validateReceiveLockedAward(receivebonus []byte, from common.
 			if heightNow.Cmp(endTimeHeight) == -1 && FromLastReceivedPassDays.Cmp(LockedRewardCycleTimes) == -1 {
 				return errors.New("not block height to receive rewards")
 			}
-			for _, v := range pool.chain.CurrentBlock().Header().GetSpecialConsensus().SpecialConsensusAddress {
-				if v.SpecialType == state.OnlineMarketing {
-					if pool.currentState.GetBalance(v.ToAddress).Cmp(subValue) != 1 {
-						return errors.New("there are not enough inb in the online account")
-					}
-					return nil
-				}
-			}
+			//for _, v := range pool.chain.CurrentBlock().Header().GetSpecialConsensus().SpecialConsensusAddress {
+			//	if v.SpecialType == state.OnlineMarketing {
+			//		if pool.currentState.GetBalance(v.ToAddress).Cmp(subValue) != 1 {
+			//			return errors.New("there are not enough inb in the online account")
+			//		}
+			//		return nil
+			//	}
+			//}
 			return errors.New("can not find online account")
 		}
 	}
@@ -1790,7 +1790,7 @@ func (pool *TxPool) validateReceiveVoteAward(from common.Address) error {
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
 		consensus := pool.chain.CurrentBlock().Header().GetSpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.SpecialType == state.VotingReward {
+			if v.SpecialType == state.SealReward {
 				votes := account.Voted
 				votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
 				votes2 := new(big.Int).Mul(votes1, cycles)

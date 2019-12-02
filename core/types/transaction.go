@@ -786,15 +786,12 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 	//rewardInt, _ := strconv.Atoi(header.Reward)
 	//minerReward := big.NewInt(int64(rewardInt))
 	blockNumberOneYear := int64(365*86400) / int64(Period)
-	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	foundationReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	verifyReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
-	offlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(6e+5), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	minerReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	//allianceReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	//marketingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	//sealReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
+	//teamReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(1e+5)), big.NewInt(blockNumberOneYear))
 
-	votingReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
-
-	onlineReward := new(big.Int).Div(new(big.Int).Mul(big.NewInt(14e+5), big.NewInt(1e+5)), new(big.Int).Div(big.NewInt(365), big.NewInt(7)))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
@@ -803,23 +800,17 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
 
-				FoundationMul := new(big.Int).Mul(foundationReward, SpecialConsensus.Molecule)
-				foundationReward = new(big.Int).Div(FoundationMul, SpecialConsensus.Denominator)
-
-				VerifyMul := new(big.Int).Mul(verifyReward, SpecialConsensus.Molecule)
-				verifyReward = new(big.Int).Div(VerifyMul, SpecialConsensus.Denominator)
-
-				TeamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
-				teamReward = new(big.Int).Div(TeamMul, SpecialConsensus.Denominator)
-
-				OfflineMul := new(big.Int).Mul(offlineReward, SpecialConsensus.Molecule)
-				offlineReward = new(big.Int).Div(OfflineMul, SpecialConsensus.Denominator)
-
-				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
-				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
-
-				onlineMul := new(big.Int).Mul(onlineReward, SpecialConsensus.Molecule)
-				onlineReward = new(big.Int).Div(onlineMul, SpecialConsensus.Denominator)
+				//allianceMul := new(big.Int).Mul(allianceReward, SpecialConsensus.Molecule)
+				//allianceReward = new(big.Int).Div(allianceMul, SpecialConsensus.Denominator)
+				//
+				//marketingMul := new(big.Int).Mul(marketingReward, SpecialConsensus.Molecule)
+				//marketingReward = new(big.Int).Div(marketingMul, SpecialConsensus.Denominator)
+				//
+				//sealMul := new(big.Int).Mul(sealReward, SpecialConsensus.Molecule)
+				//sealReward = new(big.Int).Div(sealMul, SpecialConsensus.Denominator)
+				//
+				//teamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
+				//teamReward = new(big.Int).Div(teamMul, SpecialConsensus.Denominator)
 			}
 		}
 	}
@@ -839,9 +830,9 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 		totalConsensus.num = 1
 		specialConsensu[v.Address] = totalConsensus
 
-		if v.SpecialType == 135 || v.SpecialType == 171 {
-			specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: 2}
-		}
+		//if v.SpecialType == 135 || v.SpecialType == 171 {
+		//	specialConsensu[v.ToAddress] = &SpecialConsensusInfo{SpecialType: 2}
+		//}
 	}
 	specialConsensu[common.HexToAddress(common.MortgageAccount)] = &SpecialConsensusInfo{num: 1}
 
@@ -857,11 +848,6 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 		if info != nil {
 			switch info.SpecialType {
 			case 110:
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(foundationReward) != 0 {
-					return errors.New("Foundation special tx is not allowed")
-				}
-				info.num++
-			case 131:
 
 				address, err := getReceiveAddress(db, header)
 				if err == nil {
@@ -876,36 +862,31 @@ func ValidateTx(db ethdb.Database, txs Transactions, header, parentHeader *Heade
 				}
 
 				info.num++
-			case 133:
-				return errors.New("VerifyReward special tx is not allowed")
-			case 135:
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(votingReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
-					return errors.New("VotingReward special tx is not allowed")
-				}
-				info.num++
-			case 150:
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(teamReward) != 0 {
-					return errors.New("team special tx is not allowed")
-				}
-				info.num++
-			case 171:
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(onlineReward) != 0 || header.Number.Uint64()%common.OneWeekHeight.Uint64() != 0 {
-					return errors.New("OnlineMarketing special tx is not allowed")
-				}
-				info.num++
-			case 173:
-				if *v.data.Recipient != info.toAddress || v.Value().Cmp(offlineReward) != 0 {
-					return errors.New("OfflineMarketing special tx is not allowed")
-				}
-				info.num++
+			//case 131:
+			//	if *v.data.Recipient != info.toAddress || v.Value().Cmp(allianceReward) != 0 {
+			//		return errors.New("Foundation special tx is not allowed")
+			//	}
+			//	info.num++
+			//case 133:
+			//	if *v.data.Recipient != info.toAddress || v.Value().Cmp(marketingReward) != 0  {
+			//		return errors.New("VotingReward special tx is not allowed")
+			//	}
+			//	info.num++
+			//case 135:
+			//	if *v.data.Recipient != info.toAddress || v.Value().Cmp(sealReward) != 0 {
+			//		return errors.New("team special tx is not allowed")
+			//	}
+			//	info.num++
+			//case 150:
+			//	if *v.data.Recipient != info.toAddress || v.Value().Cmp(teamReward) != 0 {
+			//		return errors.New("OfflineMarketing special tx is not allowed")
+			//	}
+			//	info.num++
 			default:
 				return errors.New("other tx can not allowed")
 			}
-
 		}
-
 	}
-
 	for _, v := range specialConsensu {
 		if v.num > 2 {
 			return errors.New("a block can only have one special tx ")

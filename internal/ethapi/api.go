@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -625,9 +625,9 @@ func (s *PublicBlockChainAPI) GetLiquidity(ctx context.Context) string {
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		total = new(big.Int).Sub(total, state.GetBalance(v.Address))
 
-		if v.SpecialType == st.VotingReward || v.SpecialType == st.OnlineMarketing {
-			total = new(big.Int).Sub(total, state.GetBalance(v.ToAddress))
-		}
+		//if v.SpecialType == st.SealReward || v.SpecialType == st.OnlineMarketing {
+		//	total = new(big.Int).Sub(total, state.GetBalance(v.ToAddress))
+		//}
 	}
 	return total.String()
 

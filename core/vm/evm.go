@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -17,7 +17,6 @@
 package vm
 
 import (
-	"github.com/insight-chain/inb-go/core/state"
 	"github.com/insight-chain/inb-go/core/types"
 	"math/big"
 	"strconv"
@@ -378,12 +377,12 @@ func (evm *EVM) NewCall(caller ContractRef, addr common.Address, input []byte, r
 	} else if txType == types.Receive {
 		reses = evm.ReceiveTransfer(evm.StateDB, caller.Address(), evm.BlockNumber)
 	} else if txType == types.IssueLightToken {
-		for _, v := range evm.SpecialConsensus.SpecialConsensusAddress {
-			if v.SpecialType == state.OnlineMarketing {
-				evm.Transfer(evm.StateDB, caller.Address(), v.ToAddress, value)
-				break
-			}
-		}
+		//for _, v := range evm.SpecialConsensus.SpecialConsensusAddress {
+		//	if v.SpecialType == state.OnlineMarketing {
+		//		evm.Transfer(evm.StateDB, caller.Address(), v.ToAddress, value)
+		//		break
+		//	}
+		//}
 	} else if txType == types.TransferLightToken || txType == types.RegularLightToken || txType == types.RedeemLightToken || txType == types.InsteadRegularLightToken {
 		// do nothing when transferLightToken,regularLightToken,redeemLightToken,insteadRegularLightToken
 	} else {

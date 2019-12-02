@@ -3,7 +3,7 @@
 //
 // The inb-go library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The inb-go library is distributed in the hope that it will be useful,
@@ -45,14 +45,13 @@ const (
 )
 
 var (
-	DefaultVerifyRewardOneYear     = new(big.Int).Mul(big.NewInt(1e+7), big.NewInt(params.Inber))
-	DefaultTeamRewardOneYear       = new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(params.Inber))
-	DefaultOfflineRewardOneYear    = new(big.Int).Mul(big.NewInt(6e+5), big.NewInt(params.Inber))
-	DefaultFoundationRewardOneYear = new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(params.Inber))
-	DefaultMiningRewardOneYear     = new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(params.Inber))
-	DefaultVotingRewardOneYear     = new(big.Int).Mul(big.NewInt(2e+6), big.NewInt(params.Inber))
-	DefaultOnlineRewardOneYear     = new(big.Int).Mul(big.NewInt(14e+5), big.NewInt(params.Inber))
-	WeekNumberOfOneYear            = new(big.Int).Div(big.NewInt(365), big.NewInt(7))
+	DefaultMiningRewardOneYear    = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
+	DefaultAllianceRewardOneYear  = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
+	DefaultSealRewardOneYear      = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
+	DefaultTeamRewardOneYear      = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
+	DefaultMarketingRewardOneYear = new(big.Int).Mul(big.NewInt(1e+8), big.NewInt(params.Inber))
+
+
 	//OneWeekHeight                    = new(big.Int).Mul(big.NewInt(86400/2), big.NewInt(7))
 	OneYearBySec                     = int64(365 * 86400)
 	defaultBlockPeriod               = uint64(2)                                                      // default minimum difference between two consecutive block's timestamps
@@ -812,18 +811,18 @@ func (v *Vdpos) verifyCascadingFields(chain consensus.ChainReader, header *types
 //
 //	//for _, SpecialConsensusAddress := range header.SpecialConsensus.SpecialConsensusAddress {
 //	//	switch SpecialConsensusAddress.Name {
-//	//	case state.Foundation:
-//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
-//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.MiningReward:
 //	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
+//	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
+//	//	case state.AllianceReward:
+//	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(header.Coinbase, reward)
-//	//	case state.VerifyReward:
+//	//	case state.MarketingReward:
 //	//
-//	//	case state.VotingReward:
+//	//	case state.SealReward:
 //	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
-//	//	case state.Team:
+//	//	case state.TeamReward:
 //	//		states.SubBalance(SpecialConsensusAddress.Address, reward)
 //	//		states.AddBalance(SpecialConsensusAddress.ToAddress, reward)
 //	//	case state.OnlineMarketing:

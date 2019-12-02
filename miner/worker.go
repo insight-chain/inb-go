@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -389,7 +389,7 @@ func (w *worker) newWorkLoop(recommit time.Duration) {
 				log.Warn("Sanitizing miner recommit interval", "provided", interval, "updated", minRecommitInterval)
 				interval = minRecommitInterval
 			}
-			log.Info("Miner recommit interval update", "from", minRecommit, "to", interval)
+			log.Info("MiningReward recommit interval update", "from", minRecommit, "to", interval)
 			minRecommit, recommit = interval, interval
 
 			if w.resubmitHook != nil {
@@ -1009,13 +1009,10 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 	blockNumberOneYear := vdpos.OneYearBySec / int64(w.config.Vdpos.Period)
 
 	minerReward := new(big.Int).Div(vdpos.DefaultMiningRewardOneYear, big.NewInt(blockNumberOneYear))
-	foundationReward := new(big.Int).Div(vdpos.DefaultFoundationRewardOneYear, big.NewInt(blockNumberOneYear))
-	verifyReward := new(big.Int).Div(vdpos.DefaultVerifyRewardOneYear, big.NewInt(blockNumberOneYear))
-	teamReward := new(big.Int).Div(vdpos.DefaultTeamRewardOneYear, big.NewInt(blockNumberOneYear))
-	offlineReward := new(big.Int).Div(vdpos.DefaultOfflineRewardOneYear, big.NewInt(blockNumberOneYear))
-
-	votingReward := new(big.Int).Div(vdpos.DefaultVotingRewardOneYear, vdpos.WeekNumberOfOneYear)
-	onlineReward := new(big.Int).Div(vdpos.DefaultOnlineRewardOneYear, vdpos.WeekNumberOfOneYear)
+	//allianceReward := new(big.Int).Div(vdpos.DefaultAllianceRewardOneYear, big.NewInt(blockNumberOneYear))
+	//marketingReward := new(big.Int).Div(vdpos.DefaultMarketingRewardOneYear, big.NewInt(blockNumberOneYear))
+	//sealReward := new(big.Int).Div(vdpos.DefaultSealRewardOneYear, big.NewInt(blockNumberOneYear))
+	//teamReward := new(big.Int).Div(vdpos.DefaultTeamRewardOneYear, big.NewInt(blockNumberOneYear))
 
 	SpecialConsensus := header.GetSpecialConsensus()
 	if len(SpecialConsensus.SpecialConsensusAddress) > 1 {
@@ -1024,56 +1021,28 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 				minerMul := new(big.Int).Mul(minerReward, SpecialConsensus.Molecule)
 				minerReward = new(big.Int).Div(minerMul, SpecialConsensus.Denominator)
 
-				FoundationMul := new(big.Int).Mul(foundationReward, SpecialConsensus.Molecule)
-				foundationReward = new(big.Int).Div(FoundationMul, SpecialConsensus.Denominator)
-
-				VerifyMul := new(big.Int).Mul(verifyReward, SpecialConsensus.Molecule)
-				verifyReward = new(big.Int).Div(VerifyMul, SpecialConsensus.Denominator)
-
-				TeamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
-				teamReward = new(big.Int).Div(TeamMul, SpecialConsensus.Denominator)
-
-				OfflineMul := new(big.Int).Mul(offlineReward, SpecialConsensus.Molecule)
-				offlineReward = new(big.Int).Div(OfflineMul, SpecialConsensus.Denominator)
-
-				votingMul := new(big.Int).Mul(votingReward, SpecialConsensus.Molecule)
-				votingReward = new(big.Int).Div(votingMul, SpecialConsensus.Denominator)
-
-				onlineMul := new(big.Int).Mul(onlineReward, SpecialConsensus.Molecule)
-				onlineReward = new(big.Int).Div(onlineMul, SpecialConsensus.Denominator)
+				//allianceMul := new(big.Int).Mul(allianceReward, SpecialConsensus.Molecule)
+				//allianceReward = new(big.Int).Div(allianceMul, SpecialConsensus.Denominator)
+				//
+				//marketingMul := new(big.Int).Mul(marketingReward, SpecialConsensus.Molecule)
+				//marketingReward = new(big.Int).Div(marketingMul, SpecialConsensus.Denominator)
+				//
+				//sealMul := new(big.Int).Mul(sealReward, SpecialConsensus.Molecule)
+				//sealReward = new(big.Int).Div(sealMul, SpecialConsensus.Denominator)
+				//
+				//teamMul := new(big.Int).Mul(teamReward, SpecialConsensus.Molecule)
+				//teamReward = new(big.Int).Div(teamMul, SpecialConsensus.Denominator)
 
 			}
-
 		}
-
 	}
 	vdpos.DefaultMinerReward = minerReward
 	header.Reward = minerReward.String()
 	for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
 		switch v.SpecialType {
-		case state.Foundation:
-			from := v.Address
-			to := v.ToAddress
-			value := foundationReward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
 		case state.MiningReward:
 			from := v.Address
 			to := header.Coinbase
-
-			//b := header.Extra[32 : len(header.Extra)-65]
-			//headerExtra := vdpos.HeaderExtra{}
-			//val := &headerExtra
-			//err := rlp.DecodeBytes(b, val)
-			//if err == nil {
-			//	for _, v := range val.Enodes {
-			//		if v.Address == header.Coinbase && v.RewardAccount != "" {
-			//			address := common.HexToAddress(v.RewardAccount)
-			//			to = address
-			//		}
-			//	}
-			//}
-
 			superNodes, err := w.current.vdposContext.GetSuperNodesFromTrie()
 			if err == nil {
 				for _, v := range superNodes {
@@ -1086,39 +1055,31 @@ func (w *worker) commitNewWork(interrupt *int32, noempty bool, timestamp int64) 
 			value := minerReward
 			newTx := w.CreateTx(from, to, value)
 			localTxs[from] = append(localTxs[from], newTx, newTx)
-		case state.VerifyReward:
+		//case state.AllianceReward:
+		//	from := v.Address
+		//	to := v.ToAddress
+		//	value := allianceReward
+		//	newTx := w.CreateTx(from, to, value)
+		//	localTxs[from] = append(localTxs[from], newTx)
+		//case state.MarketingReward:
+		//	from := v.Address
+		//	to := v.ToAddress
+		//	value := marketingReward
+		//	newTx := w.CreateTx(from, to, value)
+		//	localTxs[from] = append(localTxs[from], newTx)
+		//case state.SealReward:
+		//	from := v.Address
+		//	to := v.ToAddress
+		//	value := sealReward
+		//	newTx := w.CreateTx(from, to, value)
+		//	localTxs[from] = append(localTxs[from], newTx)
+		//case state.TeamReward:
+		//	from := v.Address
+		//	to := v.ToAddress
+		//	value := teamReward
+		//	newTx := w.CreateTx(from, to, value)
+		//	localTxs[from] = append(localTxs[from], newTx)
 
-		case state.VotingReward:
-			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
-				from := v.Address
-				to := v.ToAddress
-				value := votingReward
-				//value := big.NewInt(int64(minerReward))
-				newTx := w.CreateTx(from, to, value)
-				localTxs[from] = append(localTxs[from], newTx)
-			}
-
-		case state.Team:
-			from := v.Address
-			to := v.ToAddress
-			value := teamReward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
-		case state.OnlineMarketing:
-			if header.Number.Uint64()%common.OneWeekHeight.Uint64() == 0 {
-				from := v.Address
-				to := v.ToAddress
-				value := onlineReward
-				newTx := w.CreateTx(from, to, value)
-				localTxs[from] = append(localTxs[from], newTx)
-			}
-		case state.OfflineMarketing:
-			from := v.Address
-			to := v.ToAddress
-			//value := new(big.Int).Div(offlineReward, big.NewInt(2))
-			value := offlineReward
-			newTx := w.CreateTx(from, to, value)
-			localTxs[from] = append(localTxs[from], newTx)
 		default:
 		}
 	}

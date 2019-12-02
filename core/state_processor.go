@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -136,11 +136,12 @@ func ApplyTransaction(config *params.ChainConfig, bc ChainContext, author *commo
 		onlineAddress := common.Address{}
 		//log := &types.Log{}
 		for _, v := range header.GetSpecialConsensus().SpecialConsensusAddress {
-			if v.SpecialType == state.VotingReward {
+			if v.SpecialType == state.SealReward {
 				votingAddress = v.ToAddress
-			} else if v.SpecialType == state.OnlineMarketing {
-				onlineAddress = v.ToAddress
 			}
+			//else if v.SpecialType ==  state.OnlineMarketing {
+			//	onlineAddress = v.ToAddress
+			//}
 		}
 		switch msg.Types() {
 		case types.ReceiveVoteAward:

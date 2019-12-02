@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -863,16 +863,16 @@ func (pool *TxPool) validateReceiveLockedAward(ctx context.Context, receivebonus
 			if subValue.Cmp(big.NewInt(0)) != 1 {
 				return errors.New("not receive vote award time")
 			} else {
-				consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
-				for _, v := range consensus.SpecialConsensusAddress {
-					if v.SpecialType == state.OnlineMarketing {
-						ToAddressInfo := currentState.GetAccountInfo(v.ToAddress)
-						if ToAddressInfo.Balance.Cmp(subValue) != 1 {
-							return errors.New("there are not enough inb in the voting account")
-						}
-						return nil
-					}
-				}
+				//consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
+				//for _, v := range consensus.SpecialConsensusAddress {
+				//	if v.SpecialType == state.OnlineMarketing {
+				//		ToAddressInfo := currentState.GetAccountInfo(v.ToAddress)
+				//		if ToAddressInfo.Balance.Cmp(subValue) != 1 {
+				//			return errors.New("there are not enough inb in the voting account")
+				//		}
+				//		return nil
+				//	}
+				//}
 				return errors.New("have no online marketing account")
 			}
 
@@ -902,7 +902,7 @@ func (pool *TxPool) validateReceiveVoteAward(ctx context.Context, from common.Ad
 	if cycles.Cmp(common.VoteRewardCycleTimes) >= 0 {
 		consensus := pool.chain.CurrentHeader().GetSpecialConsensus()
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.SpecialType == state.VotingReward {
+			if v.SpecialType == state.SealReward {
 				votes := account.Voted
 				votes1 := new(big.Int).Mul(votes, common.VoteDenominator)
 				votes2 := new(big.Int).Div(votes1, common.VoteHundred)

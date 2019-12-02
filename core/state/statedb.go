@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -51,14 +51,13 @@ var (
 
 //Resource by zc
 const (
-	MasterAccount    string = "0x9510000000000000000000000000000000000000" // account record value of circulation
-	Foundation       uint   = 110                                          // account record value of Foundation
-	MiningReward     uint   = 131                                          // account record value of Mining
-	VerifyReward     uint   = 133                                          // account record value of Verify
-	VotingReward     uint   = 135                                          // account record value of Voting
-	Team             uint   = 150                                          // account record value of team
-	OnlineMarketing  uint   = 171                                          // account record value of OnlineMarketing
-	OfflineMarketing uint   = 173                                          // account record value of OfflineMarketing
+	MasterAccount   string = "0x9510000000000000000000000000000000000000" // account record value of circulation
+	MiningReward    uint   = 110                                          // account record value of MiningReward
+	AllianceReward  uint   = 131                                          // account record value of Alliance
+	MarketingReward uint   = 133                                          // account record value of Marketing
+	SealReward      uint   = 135                                          // account record value of Seal
+	TeamReward      uint   = 150                                          // account record value of Team
+
 )
 
 //Resource by zc
@@ -532,20 +531,20 @@ func (self *StateDB) ResetNet(addr common.Address, update *big.Int) *big.Int {
 //2019.7.22 inb by ghy begin
 
 func (self *StateDB) CanReceiveLockedAward(addr common.Address, nonce common.Hash, height *big.Int, consensus types.SpecialConsensus) (err error, value *big.Int, is bool, toAddress common.Address) {
-	stateObject := self.GetOrNewStateObject(addr)
-	if stateObject != nil {
-		for _, v := range consensus.SpecialConsensusAddress {
-			if v.SpecialType == OnlineMarketing {
-				err, value, is = stateObject.CanReceiveLockedAward(nonce, height, consensus)
-				toAddress = v.ToAddress
-				totalBalance := self.GetBalance(v.ToAddress)
-				if totalBalance.Cmp(value) != 1 {
-					return errors.New("there are not enough inb in the online account"), big.NewInt(0), false, common.Address{}
-				}
-				return err, value, is, toAddress
-			}
-		}
-	}
+	//stateObject := self.GetOrNewStateObject(addr)
+	//if stateObject != nil {
+	//	for _, v := range consensus.SpecialConsensusAddress {
+	//		if v.SpecialType == OnlineMarketing {
+	//			err, value, is = stateObject.CanReceiveLockedAward(nonce, height, consensus)
+	//			toAddress = v.ToAddress
+	//			totalBalance := self.GetBalance(v.ToAddress)
+	//			if totalBalance.Cmp(value) != 1 {
+	//				return errors.New("there are not enough inb in the online account"), big.NewInt(0), false, common.Address{}
+	//			}
+	//			return err, value, is, toAddress
+	//		}
+	//	}
+	//}
 	return errors.New("errors of address"), big.NewInt(0), false, common.Address{}
 }
 
@@ -561,7 +560,7 @@ func (self *StateDB) CanReceiveVoteAward(addr common.Address, height *big.Int, c
 	stateObject := self.GetOrNewStateObject(addr)
 	if stateObject != nil {
 		for _, v := range consensus.SpecialConsensusAddress {
-			if v.SpecialType == VotingReward {
+			if v.SpecialType == SealReward {
 				err, value = stateObject.CanReceiveVoteAward(height)
 				toAddress = v.ToAddress
 				totalBalance := self.GetBalance(v.ToAddress)

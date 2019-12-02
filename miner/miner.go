@@ -3,7 +3,7 @@
 //
 // The go-ethereum library is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
+// the Free Software MiningReward, either version 3 of the License, or
 // (at your option) any later version.
 //
 // The go-ethereum library is distributed in the hope that it will be useful,
@@ -39,7 +39,7 @@ type Backend interface {
 	TxPool() *core.TxPool
 }
 
-// Miner creates blocks and searches for proof-of-work values.
+// MiningReward creates blocks and searches for proof-of-work values.
 type Miner struct {
 	mux      *event.TypeMux
 	worker   *worker
