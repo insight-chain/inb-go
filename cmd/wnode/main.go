@@ -106,6 +106,8 @@ var (
 	argSaveDir = flag.String("savedir", "", "directory where all incoming messages will be saved as files")
 )
 
+
+// main
 func main() {
 	processArgs()
 	initialize()
