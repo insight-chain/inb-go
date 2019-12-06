@@ -93,7 +93,7 @@ var (
 	ErrParameterError  = errors.New("parameter error")
 
 	//achilles0718 regular mortgagtion
-	ErrCountLimit     = errors.New("exceeds timeLimitedStaking count limit")
+	ErrCountLimit     = errors.New("exceeds time limited staking count limit")
 	ErrInvalidAddress = errors.New("invalid address without right prefix")
 	ErrTxType         = errors.New("invalid transaction type")
 )
