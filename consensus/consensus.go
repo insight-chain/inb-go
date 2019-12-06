@@ -108,6 +108,7 @@ type Engine interface {
 }
 
 // PoW is a consensus engine based on proof-of-work.
+// Not recommended
 type PoW interface {
 	Engine
 
