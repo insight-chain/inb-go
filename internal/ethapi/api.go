@@ -410,12 +410,6 @@ func (s *PrivateAccountAPI) Investment(ctx context.Context, args SendTxArgs, pas
 func (s *PrivateAccountAPI) SignTransaction(ctx context.Context, args SendTxArgs, passwd string) (*SignTransactionResult, error) {
 	// No need to obtain the noncelock mutex, since we won't be sending this
 	// tx into the transaction pool, but right back to the user
-	//if args.Gas == nil {
-	//	return nil, fmt.Errorf("gas not specified")
-	//}
-	//if args.GasPrice == nil {
-	//	return nil, fmt.Errorf("gasPrice not specified")
-	//}
 	if args.Types == 0 {
 		return nil, fmt.Errorf("txType not specified")
 	}
