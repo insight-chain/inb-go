@@ -75,6 +75,7 @@ func wrapNode(n *enode.Node) *node {
 	return &node{Node: *n}
 }
 
+// add by guanshan
 func wrapNodes(ns []*enode.Node) []*node {
 	result := make([]*node, len(ns))
 	for i, n := range ns {
@@ -87,7 +88,6 @@ func unwrapNode(n *node) *enode.Node {
 	return &n.Node
 }
 
-// add by guanshan
 func unwrapNodes(ns []*node) []*enode.Node {
 	result := make([]*enode.Node, len(ns))
 	for i, n := range ns {
