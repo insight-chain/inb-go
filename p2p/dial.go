@@ -48,6 +48,7 @@ const (
 
 // NodeDialer is used to connect to nodes in the network, typically by using
 // an underlying net.Dialer but also using net.Pipe in tests
+// add by guanshan
 type NodeDialer interface {
 	Dial(*enode.Node) (net.Conn, error)
 }

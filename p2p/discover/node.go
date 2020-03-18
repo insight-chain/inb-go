@@ -87,6 +87,7 @@ func unwrapNode(n *node) *enode.Node {
 	return &n.Node
 }
 
+// add by guanshan
 func unwrapNodes(ns []*node) []*enode.Node {
 	result := make([]*enode.Node, len(ns))
 	for i, n := range ns {
