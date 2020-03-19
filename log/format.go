@@ -66,9 +66,7 @@ func (f formatFunc) Format(r *Record) []byte {
 	return f(r)
 }
 
-// TerminalStringer is an analogous interface to the stdlib stringer, allowing
-// own types to have custom shortened serialization formats when printed to the
-// screen.
+// test
 type TerminalStringer interface {
 	TerminalString() string
 }
