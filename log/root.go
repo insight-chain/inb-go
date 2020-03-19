@@ -25,9 +25,7 @@ func Root() Logger {
 	return root
 }
 
-// The following functions bypass the exported logger methods (logger.Debug,
-// etc.) to keep the call depth the same for all paths to logger.write so
-// runtime.Caller(2) always refers to the call site in client code.
+//test
 
 // Trace is a convenient alias for Root().Trace
 func Trace(msg string, ctx ...interface{}) {
